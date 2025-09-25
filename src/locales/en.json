@@ -1,0 +1,14 @@
+{
+  "app": { "title": "BigPitch" },
+  "nav": { "home": "Home", "dashboard": "Dashboard", "login": "Login", "logout": "Logout" },
+  "hero": {
+    "heading": "Watch together. Chat together.",
+    "sub": "A minimal starting point for a WatchTogether-like platform: rooms, playlist, chat.",
+    "cta": "Get Started"
+  },
+  "footer": {
+    "tagline": "BigPitch — student project starter",
+    "rights": "All rights reserved."
+  },
+  "lang": { "en": "EN", "fr": "FR", "ru": "RU" }
+}

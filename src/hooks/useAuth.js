@@ -1,1 +1,3 @@
-export default function useAuth(){return {user:null}}
+export default function useAuth(){
+    return {user:null}
+}

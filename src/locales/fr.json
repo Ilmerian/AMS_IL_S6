@@ -1,0 +1,14 @@
+{
+  "app": { "title": "BigPitch" },
+  "nav": { "home": "Accueil", "dashboard": "Tableau de bord", "login": "Connexion", "logout": "Déconnexion" },
+  "hero": {
+    "heading": "Regarder ensemble. Discuter ensemble.",
+    "sub": "Point de départ minimal pour une plateforme type WatchTogether : salons, playlist, chat.",
+    "cta": "Commencer"
+  },
+  "footer": {
+    "tagline": "BigPitch — démarrage de projet étudiant",
+    "rights": "Tous droits réservés."
+  },
+  "lang": { "en": "EN", "fr": "FR", "ru": "RU" }
+}
