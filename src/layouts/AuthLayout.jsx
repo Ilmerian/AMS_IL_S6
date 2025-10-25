@@ -1,9 +1,10 @@
+import Container from '@mui/material/Container'
 import { Outlet } from 'react-router-dom'
 
 export default function AuthLayout() {
   return (
-    <div className="fullbleed" style={{ width: 'min(700px,100%)' }}>
+    <Container maxWidth="sm">
       <Outlet />
-    </div>
+    </Container>
   )
 }

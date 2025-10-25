@@ -1,0 +1,89 @@
+import { supabase } from '../lib/supabaseClient';
+import { Playlist } from '../models/Playlist';
+
+export const PlaylistRepository = {
+  async getByRoom(roomId) {
+    const { data, error } = await supabase
+      .from('playlists')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('playlist_id', { ascending: true });
+    if (error) throw error;
+    return data.map(Playlist.fromRow);
+  },
+
+  async getById(playlistId) {
+    const { data, error } = await supabase
+      .from('playlists')
+      .select('*')
+      .eq('playlist_id', playlistId)
+      .single();
+    if (error) throw error;
+    const pl = Playlist.fromRow(data)
+    const uniq = []
+    const seen = new Set()
+    for (const x of pl.videoIds || []) {
+      const n = Number(x)
+      if (!Number.isFinite(n)) continue
+      if (seen.has(n)) continue
+      seen.add(n)
+      uniq.push(n)
+    }
+    pl.videoIds = uniq
+    return pl
+  },
+
+  async create({ roomId, name }) {
+    const { data, error } = await supabase
+      .from('playlists')
+      .insert({ room_id: roomId, name })
+      .select()
+      .single();
+    if (error) throw error;
+    return Playlist.fromRow(data);
+  },
+
+  async pushVideo({ playlistId, videoId }) {
+    const { data, error } = await supabase
+      .rpc('add_video_unique', { p_playlist_id: playlistId, p_video_id: videoId });
+    if (error) throw error;
+    if (!data) {
+      const { data: row, error: e2 } = await supabase
+        .from('playlists')
+        .select('*')
+        .eq('playlist_id', playlistId)
+        .single();
+      if (e2) throw e2;
+      return Playlist.fromRow(row);
+    }
+    return Playlist.fromRow(data);
+  },
+
+  async pullVideo({ playlistId, videoId }) {
+    const { data, error } = await supabase
+      .rpc('remove_video', { p_playlist_id: playlistId, p_video_id: videoId });
+    if (error) throw error;
+    return Playlist.fromRow(data);
+  },
+
+  async removeVideo({ playlistId, videoId }) {
+    const { data: cur, error: e1 } = await supabase
+      .from('playlists')
+      .select('video_ids')
+      .eq('playlist_id', playlistId)
+      .single();
+    if (e1) throw e1;
+
+    const next = (cur?.video_ids || []).filter((id) => id !== videoId);
+
+    const { data: upd, error: e2 } = await supabase
+      .from('playlists')
+      .update({ video_ids: next })
+      .eq('playlist_id', playlistId)
+      .select()
+      .single();
+    if (e2) throw e2;
+
+    return Playlist.fromRow(upd);
+  },
+};

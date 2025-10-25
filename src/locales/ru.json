@@ -1,14 +1,167 @@
 {
-  "app": { "title": "BigPitch" },
-  "nav": { "home": "Главная", "dashboard": "Панель", "login": "Войти", "logout": "Выйти" },
+  "app": { "title": "WorldWatchMe" },
+  "nav": { 
+    "home": "Главная", 
+    "dashboard": "Панель", 
+    "rooms": "Комнаты",
+    "new": "Новая",
+    "settings": "Настройки",
+    "myRooms": "Мои комнаты",
+    "register": "Регистрация",
+    "login": "Войти",
+    "logout": "Выйти"
+  },
+  "user": {
+    "default": "Пользователь"
+  },
   "hero": {
-    "heading": "Смотрим вместе. Чатимся вместе.",
-    "sub": "Минимальная стартовая точка для платформы WatchTogether: комнаты, плейлист, чат.",
+    "heading": "Смотрим вместе. Общаемся вместе.",
+    "sub": "Минимальная основа платформы как WatchTogether: комнаты, плейлист, чат.",
     "cta": "Начать"
   },
   "footer": {
-    "tagline": "BigPitch — стартер студенческого проекта",
+    "tagline": "WorldWatchMe — студенческий стартовый проект",
     "rights": "Все права защищены."
   },
-  "lang": { "en": "EN", "fr": "FR", "ru": "RU" }
+  "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
+  "chat": {
+    "guest": "гость",
+    "sending": "отправка…",
+    "failed": "ошибка",
+    "signin_hint": "Войдите, чтобы участвовать в чате.",
+    "placeholder": "Введите сообщение…",
+    "send": "Отправить"
+  },
+  "common": {
+    "sending": "Отправка…"
+  },
+  "auth": {
+    "email_label": "Ваш e-mail",
+    "email_placeholder": "you@example.com",
+    "get_magic_link": "Получить магическую ссылку",
+    "magic_link_sent": "Магическая ссылка отправлена. Проверьте почту.",
+    "magic_link_failed": "Не удалось отправить магическую ссылку.",
+    "loginTitle": "Вход",
+    "mode": {
+      "magic": "Магическая ссылка",
+      "password": "E-mail и пароль"
+    },
+    "email": "E-mail",
+    "password": "Пароль",
+    "password_placeholder": "••••••••",
+    "policy_hint": "Правила: 8+ символов, строчные+прописные, цифра или символ.",
+    "send_magic": "Отправить магическую ссылку",
+    "sending": "Отправка...",
+    "signing": "Входим...",
+    "sign_in": "Войти",
+    "forgot": "Забыли пароль?",
+    "magic_sent": "Проверьте почту для магической ссылки.",
+    "signed_in": "Вход выполнен.",
+    "signin_error": "Ошибка входа",
+    "create_account_title": "Создать аккаунт",
+    "confirm_password": "Подтвердите пароль",
+    "creating": "Создание...",
+    "create_account": "Создать аккаунт",
+    "have_account": "У меня уже есть аккаунт",
+    "passwords_no_match": "Пароли не совпадают",
+    "password_too_weak": "Пароль слишком слабый",
+    "signup_error": "Ошибка регистрации",
+    "account_created": "Аккаунт создан. Проверьте почту для подтверждения адреса.",
+    "reset_title": "Сброс пароля",
+    "email_address": "Адрес e-mail",
+    "send_reset": "Отправить письмо для сброса",
+    "reset_sent": "Проверьте почту, чтобы сбросить пароль.",
+    "error": "Ошибка"    
+  },
+  "password": {
+    "strength": {
+      "veryWeak": "Очень слабый",
+      "weak": "Слабый",
+      "good": "Хороший",
+      "strong": "Сильный",
+      "missing": "не хватает"
+    },
+    "issue": {
+      "minLength": "Не менее 8 символов",
+      "mixedCase": "Строчные и прописные буквы",
+      "digitOrSymbol": "Содержит цифру или символ"
+    }    
+  },
+  "playlist": {
+    "urlLabel": "Ссылка YouTube",
+    "urlPlaceholder": "https://youtu.be/...",
+    "add": "Добавить",
+    "adding": "Добавление…",
+    "noPlaylist": "Плейлиста нет",
+    "noVideosYet": "Пока нет видео — вставьте ссылку и добавьте.",
+    "failedAdd": "Не удалось добавить видео",
+    "failedRemove": "Не удалось удалить видео",
+    "play": "Воспроизвести",
+    "delete": "Удалить"
+  },
+  "video": {
+    "emptyHint": "Вставьте ссылку YouTube, чтобы начать"
+  },
+  "notFound": {
+    "code": "404",
+    "message": "Упс… Страница, которую вы ищете, не существует или была перемещена.",
+    "backHome": "На главную"
+  },
+  "room": {
+    "private": "Приватная комната",
+    "public": "Публичная комната",
+    "enterPassword": "Введите пароль комнаты, чтобы присоединиться:",
+    "password_placeholder": "••••",
+    "join": "Войти"
+  },
+  "roomCreate": {
+    "title": "Создать комнату",
+    "subtitle": "Назовите комнату и при необходимости установите пароль, чтобы сделать её приватной.",
+    "name_label": "Название комнаты",
+    "name_placeholder": "Пятничный киносеанс",
+    "private_label": "Сделать комнату приватной (с паролем)",
+    "password_label": "Пароль",
+    "password_placeholder": "••••",
+    "creating": "Создание...",
+    "create": "Создать комнату",
+    "cancel": "Отмена",
+    "error_name_required": "Название комнаты обязательно",
+    "error_password_short": "Пароль должен содержать не менее 3 символов",
+    "error_creating": "Ошибка при создании комнаты"
+  },
+  "rooms": {
+    "titleMy": "Мои комнаты",
+    "titlePublic": "Публичные комнаты",
+    "newRoom": "Новая комната",
+    "emptyMy": "Пока нет комнат.",
+    "emptyPublic": "Пока нет публичных комнат.",
+    "visibility": {
+      "private": "Приватная",
+      "public": "Публичная"
+    },
+    "aria": {
+      "deleteRoom": "Удалить комнату {{name}}"
+    },
+    "dialog": {
+      "deleteTitle": "Удалить комнату?",
+      "deleteBody": "Это действие навсегда удалит «{{name}}».",
+      "cancel": "Отмена",
+      "deleting": "Удаление…",
+      "delete": "Удалить"
+    },
+    "errors": {
+      "deleteFailed": "Не удалось удалить"
+    }
+  },
+  "settings": {
+    "username": "Имя пользователя (псевдоним)",
+    "avatarUrl": "URL аватара",
+    "saveProfile": "Сохранить профиль",
+    "changeEmail": "Изменить e-mail",
+    "saved": "Сохранено",
+    "changeAvatar": "Сменить аватар",
+    "removeAvatar": "Удалить аватар",
+    "error": "Ошибка",
+    "confirmNewEmail": "Проверьте почту, чтобы подтвердить новый адрес."
+  }  
 }

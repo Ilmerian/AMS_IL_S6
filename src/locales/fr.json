@@ -1,14 +1,167 @@
 {
-  "app": { "title": "BigPitch" },
-  "nav": { "home": "Accueil", "dashboard": "Tableau de bord", "login": "Connexion", "logout": "Déconnexion" },
+  "app": { "title": "WorldWatchMe" },
+  "nav": { 
+    "home": "Accueil", 
+    "dashboard": "Tableau de bord", 
+    "rooms": "Salons",
+    "new": "Nouveau",
+    "settings": "Paramètres",
+    "myRooms": "Mes salons",
+    "register": "Inscription",
+    "login": "Connexion",
+    "logout": "Déconnexion"
+  },
+  "user": {
+    "default": "Utilisateur"
+  },
   "hero": {
     "heading": "Regarder ensemble. Discuter ensemble.",
-    "sub": "Point de départ minimal pour une plateforme type WatchTogether : salons, playlist, chat.",
+    "sub": "Un point de départ minimal pour une plateforme type WatchTogether : salons, playlist, chat.",
     "cta": "Commencer"
   },
   "footer": {
-    "tagline": "BigPitch — démarrage de projet étudiant",
+    "tagline": "WorldWatchMe — projet étudiant de démarrage",
     "rights": "Tous droits réservés."
   },
-  "lang": { "en": "EN", "fr": "FR", "ru": "RU" }
+  "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
+  "chat": {
+    "guest": "invité",
+    "sending": "envoi…",
+    "failed": "échec",
+    "signin_hint": "Connectez-vous pour participer au chat.",
+    "placeholder": "Écrire un message…",
+    "send": "Envoyer"
+  },
+  "common": {
+    "sending": "Envoi…"
+  },
+  "auth": {
+    "email_label": "Votre e-mail",
+    "email_placeholder": "vous@exemple.com",
+    "get_magic_link": "Obtenir le lien magique",
+    "magic_link_sent": "Lien magique envoyé. Vérifiez votre boîte de réception.",
+    "magic_link_failed": "Échec de l’envoi du lien magique.",
+    "loginTitle": "Connexion",
+    "mode": {
+      "magic": "Lien magique",
+      "password": "E-mail et mot de passe"
+    },
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "password_placeholder": "••••••••",
+    "policy_hint": "Règle : 8+ caractères, minuscules+majuscules, chiffre ou symbole.",
+    "send_magic": "Envoyer le lien magique",
+    "sending": "Envoi...",
+    "signing": "Connexion...",
+    "sign_in": "Se connecter",
+    "forgot": "Mot de passe oublié ?",
+    "magic_sent": "Vérifiez votre e-mail pour le lien magique.",
+    "signed_in": "Connecté.",
+    "signin_error": "Erreur de connexion",
+    "create_account_title": "Créer un compte",
+    "confirm_password": "Confirmer le mot de passe",
+    "creating": "Création...",
+    "create_account": "Créer un compte",
+    "have_account": "J’ai déjà un compte",
+    "passwords_no_match": "Les mots de passe ne correspondent pas",
+    "password_too_weak": "Mot de passe trop faible",
+    "signup_error": "Erreur d’inscription",
+    "account_created": "Compte créé. Vérifiez votre e-mail pour confirmer votre adresse.",
+    "reset_title": "Réinitialiser le mot de passe",
+    "email_address": "Adresse e-mail",
+    "send_reset": "Envoyer l’e-mail de réinitialisation",
+    "reset_sent": "Consultez votre e-mail pour réinitialiser votre mot de passe.",
+    "error": "Erreur"    
+  },
+  "password": {
+    "strength": {
+      "veryWeak": "Très faible",
+      "weak": "Faible",
+      "good": "Bon",
+      "strong": "Fort",
+      "missing": "manquant"
+    },
+    "issue": {
+      "minLength": "Au moins 8 caractères",
+      "mixedCase": "Minuscules et majuscules",
+      "digitOrSymbol": "Contient un chiffre ou un symbole"
+    }    
+  },
+  "playlist": {
+    "urlLabel": "URL YouTube",
+    "urlPlaceholder": "https://youtu.be/...",
+    "add": "Ajouter",
+    "adding": "Ajout…",
+    "noPlaylist": "Pas de playlist",
+    "noVideosYet": "Aucune vidéo pour l’instant — collez un lien et ajoutez.",
+    "failedAdd": "Échec de l’ajout de la vidéo",
+    "failedRemove": "Échec de la suppression de la vidéo",
+    "play": "Lire",
+    "delete": "Supprimer"
+  },
+  "video": {
+    "emptyHint": "Collez un lien YouTube pour commencer"
+  },
+  "notFound": {
+    "code": "404",
+    "message": "Oups… La page que vous recherchez n’existe pas ou a été déplacée.",
+    "backHome": "Retour à l’accueil"
+  },
+  "room": {
+    "private": "Salon privé",
+    "public": "Salon public",
+    "enterPassword": "Entrez le mot de passe du salon pour rejoindre :",
+    "password_placeholder": "••••",
+    "join": "Rejoindre"
+  },
+  "roomCreate": {
+    "title": "Créer un salon",
+    "subtitle": "Donnez un nom à votre salon et définissez éventuellement un mot de passe pour le rendre privé.",
+    "name_label": "Nom du salon",
+    "name_placeholder": "Soirée cinéma du vendredi",
+    "private_label": "Rendre le salon privé (mot de passe)",
+    "password_label": "Mot de passe",
+    "password_placeholder": "••••",
+    "creating": "Création...",
+    "create": "Créer le salon",
+    "cancel": "Annuler",
+    "error_name_required": "Le nom du salon est obligatoire",
+    "error_password_short": "Le mot de passe doit contenir au moins 3 caractères",
+    "error_creating": "Erreur lors de la création du salon"
+  },
+  "rooms": {
+    "titleMy": "Mes salons",
+    "titlePublic": "Salons publics",
+    "newRoom": "Nouveau salon",
+    "emptyMy": "Aucun salon pour l’instant.",
+    "emptyPublic": "Aucun salon public pour l’instant.",
+    "visibility": {
+      "private": "Privé",
+      "public": "Public"
+    },
+    "aria": {
+      "deleteRoom": "Supprimer le salon {{name}}"
+    },
+    "dialog": {
+      "deleteTitle": "Supprimer le salon ?",
+      "deleteBody": "Cela supprimera définitivement « {{name}} ».",
+      "cancel": "Annuler",
+      "deleting": "Suppression…",
+      "delete": "Supprimer"
+    },
+    "errors": {
+      "deleteFailed": "Échec de la suppression"
+    }
+  },
+  "settings": {
+    "username": "Nom d’utilisateur (pseudo)",
+    "avatarUrl": "URL de l’avatar",
+    "saveProfile": "Enregistrer le profil",
+    "changeEmail": "Changer d’e-mail",
+    "saved": "Enregistré",
+    "changeAvatar": "Changer d’avatar",
+    "removeAvatar": "Supprimer l’avatar",
+    "error": "Erreur",
+    "confirmNewEmail": "Consultez votre e-mail pour confirmer la nouvelle adresse."
+  }  
 }

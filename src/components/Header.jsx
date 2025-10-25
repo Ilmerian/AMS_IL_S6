@@ -1,85 +1,164 @@
+// src/components/Header.jsx
 import { useTranslation } from 'react-i18next'
-import { useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useCallback, useState } from 'react'
+import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/auth'
 import { AuthService } from '../services/AuthService'
 
+import AppBar from '@mui/material/AppBar'
+import Toolbar from '@mui/material/Toolbar'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
+import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
+import Avatar from '@mui/material/Avatar'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
+import Link from '@mui/material/Link'
+import ButtonGroup from '@mui/material/ButtonGroup'
+import Typography from '@mui/material/Typography'
+
+function NavItem({ to, children }) {
+  const { pathname } = useLocation()
+  const active = pathname === to
+  return (
+    <Link
+      component={RouterLink}
+      to={to}
+      aria-current={active ? 'page' : undefined}
+      sx={{
+        position: 'relative', px: 1, py: 0.5,
+        fontWeight: active ? 600 : 500,
+        color: active ? 'primary.light' : 'common.white',
+        opacity: active ? 1 : 0.92,
+        '&:hover': { opacity: 1, color: 'primary.main', textDecoration: 'none' },
+        '&::after': active ? {
+          content: '""', position: 'absolute', left: '10%', right: '10%', bottom: -6,
+          height: 2, borderRadius: 1, bgcolor: 'primary.main'
+        } : {},
+      }}
+    >
+      {children}
+    </Link>
+  )
+}
+
 export default function Header() {
   const { t, i18n } = useTranslation()
-  const { user } = useAuth()
-  const current = i18n.language?.slice(0,2) || 'en'
-
-  const switchLang = useCallback((lng) => {
-    if (lng && lng !== current) i18n.changeLanguage(lng)
-  }, [i18n, current])
+  const { user, profile } = useAuth()
+  const current = i18n.language?.slice(0, 2) || 'en'
+  const [anchorEl, setAnchorEl] = useState(null)
 
   const langs = useMemo(() => ([
     { code: 'en', label: t('lang.en') || 'EN' },
     { code: 'fr', label: t('lang.fr') || 'FR' },
-    { code: 'ru', label: t('lang.ru') || 'RU' }
+    { code: 'ru', label: t('lang.ru') || 'RU' },
   ]), [t])
 
-  const onLangKeyDown = (e) => {
-    const idx = langs.findIndex(l => l.code === current)
-    if (idx === -1) return
-    if (e.key === 'ArrowRight') { e.preventDefault(); switchLang(langs[(idx + 1) % langs.length].code) }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); switchLang(langs[(idx - 1 + langs.length) % langs.length].code) }
+  const switchLang = useCallback(
+    (lng) => { if (lng && lng !== current) i18n.changeLanguage(lng) },
+    [i18n, current]
+  )
+
+  const baseAvatar = profile?.avatarUrl || user?.user_metadata?.avatar_url || null
+  const avatarUrl = baseAvatar ? `${baseAvatar}${baseAvatar.includes('?') ? '&' : '?'}v=${profile?.id || ''}` : null
+  const userLabel =
+    profile?.username ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    t('user.default')
+
+  const handleSignOut = async (global = false) => {
+    try { global ? await AuthService.signOutAll() : await AuthService.signOut() }
+    catch (err) { console.error('Error signing out:', err?.message || err) }
   }
 
   return (
-    <header style={styles.header}>
-      <div style={styles.brand}>
-        <span style={styles.logo} aria-hidden>🎬</span>
-        <span style={styles.title}>{t('app.title')}</span>
-      </div>
+    <AppBar position="sticky" elevation={6}
+      sx={{
+        top: 0, zIndex: (t) => t.zIndex.appBar + 1,
+        background: 'linear-gradient(90deg, rgba(0,0,0,.7), rgba(0,0,0,.5))',
+        backdropFilter: 'saturate(160%) blur(10px)',
+        borderBottom: '1px solid rgba(255,255,255,0.2)',
+      }}
+    >
+      <Toolbar sx={{ px: { xs: 1.5, md: 3 }, py: 1.25, gap: 2 }}>
+        <Box sx={{ display: { xs: 'inline-flex', md: 'none' }, width: 24, height: 2, bgcolor: 'common.white', borderRadius: 1 }} />
 
-      <nav style={styles.nav} aria-label="Primary">
-        <Link to="/" style={styles.link}>{t('nav.home')}</Link>
-        <Link to="/pitches" style={styles.link}>Pitches</Link>
-        {user ? (
-          <>
-            <Link to="/pitches/new" style={styles.link}>New</Link>
-            <button style={styles.link} onClick={() => AuthService.signOut()}>{t('nav.logout')}</button>
-          </>
-        ) : (
-          <Link to="/login" style={styles.link}>{t('nav.login')}</Link>
-        )}
-      </nav>
+        {/* Brand */}
+        <Typography component={RouterLink} to="/" variant="h6"
+          sx={{ flex: 1, fontWeight: 800, letterSpacing: .2, color: 'primary.light', '&:hover': { color: 'primary.main' } }}>
+          {t('app.title')}
+        </Typography>
 
-      {/* Segmented language switcher */}
-      <div role="group" aria-label="Language" style={styles.langGroup} onKeyDown={onLangKeyDown} tabIndex={0}>
-        <div style={styles.segment}>
-          {langs.map(({ code, label }) => {
-            const active = code === current
-            return (
-              <button
+        {/* Desktop Nav */}
+        <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', md: 'flex' } }}>
+          <NavItem to="/">{t('nav.home')}</NavItem>
+          <NavItem to="/rooms">{t('nav.rooms')}</NavItem>
+          {user ? <NavItem to="/rooms/new">{t('nav.new')}</NavItem> : null}
+        </Stack>
+
+        {/* Right controls */}
+        <Stack direction="row" spacing={1} alignItems="center">
+          {/* Lang */}
+          <ButtonGroup variant="outlined" size="small" sx={{ display: { xs: 'none', sm: 'inline-flex' }, borderRadius: 999 }}>
+            {langs.map(({ code, label }) => (
+              <Button
                 key={code}
-                type="button"
                 onClick={() => switchLang(code)}
-                aria-pressed={active}
-                style={{ ...styles.langBtn, ...(active ? styles.langBtnActive : null) }}
-                title={label}
+                variant={code === current ? 'contained' : 'outlined'}
+                color="primary"
+                sx={{ borderRadius: 999, minWidth: 44 }}
               >
                 {label}
-              </button>
-            )
-          })}
-          <span aria-hidden style={{ ...styles.segmentIndicator, transform: `translateX(${langs.findIndex(l => l.code === current) * 100}%)` }} />
-        </div>
-      </div>
-    </header>
+              </Button>
+            ))}
+          </ButtonGroup>
+
+          {/* Profile/Guest */}
+          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small" sx={{ ml: 1 }}>
+            <Avatar
+              src={avatarUrl || undefined}
+              alt={userLabel}
+              sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}
+              imgProps={{ onError: (e) => { e.currentTarget.src = '' } }}
+            >
+              {userLabel?.slice(0, 1)?.toUpperCase()}
+            </Avatar>
+          </IconButton>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            {user ? [
+              <MenuItem key="settings" component={RouterLink} to="/settings" onClick={() => setAnchorEl(null)}>
+                {t('nav.settings')}
+              </MenuItem>,
+              <MenuItem key="rooms" component={RouterLink} to="/rooms" onClick={() => setAnchorEl(null)}>
+                {t('nav.myRooms')}
+              </MenuItem>,
+              <MenuItem
+                key="logout"
+                onClick={async () => { await handleSignOut(false); setAnchorEl(null) }}
+              >
+                {t('nav.logout')}
+              </MenuItem>
+            ] : [
+              <MenuItem key="login" component={RouterLink} to="/login" onClick={() => setAnchorEl(null)}>
+                {t('nav.login')}
+              </MenuItem>,
+              <MenuItem key="register" component={RouterLink} to="/register" onClick={() => setAnchorEl(null)}>
+                {t('nav.register')}
+              </MenuItem>,
+            ]}
+          </Menu>
+        </Stack>
+      </Toolbar>
+    </AppBar>
   )
-}
-const styles = {
-  header:{position:'sticky',top:0,display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:12,padding:'12px clamp(12px, 2vw, 24px)',borderBottom:'1px solid rgba(100,108,255,0.18)',background:'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.06))',backdropFilter:'blur(8px)',zIndex:10},
-  brand:{display:'inline-flex',alignItems:'center',gap:10,minWidth:0},
-  logo:{fontSize:20},
-  title:{fontWeight:800,letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'},
-  nav:{justifySelf:'center',display:'inline-flex',gap:14},
-  link:{textDecoration:'none',fontWeight:600,padding:'8px 10px',borderRadius:10,border:'1px solid transparent',transition:'transform .06s ease, border-color .2s',background:'transparent',color:'inherit',cursor:'pointer'},
-  langGroup:{justifySelf:'end',outline:'none'},
-  segment:{position:'relative',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:999,padding:4,gap:4,minWidth:156},
-  segmentIndicator:{position:'absolute',top:4,left:4,width:'calc((100% - 8px) / 3)',height:'calc(100% - 8px)',background:'rgba(100,108,255,0.2)',border:'1px solid rgba(100,108,255,0.35)',borderRadius:999,transition:'transform .18s ease'},
-  langBtn:{position:'relative',zIndex:1,appearance:'none',background:'transparent',border:'none',padding:'8px 0',borderRadius:999,fontWeight:700,cursor:'pointer',color:'inherit',transition:'opacity .15s ease',opacity:.85},
-  langBtnActive:{opacity:1}
 }

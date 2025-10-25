@@ -1,14 +1,167 @@
 {
-  "app": { "title": "BigPitch" },
-  "nav": { "home": "Home", "dashboard": "Dashboard", "login": "Login", "logout": "Logout" },
+  "app": { "title": "WorldWatchMe" },
+  "nav": { 
+    "home": "Home", 
+    "dashboard": "Dashboard", 
+    "rooms": "Rooms",
+    "new": "New",
+    "settings": "Settings",
+    "myRooms": "My rooms",
+    "register": "Register",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "user": {
+    "default": "User"
+  },
   "hero": {
     "heading": "Watch together. Chat together.",
     "sub": "A minimal starting point for a WatchTogether-like platform: rooms, playlist, chat.",
     "cta": "Get Started"
   },
   "footer": {
-    "tagline": "BigPitch — student project starter",
+    "tagline": "WorldWatchMe — student project starter",
     "rights": "All rights reserved."
   },
-  "lang": { "en": "EN", "fr": "FR", "ru": "RU" }
+  "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
+  "chat": {
+    "guest": "guest",
+    "sending": "sending…",
+    "failed": "failed",
+    "signin_hint": "Sign in to participate in chat.",
+    "placeholder": "Type message…",
+    "send": "Send"
+  },
+  "common": {
+    "sending": "Sending…"
+  },
+  "auth": {
+    "email_label": "Your email",
+    "email_placeholder": "you@example.com",
+    "get_magic_link": "Get magic link",
+    "magic_link_sent": "Magic link sent. Check your inbox.",
+    "magic_link_failed": "Failed to send magic link.",
+    "loginTitle": "Login",
+    "mode": {
+      "magic": "Magic link",
+      "password": "Email & Password"
+    },
+    "email": "Email",
+    "password": "Password",
+    "password_placeholder": "••••••••",
+    "policy_hint": "Policy: 8+ chars, lower+upper, digit or symbol.",
+    "send_magic": "Send Magic Link",
+    "sending": "Sending...",
+    "signing": "Signing...",
+    "sign_in": "Sign In",
+    "forgot": "Forgot password?",
+    "magic_sent": "Check your email for the magic link.",
+    "signed_in": "Signed in.",
+    "signin_error": "Sign-in error",
+    "create_account_title": "Create account",
+    "confirm_password": "Confirm password",
+    "creating": "Creating...",
+    "create_account": "Create account",
+    "have_account": "I have an account",
+    "passwords_no_match": "Passwords do not match",
+    "password_too_weak": "Password is too weak",
+    "signup_error": "Sign-up error",
+    "account_created": "Account created. Check your email to confirm your address.",
+    "reset_title": "Reset password",
+    "email_address": "Email address",
+    "send_reset": "Send reset email",
+    "reset_sent": "Check your email to reset your password.",
+    "error": "Error"
+  },
+  "password": {
+    "strength": {
+      "veryWeak": "Very weak",
+      "weak": "Weak",
+      "good": "Good",
+      "strong": "Strong",
+      "missing": "missing"
+    },
+    "issue": {
+      "minLength": "At least 8 characters",
+      "mixedCase": "Both lower and upper case",
+      "digitOrSymbol": "Contains a digit or a symbol"
+    }    
+  },
+  "playlist": {
+    "urlLabel": "YouTube URL",
+    "urlPlaceholder": "https://youtu.be/...",
+    "add": "Add",
+    "adding": "Adding…",
+    "noPlaylist": "No playlist",
+    "noVideosYet": "No videos yet — paste and add.",
+    "failedAdd": "Failed to add video",
+    "failedRemove": "Failed to remove video",
+    "play": "Play",
+    "delete": "Delete"
+  },
+  "video": {
+    "emptyHint": "Paste a YouTube link to start"
+  },
+  "notFound": {
+    "code": "404",
+    "message": "Oops… The page you’re looking for doesn’t exist or has been moved.",
+    "backHome": "Back to home"
+  },
+  "room": {
+    "private": "Private room",
+    "public": "Public room",
+    "enterPassword": "Enter room password to join:",
+    "password_placeholder": "••••",
+    "join": "Join"
+  },
+  "roomCreate": {
+    "title": "Create a room",
+    "subtitle": "Name your room and optionally set a password to make it private.",
+    "name_label": "Room name",
+    "name_placeholder": "Friday Movie Night",
+    "private_label": "Make room private (password)",
+    "password_label": "Password",
+    "password_placeholder": "••••",
+    "creating": "Creating...",
+    "create": "Create room",
+    "cancel": "Cancel",
+    "error_name_required": "Room name is required",
+    "error_password_short": "Password must be at least 3 characters",
+    "error_creating": "Error while creating room"
+  },
+  "rooms": {
+    "titleMy": "My Rooms",
+    "titlePublic": "Public Rooms",
+    "newRoom": "New room",
+    "emptyMy": "No rooms yet.",
+    "emptyPublic": "No public rooms yet.",
+    "visibility": {
+      "private": "Private",
+      "public": "Public"
+    },
+    "aria": {
+      "deleteRoom": "Delete room {{name}}"
+    },
+    "dialog": {
+      "deleteTitle": "Delete room?",
+      "deleteBody": "This will remove \"{{name}}\" permanently.",
+      "cancel": "Cancel",
+      "deleting": "Deleting…",
+      "delete": "Delete"
+    },
+    "errors": {
+      "deleteFailed": "Delete failed"
+    }
+  },
+  "settings": {
+    "username": "Username (pseudo)",
+    "avatarUrl": "Avatar URL",
+    "saveProfile": "Save profile",
+    "changeEmail": "Change email",
+    "saved": "Saved",
+    "changeAvatar": "Change avatar",
+    "removeAvatar": "Remove avatar",
+    "error": "Error",
+    "confirmNewEmail": "Check your email to confirm the new address."
+  }  
 }
