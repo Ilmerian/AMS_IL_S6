@@ -10,11 +10,13 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
+import IconButton from '@mui/material/IconButton'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
 export default function ChatBox({ roomId }) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, send } = useChat(roomId)
+  const { messages, send, remove } = useChat(roomId)
   const [text, setText] = useState('')
   const listRef = useRef(null)
 
@@ -48,15 +50,33 @@ export default function ChatBox({ roomId }) {
       <Stack spacing={1.5}>
         <Box ref={listRef} sx={{ maxHeight: '40dvh', overflowY: 'auto', px: 0.5 }}>
           {messages.map((m) => (
-            <Box key={m.id} sx={{ py: 0.75, opacity: m.__error ? 0.6 : 1 }}>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                <b>{m.userId?.slice(0, 6) || t('chat.guest')}</b> ·{' '}
-                {new Date(m.createdAt).toLocaleTimeString()}
-                {m.__optimistic ? ` · ${t('chat.sending')}` : ''}
-                {m.__error ? ` · ${t('chat.failed')}` : ''}
-              </Typography>
-              <div>{m.content}</div>
-            </Box>
+            <Stack
+              key={m.id}
+              direction="row"
+              spacing={1}
+              alignItems="flex-start"
+              sx={{ py: 0.75, opacity: m.__error ? 0.6 : 1 }}
+            >
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  <b>{m.userId?.slice(0, 6) || t('chat.guest')}</b> ·{' '}
+                  {new Date(m.createdAt).toLocaleTimeString()}
+                  {m.__optimistic ? ` · ${t('chat.sending')}` : ''}
+                  {m.__error ? ` · ${t('chat.failed')}` : ''}
+                </Typography>
+                <div>{m.content}</div>
+              </Box>
+              {m.userId === user?.id && !m.__optimistic && (
+                <IconButton
+                  size="small"
+                  color="inherit"
+                  onClick={() => remove(m.id)}
+                  aria-label={t('chat.delete', 'Supprimer')}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Stack>
           ))}
         </Box>
 

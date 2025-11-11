@@ -16,10 +16,17 @@ export function useChat(roomId) {
       const initial = await ChatService.listByRoom(roomId, { limit: 100 })
       setMessages(initial)
       idsRef.current = new Set(initial.map(m => m.id))
-      unsub = ChatService.subscribe(roomId, (msg) => {
-        if (!msg?.id || idsRef.current.has(msg.id)) return
-        idsRef.current.add(msg.id)
-        setMessages(xs => [...xs, msg])
+      unsub = ChatService.subscribe(roomId, {
+        onInsert: (msg) => {
+          if (!msg?.id || idsRef.current.has(msg.id)) return
+          idsRef.current.add(msg.id)
+          setMessages(xs => [...xs, msg])
+        },
+        onDelete: (msg) => {
+          if (!msg?.id) return
+          idsRef.current.delete(msg.id)
+          setMessages(xs => xs.filter(m => m.id !== msg.id))
+        },
       })
     })()
     return () => unsub()
@@ -55,5 +62,18 @@ export function useChat(roomId) {
     }
   }
 
-  return { user, messages, send }
+  const remove = async (messageId) => {
+    if (!user) return false
+    try {
+      await ChatService.remove(messageId)
+      idsRef.current.delete(messageId)
+      setMessages(xs => xs.filter(m => m.id !== messageId))
+      return true
+    } catch (err) {
+      console.error('delete failed:', err?.message || err)
+      return false
+    }
+  }
+
+  return { user, messages, send, remove }
 }

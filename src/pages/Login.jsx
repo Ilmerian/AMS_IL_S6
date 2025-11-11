@@ -1,6 +1,7 @@
 // src/pages/Login.jsx
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { AuthService } from '../services/AuthService'
 import PasswordStrength from '../components/PasswordStrength'
 import Box from '@mui/material/Box'
@@ -13,6 +14,7 @@ import { passwordIssues } from '../utils/validators'
 
 export default function Login() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [mode, setMode] = useState('magic')
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
@@ -26,7 +28,7 @@ export default function Login() {
     setLoading(true)
     setMsg('')
     try {
-      await AuthService.signIn(email, { redirectTo: window.location.href })
+      await AuthService.signIn(email, { redirectTo: `${window.location.origin}/` })
       setMsg(t('auth.magic_sent'))
     } catch (err) {
       setMsg(err?.message || t('auth.signin_error'))
@@ -41,10 +43,9 @@ export default function Login() {
     setMsg('')
     try {
       await AuthService.signInWithPassword({ email, password: pw })
-      setMsg(t('auth.signed_in'))
+      navigate('/')
     } catch (err) {
       setMsg(err?.message || t('auth.signin_error'))
-    } finally {
       setLoading(false)
     }
   }

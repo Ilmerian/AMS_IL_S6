@@ -36,4 +36,32 @@ export const ChatRepository = {
       .subscribe();
     return () => supabase.removeChannel(channel);
   },
+
+  async remove(id) {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    if (!user?.id) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (error) throw error;
+  },
+
+  onDeleteMessage(roomId, callback) {
+    const channel = supabase
+      .channel(`room:${roomId}:chat:delete`)
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` },
+        (payload) => callback(ChatMessage.fromRow(payload.old))
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
 };

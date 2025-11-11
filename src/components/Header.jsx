@@ -1,7 +1,7 @@
 // src/components/Header.jsx
 import { useTranslation } from 'react-i18next'
 import { useMemo, useCallback, useState } from 'react'
-import { Link as RouterLink, useLocation } from 'react-router-dom'
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/auth'
 import { AuthService } from '../services/AuthService'
 
@@ -48,6 +48,7 @@ export default function Header() {
   const { user, profile } = useAuth()
   const current = i18n.language?.slice(0, 2) || 'en'
   const [anchorEl, setAnchorEl] = useState(null)
+  const navigate = useNavigate()
 
   const langs = useMemo(() => ([
     { code: 'en', label: t('lang.en') || 'EN' },
@@ -69,10 +70,17 @@ export default function Header() {
     user?.email ||
     t('user.default')
 
-  const handleSignOut = async (global = false) => {
-    try { global ? await AuthService.signOutAll() : await AuthService.signOut() }
-    catch (err) { console.error('Error signing out:', err?.message || err) }
-  }
+  const handleSignOut = useCallback(async (global = false) => {
+    try {
+      if (global) await AuthService.signOutAll()
+      else await AuthService.signOut()
+      navigate('/', { replace: true })
+    } catch (err) {
+      console.error('Error signing out:', err?.message || err)
+    } finally {
+      setAnchorEl(null)
+    }
+  }, [navigate, setAnchorEl])
 
   return (
     <AppBar position="sticky" elevation={6}
@@ -144,7 +152,7 @@ export default function Header() {
               </MenuItem>,
               <MenuItem
                 key="logout"
-                onClick={async () => { await handleSignOut(false); setAnchorEl(null) }}
+                onClick={() => { void handleSignOut(false) }}
               >
                 {t('nav.logout')}
               </MenuItem>

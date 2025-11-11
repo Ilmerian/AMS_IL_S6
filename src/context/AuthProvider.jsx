@@ -87,11 +87,8 @@ export default function AuthProvider({ children }) {
               window.location.replace('/update-password')
               return
             }
-            url.searchParams.delete('code')
-            url.searchParams.delete('type')
-            url.searchParams.delete('error')
-            url.searchParams.delete('error_description')
-            window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams.toString()}` : ''))
+            window.location.replace('/')
+            return
            }
         } catch (e) {
           console.error('[Auth] exchangeCodeForSession failed:', e?.message || e)
