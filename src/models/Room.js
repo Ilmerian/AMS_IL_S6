@@ -1,3 +1,4 @@
+// src/models/Room.js
 export class Room {
   constructor({ id, name, password, videoHistory, ownerId } = {}) {
     this.id = id;

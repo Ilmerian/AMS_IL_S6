@@ -35,7 +35,8 @@ export default function Settings() {
 
   const saveProfile = async () => {
     if (!profile?.id) return
-    setLoading(true); setMsg('')
+    setLoading(true)
+    setMsg('')
     try {
       await UserService.upsertProfile({
         user_id: profile.id,
@@ -46,36 +47,62 @@ export default function Settings() {
       setMsg(t('settings.saved'))
     } catch (e) {
       setMsg(e?.message || t('settings.error'))
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const onPickAvatar = async (e) => {
-    const inputEl = e.currentTarget;
-    const file = inputEl?.files?.[0];
-    if (!file) return;
-    setMsg('');
-    setBusyAvatar(true);
-    const previewUrl = URL.createObjectURL(file);
-    setAvatar(previewUrl);
+    const inputEl = e.currentTarget
+    const file = inputEl?.files?.[0]
+    if (!file) return
 
-    const clearBusy = () => setBusyAvatar(false);
-    const timer = setTimeout(clearBusy, 20000);
-    try {
-      const { url } = await AvatarService.upload(file);
-      URL.revokeObjectURL(previewUrl);
-      setAvatar(url || '');
-      setProfile((p) => (p ? { ...p, avatarUrl: url || null } : p));
-      setMsg(t('settings.saved'));
-    } catch (e2) {
-      setMsg(e2?.message || t('settings.error'));
-    } finally {
-      clearTimeout(timer);
-      try { if (inputEl) inputEl.value = ''; } catch (e){
-        console.warn('Failed to clear file input value:', e)
+    setMsg('')
+    setBusyAvatar(true)
+
+    const previewUrl = URL.createObjectURL(file)
+    setAvatar(previewUrl)
+
+    const clearFileInput = () => {
+      try {
+        if (inputEl) inputEl.value = ''
+      } catch (err) {
+        console.warn('Failed to clear file input value:', err)
       }
-      setBusyAvatar(false);
     }
-  };
+
+    let timeoutId
+    try {
+      const uploadPromise = AvatarService.upload(file)
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('Upload timeout')),
+          20000
+        )
+      })
+
+      const result = await Promise.race([uploadPromise, timeoutPromise])
+      if (timeoutId) clearTimeout(timeoutId)
+
+      const url = result?.url || ''
+      if (!url) {
+        throw new Error('No URL returned from avatar upload')
+      }
+
+      URL.revokeObjectURL(previewUrl)
+
+      setAvatar(url)
+      setProfile((p) => (p ? { ...p, avatarUrl: url || null } : p))
+      setMsg(t('settings.saved'))
+    } catch (e2) {
+      if (timeoutId) clearTimeout(timeoutId)
+      console.error('[Settings] avatar upload failed:', e2)
+      setMsg(e2?.message || t('settings.error'))
+    } finally {
+      clearFileInput()
+      setBusyAvatar(false)
+    }
+  }
 
   const onRemoveAvatar = async () => {
     if (!avatar) return
@@ -91,11 +118,13 @@ export default function Settings() {
     const timer = setTimeout(clearBusy, 20000)
 
     try {
-      try { await AvatarService.remove(prev) } catch (e) {
+      try {
+        await AvatarService.remove(prev)
+      } catch (e) {
         console.warn('Failed to remove avatar from storage:', e)
       }
 
-     if (profile?.id) {
+      if (profile?.id) {
         await UserService.upsertProfile({
           user_id: profile.id,
           avatar_url: null,
@@ -111,24 +140,33 @@ export default function Settings() {
       clearTimeout(timer)
       clearBusy()
     }
-  }  
+  }
 
   const changeEmail = async () => {
-    setLoading(true); setMsg('')
+    setLoading(true)
+    setMsg('')
     try {
       await AuthService.updateEmail(email)
       setMsg(t('settings.confirmNewEmail'))
     } catch (e) {
       setMsg(e?.message || t('settings.error'))
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <Box className="fullbleed" sx={{ py: 6, maxWidth: 960, mx: 'auto' }}>
-      <Typography variant="h4" mb={3}>{t('nav.settings')}</Typography>
+      <Typography variant="h4" mb={3}>
+        {t('nav.settings')}
+      </Typography>
 
       <Stack spacing={3}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems="center"
+        >
           <Avatar
             alt={username || email}
             src={avatar || undefined}
@@ -136,16 +174,25 @@ export default function Settings() {
           />
           <Stack direction="row" spacing={1} alignItems="center">
             <Button component="label" variant="outlined" disabled={busyAvatar}>
-              {busyAvatar ? (t('common.sending') || 'Sending…') : (t('settings.changeAvatar') || 'Change avatar')}
+              {busyAvatar
+                ? t('common.sending') || 'Sending…'
+                : t('settings.changeAvatar') || 'Change avatar'}
               <input
                 type="file"
                 accept="image/*"
                 hidden
-                onClick={(e) => { e.currentTarget.value = ''; }}
+                onClick={(e) => {
+                  e.currentTarget.value = ''
+                }}
                 onChange={onPickAvatar}
               />
             </Button>
-            <Button variant="text" color="error" disabled={!avatar || busyAvatar} onClick={onRemoveAvatar}>
+            <Button
+              variant="text"
+              color="error"
+              disabled={!avatar || busyAvatar}
+              onClick={onRemoveAvatar}
+            >
               {t('settings.removeAvatar') || 'Remove'}
             </Button>
           </Stack>
@@ -160,16 +207,29 @@ export default function Settings() {
         />
 
         <Stack direction="row" spacing={1}>
-          <Button onClick={saveProfile} disabled={loading} variant="contained" color="primary">
+          <Button
+            onClick={saveProfile}
+            disabled={loading}
+            variant="contained"
+            color="primary"
+          >
             {t('settings.saveProfile')}
           </Button>
-          <Button onClick={changeEmail} disabled={loading} variant="outlined">
+          <Button
+            onClick={changeEmail}
+            disabled={loading}
+            variant="outlined"
+          >
             {t('settings.changeEmail')}
           </Button>
         </Stack>
 
         {msg && (
-          <Typography role="status" color="text.secondary" sx={{ opacity: 0.9 }}>
+          <Typography
+            role="status"
+            color="text.secondary"
+            sx={{ opacity: 0.9 }}
+          >
             {msg}
           </Typography>
         )}

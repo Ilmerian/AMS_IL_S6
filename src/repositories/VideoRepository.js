@@ -1,3 +1,4 @@
+// src/repositories/VideoRepository.js
 import { supabase } from '../lib/supabaseClient';
 import { Video } from '../models/Video';
 
@@ -56,5 +57,15 @@ export const VideoRepository = {
     const { data, error } = await query;
     if (error) throw error;
     return data.map(Video.fromRow);
+  },
+
+  async searchYoutube(query) {
+    const q = query?.trim()
+    if (!q) return []
+    const { data, error } = await supabase.functions.invoke('youtube-search', {
+      body: { q },
+    })
+    if (error) throw error
+    return data?.items || []
   },
 };

@@ -1,27 +1,45 @@
+// src/services/AccessService.js
 import { RoleService } from './RoleService'
 import { RoomService } from './RoomService'
 import { supabase } from '../lib/supabaseClient'
 
+async function getCurrentUserId() {
+  const { data, error } = await supabase.auth.getUser()
+  if (error) throw error
+  return data?.user?.id ?? null
+}
+
 export const AccessService = {
   async isOwner(roomId) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
+    const userId = await getCurrentUserId()
+    if (!userId) return false
     const room = await RoomService.get(roomId)
-    return room?.ownerId === user.id
+    return room?.ownerId === userId
   },
 
   async isManager(roomId) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
+    const userId = await getCurrentUserId()
+    if (!userId) return false
     const roles = await RoleService.listForRoom(roomId)
-    return !!roles.find(r => r.userId === user.id && r.isManager)
+    return !!roles.find((r) => r.userId === userId && r.isManager)
   },
 
   async isMember(roomId) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
+    const userId = await getCurrentUserId()
+    if (!userId) return false
+
     const roles = await RoleService.listForRoom(roomId)
-    if (await AccessService.isOwner(roomId)) return true
-    return !!roles.find(r => r.userId === user.id)
+    if (roles.find((r) => r.userId === userId)) {
+      return true
+    }
+
+    try {
+      const room = await RoomService.get(roomId)
+      if (room?.ownerId === userId) return true
+    } catch (e) {
+      console.warn('[AccessService.isMember] RoomService.get failed:', e?.message || e)
+    }
+
+    return false
   },
 }

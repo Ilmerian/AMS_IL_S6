@@ -1,3 +1,4 @@
+// src/services/AuthService.js
 import { supabase } from '../lib/supabaseClient'
 import { UserRepository } from '../repositories/UserRepository'
 
@@ -7,7 +8,7 @@ export const AuthService = {
   },
 
   async signInMagicLink(email, opts = {}) {
-    const { redirectTo, shouldCreateUser = true } = opts
+    const { redirectTo, shouldCreateUser = shouldCreateUser ?? true } = opts
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -109,6 +110,16 @@ export const AuthService = {
       const profile = await UserRepository.getById(user.id)
       if (profile) return profile
     } catch (e) {
+      const status = e?.status ?? e?.code
+      const msg = e?.message || ''
+      if (
+        status === 403 ||
+        status === '42501' ||
+        msg.includes('permission denied for table users')
+      ) {
+        console.warn('[AuthService.ensureProfile] RLS denied on users, skip upsert')
+        return null
+      }
       console.error('[AuthService.ensureProfile] getById failed:', e?.message || e)
     }
 

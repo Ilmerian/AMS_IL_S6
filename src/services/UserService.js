@@ -1,3 +1,4 @@
+// src/services/UserService.js
 import { UserRepository } from '../repositories/UserRepository'
 import { supabase } from '../lib/supabaseClient'
 

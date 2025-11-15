@@ -19,6 +19,9 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
+import Tooltip from '@mui/material/Tooltip'
+import LockOutlined from '@mui/icons-material/LockOutlined'
+import LockOpenOutlined from '@mui/icons-material/LockOpenOutlined'
 
 export default function Rooms() {
   const { t } = useTranslation()
@@ -29,8 +32,23 @@ export default function Rooms() {
   const { user } = useAuth()
 
   const load = async () => {
-    const list = user ? await RoomService.listMy() : await RoomService.listPublic()
-    setRooms(list)
+    try {
+      if (!user) {
+        const pub = await RoomService.listPublic()
+        setRooms(pub)
+        return
+      }
+      const [mine, discoverable] = await Promise.all([
+        RoomService.listMy(),
+        RoomService.listPublic(),
+      ])
+      const merged = Array.from(new Map(
+        [...mine, ...discoverable].map(r => [r.id, r])
+      ).values())
+      setRooms(merged)
+    } catch (e) {
+      console.error('[Rooms.load]', e)
+    }
   }
 
   useEffect(() => { load() }, [user])
@@ -41,6 +59,20 @@ export default function Rooms() {
       RealtimeService.onDelete({ table: 'rooms', cb: () => load() }),
     ]
     return () => unsubs.forEach((off) => off?.())
+  }, [user])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    const onOnline = () => load()
+
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', onOnline)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onOnline)
+    }
   }, [user])
 
   const confirmDelete = (room) => { setToDelete(room); setErr('') }
@@ -96,26 +128,48 @@ export default function Rooms() {
               gap: 1,
             }}
           >
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ minWidth: 0, flex: 1 }}>
               <Link
                 component={RouterLink}
                 to={`/rooms/${r.id}`}
                 underline="hover"
                 color="primary.light"
                 sx={{
-                  fontSize: '1.05rem', fontWeight: 500,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                  fontSize: '1.05rem',
+                  fontWeight: 500,
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {r.name}
               </Link>
-              <Divider orientation="vertical" flexItem sx={{ mx: 1.5, opacity: 0.2 }} />
-              {user && (
-                <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                  {r.password ? t('rooms.visibility.private') : t('rooms.visibility.public')}
-                </Typography>
+
+              {(r?.hasPassword ?? r?.password) ? (
+                <Tooltip title={t('rooms.visibility.private')}>
+                  <LockOutlined fontSize="small" aria-label="Private room (password required)" />
+                </Tooltip>
+              ) : (
+                <Tooltip title={t('rooms.visibility.public')}>
+                  <LockOpenOutlined fontSize="small" aria-label="Public room" />
+                </Tooltip>
               )}
             </Stack>
+
+            <Divider orientation="vertical" flexItem sx={{ mx: 1.5, opacity: 0.2 }} />
+
+            {user && (
+              <Typography variant="body2" sx={{ opacity: 0.7, whiteSpace: 'nowrap' }}>
+                {(r?.hasPassword ?? r?.password)
+                  ? t('rooms.visibility.private')
+                  : t('rooms.visibility.public')}
+              </Typography>
+            )}
+          </Stack>
+
 
             {user && r.ownerId === user.id &&  (
               <IconButton

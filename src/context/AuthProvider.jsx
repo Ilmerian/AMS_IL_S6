@@ -55,16 +55,15 @@ export default function AuthProvider({ children }) {
 
   const hardSignOut = async () => {
     try {
-      await supabase.auth.signOut({ scope: 'global' })
+      supabase.getChannels().forEach((ch) => supabase.removeChannel(ch))
     } catch (e) {
-      console.error('[AuthProvider.hardSignOut] signOut failed:', e?.message || e)
+      console.warn('[AuthProvider] removeChannel failed:', e?.message || e)
     }
     const uid = user?.id
     setUser(null)
     clearProfile(uid)
     clearAllCachedProfiles()
   }
-
   useEffect(() => {
     let active = true
     let channel = null
@@ -151,18 +150,23 @@ export default function AuthProvider({ children }) {
       }
     })()
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        await hardSignOut()
+        return
+      }
+
       setUser(session?.user ?? null)
       if (session?.user) {
         try { await AuthService.ensureProfile() }
         catch (e) {
           await hardSignOut()
           console.error('[AuthProvider] ensureProfile failed:', e?.message || e)
+          return
         }
         await loadProfile(session.user.id)
-      }
-      else { 
-        clearProfile(null) 
+      } else {
+        clearProfile(null)
         clearAllCachedProfiles()
       }
     })

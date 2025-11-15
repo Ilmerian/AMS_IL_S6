@@ -28,10 +28,14 @@
      const path = await StorageService.uploadAvatar({ userId: user.id, file })
      const url = BUCKET_PUBLIC ? StorageService.publicUrl(path) : await StorageService.signedUrl(path)
 
-     await UserService.upsertProfile({
-       user_id: user.id,
-       avatar_url: url,
-     })
+      try {
+        await UserService.upsertProfile({
+          user_id: user.id,
+          avatar_url: url,
+        })
+      } catch (e) {
+        console.warn('[AvatarService.upload] failed to update profile avatar_url:', e?.message || e)
+      }
     try {
       await supabase.auth.updateUser({ data: { avatar_url: url } })
     } catch (e) {

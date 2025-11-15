@@ -1,7 +1,7 @@
 // src/services/RoomService.js
 import { RoomRepository } from '../repositories/RoomRepository';
 import { RoleRepository } from '../repositories/RoleRepository';
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient';
 
 export const RoomService = {
   listMy: () => RoomRepository.listMy(),
@@ -11,7 +11,10 @@ export const RoomService = {
   async create({ name, password }) {
     const room = await RoomRepository.create({ name, password });
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      const user = data?.user;
+
       if (user) {
         await RoleRepository.addMember({
           roomId: room.id,
@@ -29,14 +32,15 @@ export const RoomService = {
   listMembers: (roomId) => RoleRepository.listForRoom(roomId),
   addMember: (roomId, userId, isManager = false) =>
     RoleRepository.addMember({ roomId, userId, isManager }),
-  removeMember: (roomId, userId) => RoleRepository.removeMember({ roomId, userId }),
+  removeMember: (roomId, userId) =>
+    RoleRepository.removeMember({ roomId, userId }),
 
   async join(roomId, password) {
     const { data, error } = await supabase.rpc('join_room', {
       p_room_id: Number(roomId),
-      p_password: password || ''
-    })
-    if (error) throw error
-    return !!data
+      p_password: password || '',
+    });
+    if (error) throw error;
+    return !!data;
   },
 };

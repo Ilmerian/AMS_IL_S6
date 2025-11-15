@@ -1,5 +1,5 @@
 // src/pages/Room.jsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth'
 import GuestUpgradeBanner from '../components/GuestUpgradeBanner'
@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom'
 
 import { useRoom } from '../hooks/useRoom'
 import { usePlaylistForRoom } from '../hooks/usePlaylistForRoom'
+import { RealtimeService } from '../services/RealtimeService'
 
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -32,6 +33,8 @@ export default function Room() {
     needPw,
     checked,
     error: err,
+    loading,
+    refresh,
     verifyPassword,
   } = useRoom(roomId)
 
@@ -51,7 +54,70 @@ export default function Room() {
   const handleAddVideo = addVideoByRawUrl
   const handlePlay = playYouTubeId
 
-  if (!room) return null
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    const onOnline = () => refresh()
+
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', onOnline)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onOnline)
+    }
+  }, [refresh])
+
+  useEffect(() => {
+    if (!roomId) return
+
+    const unsub = RealtimeService.onUpdate({
+      table: 'rooms',
+      cb: (payload) => {
+        if (payload?.new?.room_id === Number(roomId)) {
+          refresh()
+        }
+      },
+    })
+
+    return () => {
+      unsub?.()
+    }
+  }, [roomId, refresh])
+
+  if (loading && !room) {
+    return (
+      <Section>
+        <Typography sx={{ opacity: 0.8 }}>
+          {t('room.loading', 'Chargement de la salle...')}
+        </Typography>
+      </Section>
+    )
+  }
+
+  if (!loading && !room && err) {
+    return (
+      <Section>
+        <Typography color="error" sx={{ mb: 1 }}>
+          {t('room.error_generic', 'Impossible de charger cette salle.')}
+        </Typography>
+        <Typography sx={{ opacity: 0.8, mb: 2 }}>{err}</Typography>
+        <Button variant="outlined" onClick={() => refresh()}>
+          {t('room.reload', 'Recharger')}
+        </Button>
+      </Section>
+    )
+  }
+
+  if (!room) {
+    return (
+      <Section>
+        <Typography sx={{ opacity: 0.8 }}>
+          {t('room.not_found', 'Salle introuvable ou inaccessible.')}
+        </Typography>
+      </Section>
+    )
+  }
 
   return (
     <Section>

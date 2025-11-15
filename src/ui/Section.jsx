@@ -1,3 +1,4 @@
+// src/ui/Section.jsx
 import Box from '@mui/material/Box'
 
 export default function Section({ children, ...props }) {

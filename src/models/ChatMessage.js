@@ -1,3 +1,4 @@
+// src/models/ChatMessage.js
 export class ChatMessage {
   constructor({ id, userId, roomId, createdAt, content } = {}) {
     this.id = id;

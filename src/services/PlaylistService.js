@@ -1,13 +1,22 @@
+// src/services/PlaylistService.js
 import { PlaylistRepository } from '../repositories/PlaylistRepository';
 import { VideoRepository } from '../repositories/VideoRepository';
 
 export const PlaylistService = {
   listByRoom: (roomId) => PlaylistRepository.getByRoom(roomId),
-  create: ({ roomId, name }) => PlaylistRepository.create({ roomId, name }),
+
+  create: ({ roomId, name }) =>
+    PlaylistRepository.create({ roomId, name }),
 
   async addVideoByUrl({ playlistId, url, title }) {
-    const video = await VideoRepository.getOrCreate({ url, title: title ?? '' });
-    return PlaylistRepository.pushVideo({ playlistId, videoId: video.id });
+    const video = await VideoRepository.getOrCreate({
+      url,
+      title: title ?? '',
+    });
+    return PlaylistRepository.pushVideo({
+      playlistId,
+      videoId: video.id,
+    });
   },
 
   async removeVideo({ playlistId, videoId }) {
@@ -17,6 +26,9 @@ export const PlaylistService = {
   async loadItems(playlistId) {
     const pl = await PlaylistRepository.getById(playlistId);
     const ids = pl?.videoIds || [];
+    if (ids.length === 0) {
+      return { playlist: pl, videos: [] };
+    }
     const videos = await VideoRepository.listByIds(ids);
     return { playlist: pl, videos };
   },

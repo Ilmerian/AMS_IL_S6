@@ -1,3 +1,4 @@
+// src/models/Role.js
 export class Role {
   constructor({ userId, roomId, isManager } = {}) {
     this.userId = userId;

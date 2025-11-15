@@ -16,6 +16,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import Card from '../ui/Card'
 import { PlaylistService } from '../services/PlaylistService'
 import { getYouTubeId } from '../utils/youtube'
+import { VideoService } from '../services/VideoService'
 
 export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
   const { t } = useTranslation()
@@ -23,6 +24,9 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [items, setItems] = useState([])
+
+  const [search, setSearch] = useState('')
+  const [searchResults, setSearchResults] = useState([])
 
   const load = async () => {
     if (!playlistId) return
@@ -34,7 +38,25 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
     }
   }
 
-  useEffect(() => { load() }, [playlistId])
+  useEffect(() => {
+    load()
+  }, [playlistId])
+
+  const runSearch = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    const q = search.trim()
+    if (!q || busy) return
+    setBusy(true)
+    try {
+      const results = await VideoService.searchYoutube(q)
+      setSearchResults(results || [])
+    } catch (e2) {
+      setMsg(e2?.message || 'Search failed')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -55,7 +77,8 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
 
   const handleDelete = async (videoId) => {
     if (!playlistId) return
-    setBusy(true); setMsg('')
+    setBusy(true)
+    setMsg('')
     try {
       const video = items.find((v) => v.id === videoId)
       await PlaylistService.removeVideo({ playlistId, videoId })
@@ -70,6 +93,27 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
     }
   }
 
+  const handlePickResult = async (item) => {
+    if (!playlistId) return
+    setBusy(true)
+    setMsg('')
+    try {
+      const youtubeId = item.videoId || item.id?.videoId || item.id
+      if (!youtubeId) {
+        throw new Error('Invalid YouTube search result')
+      }
+      const pickedUrl = `https://www.youtube.com/watch?v=${youtubeId}`
+      await onAdd?.(pickedUrl)
+      await load()
+      setSearchResults([])
+      setSearch('')
+    } catch (e) {
+      setMsg(e?.message || t('playlist.failedAdd'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handlePlay = (videoUrl) => {
     const id = getYouTubeId(videoUrl)
     if (id) onPlay?.(id)
@@ -78,6 +122,54 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
   return (
     <Card sx={{ p: 2 }}>
       <Stack spacing={2} component="form" onSubmit={submit}>
+        <Stack spacing={1}>
+          <Stack direction="row" spacing={1}>
+            <TextField
+              label="Search on YouTube"
+              placeholder="lofi, trailer, tutorial..."
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button
+              variant="outlined"
+              onClick={runSearch}
+              disabled={busy || !playlistId}
+            >
+              Search
+            </Button>
+          </Stack>
+
+          {searchResults.length > 0 && (
+            <List dense sx={{ maxHeight: 220, overflowY: 'auto', borderRadius: 1, border: '1px solid rgba(255,255,255,0.08)', mt: 1 }}>
+              {searchResults.map((item) => {
+                const youtubeId = item.videoId || item.id?.videoId || item.id
+                const title =
+                  item.title ||
+                  item.snippet?.title ||
+                  youtubeId ||
+                  'YouTube video'
+                const channelTitle =
+                  item.channelTitle || item.snippet?.channelTitle || ''
+                return (
+                  <ListItem
+                    key={youtubeId}
+                    button
+                    onClick={() => handlePickResult(item)}
+                  >
+                    <ListItemText
+                      primary={title}
+                      secondary={channelTitle}
+                    />
+                  </ListItem>
+                )
+              })}
+            </List>
+          )}
+        </Stack>
+
         <Stack direction="row" spacing={1}>
           <TextField
             label={t('playlist.urlLabel')}
@@ -88,27 +180,54 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
-          <Button type="submit" variant="contained" color="primary" disabled={busy || !playlistId}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={busy || !playlistId}
+          >
             {busy ? t('playlist.adding') : t('playlist.add')}
           </Button>
         </Stack>
 
-        {msg ? <Typography color="error" sx={{ opacity: 0.9 }}>{msg}</Typography> : null}
+        {msg ? (
+          <Typography color="error" sx={{ opacity: 0.9 }}>
+            {msg}
+          </Typography>
+        ) : null}
 
         {!playlistId ? (
-          <Typography sx={{ opacity: 0.8 }}>{t('playlist.noPlaylist')}</Typography>
+          <Typography sx={{ opacity: 0.8 }}>
+            {t('playlist.noPlaylist')}
+          </Typography>
         ) : items.length === 0 ? (
-          <Typography sx={{ opacity: 0.8 }}>{t('playlist.noVideosYet')}</Typography>
+          <Typography sx={{ opacity: 0.8 }}>
+            {t('playlist.noVideosYet')}
+          </Typography>
         ) : (
           <List dense>
-            {[...new Map(items.map(v => [v.id, v])).values()].map((v) => (
+            {[...new Map(items.map((v) => [v.id, v])).values()].map((v) => (
               <ListItem key={v.id} divider>
-                <ListItemText primary={v.title || v.url} secondary={v.url} sx={{ pr: 10 }} />
+                <ListItemText
+                  primary={v.title || v.url}
+                  secondary={v.url}
+                  sx={{ pr: 10 }}
+                />
                 <ListItemSecondaryAction>
-                  <IconButton edge="end" aria-label={t('playlist.play')} onClick={() => handlePlay(v.url)} sx={{ mr: 1 }}>
+                  <IconButton
+                    edge="end"
+                    aria-label={t('playlist.play')}
+                    onClick={() => handlePlay(v.url)}
+                    sx={{ mr: 1 }}
+                  >
                     <PlayArrowIcon />
                   </IconButton>
-                  <IconButton edge="end" aria-label={t('playlist.delete')} color="error" onClick={() => handleDelete(v.id)}>
+                  <IconButton
+                    edge="end"
+                    aria-label={t('playlist.delete')}
+                    color="error"
+                    onClick={() => handleDelete(v.id)}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </ListItemSecondaryAction>

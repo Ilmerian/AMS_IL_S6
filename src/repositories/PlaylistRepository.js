@@ -1,5 +1,19 @@
+// src/repositories/PlaylistRepository.js
 import { supabase } from '../lib/supabaseClient';
 import { Playlist } from '../models/Playlist';
+
+function normalizeVideoIds(rawIds) {
+  const uniq = [];
+  const seen = new Set();
+  for (const x of rawIds || []) {
+    const n = Number(x);
+    if (!Number.isFinite(n)) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    uniq.push(n);
+  }
+  return uniq;
+}
 
 export const PlaylistRepository = {
   async getByRoom(roomId) {
@@ -9,7 +23,11 @@ export const PlaylistRepository = {
       .eq('room_id', roomId)
       .order('playlist_id', { ascending: true });
     if (error) throw error;
-    return data.map(Playlist.fromRow);
+    return (data || []).map((row) => {
+      const pl = Playlist.fromRow(row);
+      pl.videoIds = normalizeVideoIds(pl.videoIds);
+      return pl;
+    });
   },
 
   async getById(playlistId) {
@@ -19,18 +37,9 @@ export const PlaylistRepository = {
       .eq('playlist_id', playlistId)
       .single();
     if (error) throw error;
-    const pl = Playlist.fromRow(data)
-    const uniq = []
-    const seen = new Set()
-    for (const x of pl.videoIds || []) {
-      const n = Number(x)
-      if (!Number.isFinite(n)) continue
-      if (seen.has(n)) continue
-      seen.add(n)
-      uniq.push(n)
-    }
-    pl.videoIds = uniq
-    return pl
+    const pl = Playlist.fromRow(data);
+    pl.videoIds = normalizeVideoIds(pl.videoIds);
+    return pl;
   },
 
   async create({ roomId, name }) {
@@ -45,8 +54,12 @@ export const PlaylistRepository = {
 
   async pushVideo({ playlistId, videoId }) {
     const { data, error } = await supabase
-      .rpc('add_video_unique', { p_playlist_id: playlistId, p_video_id: videoId });
+      .rpc('add_video_unique', {
+        p_playlist_id: playlistId,
+        p_video_id: Number(videoId),
+      });
     if (error) throw error;
+
     if (!data) {
       const { data: row, error: e2 } = await supabase
         .from('playlists')
@@ -54,16 +67,26 @@ export const PlaylistRepository = {
         .eq('playlist_id', playlistId)
         .single();
       if (e2) throw e2;
-      return Playlist.fromRow(row);
+      const pl = Playlist.fromRow(row);
+      pl.videoIds = normalizeVideoIds(pl.videoIds);
+      return pl;
     }
-    return Playlist.fromRow(data);
+
+    const pl = Playlist.fromRow(data);
+    pl.videoIds = normalizeVideoIds(pl.videoIds);
+    return pl;
   },
 
   async pullVideo({ playlistId, videoId }) {
     const { data, error } = await supabase
-      .rpc('remove_video', { p_playlist_id: playlistId, p_video_id: videoId });
+      .rpc('remove_video', {
+        p_playlist_id: playlistId,
+        p_video_id: Number(videoId),
+      });
     if (error) throw error;
-    return Playlist.fromRow(data);
+    const pl = Playlist.fromRow(data);
+    pl.videoIds = normalizeVideoIds(pl.videoIds);
+    return pl;
   },
 
   async removeVideo({ playlistId, videoId }) {
@@ -74,7 +97,8 @@ export const PlaylistRepository = {
       .single();
     if (e1) throw e1;
 
-    const next = (cur?.video_ids || []).filter((id) => id !== videoId);
+    const target = Number(videoId);
+    const next = (cur?.video_ids || []).filter((id) => Number(id) !== target);
 
     const { data: upd, error: e2 } = await supabase
       .from('playlists')
@@ -84,6 +108,8 @@ export const PlaylistRepository = {
       .single();
     if (e2) throw e2;
 
-    return Playlist.fromRow(upd);
+    const pl = Playlist.fromRow(upd);
+    pl.videoIds = normalizeVideoIds(pl.videoIds);
+    return pl;
   },
 };

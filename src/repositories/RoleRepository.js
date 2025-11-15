@@ -1,3 +1,4 @@
+// src/repositories/RoleRepository.js
 import { supabase } from '../lib/supabaseClient';
 import { Role } from '../models/Role';
 
@@ -8,7 +9,7 @@ export const RoleRepository = {
       .select('*')
       .eq('room_id', roomId);
     if (error) throw error;
-    return data.map(Role.fromRow);
+    return (data || []).map(Role.fromRow);
   },
 
   async addMember({ roomId, userId, isManager = false }) {

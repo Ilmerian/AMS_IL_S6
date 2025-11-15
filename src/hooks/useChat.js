@@ -10,26 +10,48 @@ export function useChat(roomId) {
   const idsRef = useRef(new Set())
 
   useEffect(() => {
+    setMessages([])
+    idsRef.current = new Set()
+
     if (!roomId) return
+
+    let cancelled = false
     let unsub = () => {}
+
     ;(async () => {
-      const initial = await ChatService.listByRoom(roomId, { limit: 100 })
-      setMessages(initial)
-      idsRef.current = new Set(initial.map(m => m.id))
+      try {
+        const initial = await ChatService.listByRoom(roomId, { limit: 100 })
+        if (cancelled) return
+        setMessages(initial)
+        idsRef.current = new Set(initial.map((m) => m.id))
+      } catch (err) {
+        console.error('[useChat] listByRoom failed:', err?.message || err)
+      }
+
+      if (cancelled) return
+
       unsub = ChatService.subscribe(roomId, {
         onInsert: (msg) => {
           if (!msg?.id || idsRef.current.has(msg.id)) return
           idsRef.current.add(msg.id)
-          setMessages(xs => [...xs, msg])
+          setMessages((xs) => [...xs, msg])
         },
         onDelete: (msg) => {
           if (!msg?.id) return
           idsRef.current.delete(msg.id)
-          setMessages(xs => xs.filter(m => m.id !== msg.id))
+          setMessages((xs) => xs.filter((m) => m.id !== msg.id))
         },
       })
     })()
-    return () => unsub()
+
+    return () => {
+      cancelled = true
+      try {
+        unsub?.()
+      } catch (e) {
+        console.warn('[useChat] unsubscribe failed:', e?.message || e)
+      }
+    }
   }, [roomId])
 
   const send = async (raw) => {
@@ -47,16 +69,20 @@ export function useChat(roomId) {
       __optimistic: true,
     }
     idsRef.current.add(tempId)
-    setMessages(xs => [...xs, tempMsg])
+    setMessages((xs) => [...xs, tempMsg])
 
     try {
       const saved = await ChatService.send(roomId, clean)
-      setMessages(xs => xs.map(m => (m.id === tempId ? saved : m)))
+      setMessages((xs) => xs.map((m) => (m.id === tempId ? saved : m)))
       idsRef.current.delete(tempId)
-      idsRef.current.add(saved.id)
+      if (saved?.id) {
+        idsRef.current.add(saved.id)
+      }
       return true
     } catch (err) {
-      setMessages(xs => xs.map(m => (m.id === tempId ? { ...m, __error: true } : m)))
+      setMessages((xs) =>
+        xs.map((m) => (m.id === tempId ? { ...m, __error: true } : m)),
+      )
       console.error('send failed:', err?.message || err)
       return false
     }
@@ -67,7 +93,7 @@ export function useChat(roomId) {
     try {
       await ChatService.remove(messageId)
       idsRef.current.delete(messageId)
-      setMessages(xs => xs.filter(m => m.id !== messageId))
+      setMessages((xs) => xs.filter((m) => m.id !== messageId))
       return true
     } catch (err) {
       console.error('delete failed:', err?.message || err)

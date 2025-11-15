@@ -1,3 +1,4 @@
+// src/models/Video.js
 export class Video {
   constructor({ id, url, title } = {}) {
     this.id = id;

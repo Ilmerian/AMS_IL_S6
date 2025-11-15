@@ -4,7 +4,9 @@ import { Room } from '../models/Room';
 
 export const RoomRepository = {
   async listMy() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    const user = data?.user;
     if (!user) return [];
 
     const { data: own, error: e1 } = await supabase
@@ -20,7 +22,7 @@ export const RoomRepository = {
       .eq('user_id', user.id);
     if (eRoles) throw eRoles;
 
-    const memberIds = Array.from(new Set((roleRows || []).map(r => r.room_id)));
+    const memberIds = Array.from(new Set((roleRows || []).map((r) => r.room_id)));
     let member = [];
     if (memberIds.length > 0) {
       const { data: memberRooms, error: e2 } = await supabase
@@ -33,25 +35,26 @@ export const RoomRepository = {
     }
 
     const byId = new Map();
-    [...(own || []), ...member].forEach(r => byId.set(r.room_id, r));
+    [...(own || []), ...member].forEach((r) => byId.set(r.room_id, r));
     return Array.from(byId.values()).map(Room.fromRow);
   },
 
   async listPublic() {
-    const { data, error } = await supabase.rpc('list_public_rooms');
+    const { data, error } = await supabase.rpc('list_discoverable_rooms');
     if (error) throw error;
-    return (data || []).map(r => ({
+    return (data || []).map((r) => ({
       id: r.room_id,
       name: r.name,
       ownerId: r.owner_id,
+      hasPassword: !!r.has_password,
       password: null,
       videoHistory: null,
     }));
-  },  
+  },
 
   async getById(roomId) {
     const { data, error } = await supabase
-      .rpc('get_room_public', { p_room_id: roomId })
+      .rpc('get_room_public', { p_room_id: Number(roomId) })
       .single();
     if (error) throw error;
     return {
@@ -64,15 +67,23 @@ export const RoomRepository = {
   },
 
   async create({ name, password }) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const payload = { name, password: password || null, owner_id: user?.id };
-    const { data, error } = await supabase
+    const { data, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    const user = data?.user;
+
+    const payload = {
+      name,
+      password: password || null,
+      owner_id: user?.id || null,
+    };
+
+    const { data: row, error } = await supabase
       .from('rooms')
       .insert(payload)
       .select()
       .single();
     if (error) throw error;
-    return Room.fromRow(data);
+    return Room.fromRow(row);
   },
 
   async remove(roomId) {

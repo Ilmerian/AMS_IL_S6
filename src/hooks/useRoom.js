@@ -7,19 +7,56 @@ export function useRoom(roomId) {
   const [needPw, setNeedPw] = useState(false)
   const [checked, setChecked] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [reloadToken, setReloadToken] = useState(0)
+
+  const forceReload = useCallback(() => {
+    setReloadToken((x) => x + 1)
+  }, [])
 
   useEffect(() => {
-    if (!roomId) return
+    if (!roomId) {
+      setRoom(null)
+      setNeedPw(false)
+      setChecked(false)
+      setError('')
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
+
     ;(async () => {
+      setLoading(true)
+      setError('')
       try {
         const r = await RoomService.get(roomId)
+        if (cancelled) return
+
         setRoom(r)
-        setNeedPw(!!r?.password)
-      } catch (e) {
-        setError(e?.message || 'Error')
+        
+        const hasPw = r?.hasPassword ?? !!r?.password
+        setNeedPw(!!hasPw)
+
+        setChecked(true)
+      } catch (err) {
+        if (cancelled) return
+        console.error('[useRoom] failed to load room', err)
+        setRoom(null)
+        setNeedPw(false)
+        setChecked(false)
+        setError(err?.message || 'Failed to load room')
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     })()
-  }, [roomId])
+
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, reloadToken])
 
   const verifyPassword = useCallback(async (password) => {
     setError('')
@@ -27,6 +64,7 @@ export function useRoom(roomId) {
       const ok = await RoomService.join(roomId, password)
       if (ok) {
         setChecked(true)
+        forceReload()
         return true
       } else {
         setError('Invalid password')
@@ -36,7 +74,17 @@ export function useRoom(roomId) {
       setError(e?.message || 'Error')
       return false
     }
-  }, [roomId])
+  }, [roomId, forceReload])
 
-  return { room, needPw, checked, setChecked, error, setError, verifyPassword }
+  return {
+    room,
+    needPw,
+    checked,
+    setChecked,
+    error,
+    setError,
+    loading,
+    refresh: forceReload,
+    verifyPassword,
+  }
 }
