@@ -12,23 +12,74 @@ import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+// Icône pour "Afficher plus"
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
 export default function ChatBox({ roomId }) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, send, remove } = useChat(roomId)
+  const { messages, send, remove, loadMore, hasMore } = useChat(roomId)
   const [text, setText] = useState('')
   const listRef = useRef(null)
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      listRef.current?.scrollTo?.({
-        top: listRef.current.scrollHeight,
-        behavior: 'instant',
-      })
-    })
-  }, [roomId])
+  //  ÉTAT : Pour suivre si l'utilisateur est ancré en bas
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const [prevScrollHeight, setPrevScrollHeight] = useState(0)
 
+  //  UTILITAIRE : Pour effectuer le défilement
+  const scrollToBottom = (behavior) => {
+    const list = listRef.current
+    if (list) {
+      list.scrollTo({
+        top: list.scrollHeight,
+        behavior: behavior,
+      })
+    }
+  }
+
+  // GÈRE LE DÉFILEMENT INITIAL (changement de salon) ET L'ARRIVÉE DE NOUVEAUX MESSAGES
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+
+    const currentScrollHeight = list.scrollHeight
+
+    // 1. DÉFILEMENT À L'OUVERTURE (Changement de `roomId`)
+    if (list.scrollTop === 0 && currentScrollHeight > list.clientHeight) {
+      // Si on est au tout début d'un nouveau salon, défilement direct
+      if (messages.length > 0) {
+        queueMicrotask(() => scrollToBottom('instant'))
+      }
+      setIsAtBottom(true)
+      setPrevScrollHeight(currentScrollHeight)
+      return
+    }
+
+    // 2. NOUVEAUX MESSAGES (Défilement seulement si l'utilisateur est déjà en bas)
+    if (isAtBottom) {
+      // Défilement doux pour les nouveaux messages (sauf si c'est le message de l'utilisateur, géré dans onSubmit)
+      // On utilise un `setTimeout` de 0 ou un `queueMicrotask` pour s'assurer que le DOM est mis à jour
+      queueMicrotask(() => {
+        scrollToBottom('smooth')
+        setPrevScrollHeight(currentScrollHeight)
+      })
+    }
+    
+    // Si l'utilisateur a défilé vers le haut, on met isAtBottom à false,
+    // mais on ne le force pas ici, on le fait dans le handler de défilement.
+    
+    // 3. CHARGEMENT D'HISTORIQUE (Pagination): Position inchangée
+    // On ajuste la position de défilement pour qu'elle reste la même
+    if (currentScrollHeight > prevScrollHeight && !isAtBottom) {
+        const offset = currentScrollHeight - prevScrollHeight
+        list.scrollTop += offset
+    }
+
+    setPrevScrollHeight(currentScrollHeight)
+
+  }, [messages, roomId, isAtBottom])
+
+  // GÈRE LE DÉFILEMENT LORS DE L'ENVOI D'UN MESSAGE PAR L'UTILISATEUR
   const onSubmit = async (e) => {
     e?.preventDefault()
     if (!user) return
@@ -37,18 +88,64 @@ export default function ChatBox({ roomId }) {
     const ok = await send(text)
     if (ok) setText('')
 
+    // DÉFILEMENT DOUX POUR LE MESSAGE DE L'UTILISATEUR (Consigne)
     queueMicrotask(() => {
-      listRef.current?.scrollTo?.({
-        top: listRef.current.scrollHeight,
-        behavior: 'smooth',
-      })
+      scrollToBottom('smooth')
+      setIsAtBottom(true) // L'utilisateur est maintenant ancré en bas
     })
+  }
+
+  // GÈRE LE SUIVI DE LA POSITION DE DÉFILEMENT DE L'UTILISATEUR
+  const handleScroll = () => {
+    const list = listRef.current
+    if (list) {
+      // On vérifie si la position de défilement est proche du bas
+      // On utilise une petite marge (ex: 10px) pour la tolérance
+      const tolerance = 10
+      const newIsAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - tolerance
+      
+      // Mettre à jour l'état uniquement si la valeur change
+      if (newIsAtBottom !== isAtBottom) {
+        setIsAtBottom(newIsAtBottom)
+      }
+    }
+  }
+
+  // Fonction pour charger plus de messages
+  const handleLoadMore = () => {
+      const list = listRef.current
+      if (list) {
+        // Enregistrer la hauteur actuelle pour maintenir la position
+        setPrevScrollHeight(list.scrollHeight) 
+      }
+      loadMore()
   }
 
   return (
     <Box sx={{ border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1, p: 2 }}>
       <Stack spacing={1.5}>
-        <Box ref={listRef} sx={{ maxHeight: '40dvh', overflowY: 'auto', px: 0.5 }}>
+        <Box 
+          ref={listRef}
+           // AJOUT DU HANDLER DE SCROLL
+          onScroll={handleScroll}
+          sx={{ maxHeight: '40dvh', overflowY: 'auto', px: 0.5 }}
+        >
+          {/* BANDEAU "AFFICHER PLUS" */}
+          {hasMore && (
+            <Box sx={{ textAlign: 'center', py: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ExpandLessIcon />}
+                onClick={handleLoadMore}
+              >
+                {t('chat.load_more', 'Afficher plus')}
+              </Button>
+            </Box>
+          )}
+          {/* FIN BANDEAU */}
+
+
           {messages.map((m) => (
             <Stack
               key={m.id}
