@@ -5,6 +5,9 @@ import theme from './ui/theme'
 import './index.css'
 import './i18n/i18n.js'
 import App from './App.jsx'
+import { supabase } from "./lib/supabaseClient";
+window.supabase = supabase;
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

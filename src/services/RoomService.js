@@ -7,6 +7,11 @@ export const RoomService = {
   listMy: () => RoomRepository.listMy(),
   get: (id) => RoomRepository.getById(id),
   listPublic: () => RoomRepository.listPublic(),
+  updatePosition: (roomId, position) => RoomRepository.updatePosition(roomId, position),
+  archive: (id) => RoomRepository.archive(id),
+  setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),
+  pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
+
 
   async create({ name, password }) {
     const room = await RoomRepository.create({ name, password });
