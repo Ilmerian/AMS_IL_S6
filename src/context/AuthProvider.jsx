@@ -21,22 +21,28 @@ export default function AuthProvider({ children }) {
       console.warn('[AuthProvider] clearAllCachedProfiles failed:', e?.message || e)
     }
   }  
-  const cacheKey = (uid) => `profile_cache_v1:${uid}`
+  const CACHE_VERSION = 'v2';
+  const cacheKey = (uid) => `profile_cache_${CACHE_VERSION}:${uid}`;
   const loadProfile = async (uid) => {
     if (!uid) { setProfile(null); return null }
+    
     try {
-      const cached = localStorage.getItem(cacheKey(uid))
+      const cached = localStorage.getItem(cacheKey(uid));
       if (cached) {
-        const parsed = JSON.parse(cached)
-        setProfile(parsed)
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setProfile(data);
+        } else {
+          localStorage.removeItem(cacheKey(uid));
+        }
       }
     } catch (e) {
-      console.warn('[AuthProvider] loadProfile cache read failed:', e?.message || e)
+      console.warn('[AuthProvider] cache read failed:', e?.message || e);
     }
     try {
      const p = await UserRepository.getById(uid)
       setProfile(p)
-      try { localStorage.setItem(cacheKey(uid), JSON.stringify(p)) } catch (e) {
+      try { localStorage.setItem(cacheKey(uid), JSON.stringify({ data: p, timestamp: Date.now() })) } catch (e) {
         console.warn('[AuthProvider] loadProfile cache write failed:', e?.message || e)
       }
       return p

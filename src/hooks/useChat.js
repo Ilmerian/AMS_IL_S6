@@ -86,7 +86,7 @@ export function useChat(roomId) {
 
     if (!roomId) return
 
-    let cancelled = false
+    let _cancelled = false
     let unsub = () => {}
 
     // On réinitialise à chaque changement de salon
@@ -133,7 +133,7 @@ export function useChat(roomId) {
     })()
 
     return () => {
-      cancelled = true
+      _cancelled = true
       try {
         unsub?.()
       } catch (e) {

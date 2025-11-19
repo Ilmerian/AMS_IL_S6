@@ -20,6 +20,6 @@ export const VideoService = {
       throw error
     }
 
-    return data?.results ?? []
+    return data?.items || []
   },
 }

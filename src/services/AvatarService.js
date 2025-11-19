@@ -27,7 +27,19 @@
       }
      const path = await StorageService.uploadAvatar({ userId: user.id, file })
      const url = BUCKET_PUBLIC ? StorageService.publicUrl(path) : await StorageService.signedUrl(path)
+     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+     if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type');
+     }
 
+     const buffer = await file.arrayBuffer();
+     const uint8Array = new Uint8Array(buffer.slice(0, 8));
+     const signature = Array.from(uint8Array).map(b => b.toString(16).padStart(2, '0')).join(' ');
+
+     const validSignatures = ['ff d8 ff', '89 50 4e 47', '47 49 46 38'];
+     if (!validSignatures.some(sig => signature.startsWith(sig))) {
+       throw new Error('Invalid file signature');
+     }
       try {
         await UserService.upsertProfile({
           user_id: user.id,

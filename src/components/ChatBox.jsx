@@ -77,7 +77,7 @@ export default function ChatBox({ roomId }) {
 
     setPrevScrollHeight(currentScrollHeight)
 
-  }, [messages, roomId, isAtBottom])
+  }, [messages, roomId, isAtBottom, prevScrollHeight])
 
   // GÈRE LE DÉFILEMENT LORS DE L'ENVOI D'UN MESSAGE PAR L'UTILISATEUR
   const onSubmit = async (e) => {
