@@ -14,7 +14,8 @@ import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
-import Grid from '@mui/material/Grid'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
 
 import ChatBox from '../components/ChatBox'
 import Section from '../ui/Section'
@@ -26,6 +27,7 @@ export default function Room() {
   const { roomId } = useParams()
   const { user } = useAuth()
 
+  const [activeTab, setActiveTab] = useState('playlist')
   const [pw, setPw] = useState('')
 
   const {
@@ -127,7 +129,14 @@ export default function Room() {
         </Box>
       )}
 
-      <Typography variant="h4" gutterBottom>{room.name}</Typography>
+      <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}
+        >
+          {room.name}
+        </Typography>
+      </Box>
       <Typography sx={{ opacity: 0.8 }}>
         {room.password ? t('room.private') : t('room.public')}
       </Typography>
@@ -152,23 +161,78 @@ export default function Room() {
           </Stack>
         </Box>
       ) : (
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={12} lg={8}>
-            <VideoPlayerShell embedUrl={embedUrl} />
-          </Grid>
+        <Stack spacing={2} sx={{ mt: 2 }}>
+          
+          <Box 
+            sx={{ 
+              position: 'relative',
+              width: '100%',
+              display: 'block' 
+            }}
+          >
+            
+            <Box 
+              sx={{ 
+                mr: { xs: 0, lg: '466px' }, 
+                minWidth: 0 
+              }}
+            >
+              <VideoPlayerShell embedUrl={embedUrl} />
+            </Box>
 
-          <Grid item xs={12} lg={4}>
-            <PlaylistPanel
-              playlistId={playlistId}
-              onAdd={handleAddVideo}
-              onPlay={handlePlay}
-            />
-          </Grid>
+            <Box
+              sx={{
+                position: { xs: 'static', lg: 'absolute' },
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: { xs: '100%', lg: '450px' },
+                
+                mt: { xs: 2, lg: 0 },
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.paper',
+                borderRadius: 1,
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+            >
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+                <Tabs
+                  value={activeTab}
+                  onChange={(e, val) => setActiveTab(val)}
+                  variant="fullWidth"
+                  textColor="primary"
+                  indicatorColor="primary"
+                >
+                  <Tab label="Playlist" value="playlist" />
+                  <Tab label="Chat" value="chat" />
+                </Tabs>
+              </Box>
 
-          <Grid item xs={12}>
-            <ChatBox roomId={roomId} />
-          </Grid>
-        </Grid>
+              <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                
+                <Box sx={{ p: 1, height: '100%' }}> 
+                  {activeTab === 'playlist' && (
+                    <PlaylistPanel
+                      playlistId={playlistId}
+                      onAdd={handleAddVideo}
+                      onPlay={handlePlay}
+                    />
+                  )}
+
+                  {activeTab === 'chat' && (
+                    <Box sx={{ height: '100%', minHeight: 300 }}>
+                      <ChatBox roomId={roomId} />
+                    </Box>
+                  )}
+                </Box>
+
+              </Box>
+            </Box>
+          </Box>
+
+        </Stack>
       )}
     </Section>
   )

@@ -1,5 +1,5 @@
 {
-  "app": { "title": "WorldWatchMe" },
+  "app": { "title": "WatchWithMe" },
   "nav": { 
     "home": "Accueil", 
     "dashboard": "Tableau de bord", 
@@ -20,7 +20,7 @@
     "cta": "Commencer"
   },
   "footer": {
-    "tagline": "WorldWatchMe — projet étudiant de démarrage",
+    "tagline": "WatchWithMe — projet étudiant de démarrage",
     "rights": "Tous droits réservés."
   },
   "lang": { "en": "EN", "fr": "FR", "ru": "RU" },

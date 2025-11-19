@@ -128,7 +128,7 @@ export default function ChatBox({ roomId }) {
           ref={listRef}
            // AJOUT DU HANDLER DE SCROLL
           onScroll={handleScroll}
-          sx={{ maxHeight: '40dvh', overflowY: 'auto', px: 0.5 }}
+          sx={{ maxHeight: '60dvh', minHeight: '40dvh', overflowY: 'auto', px: 0.5 }}
         >
           {/* BANDEAU "AFFICHER PLUS" */}
           {hasMore && (
