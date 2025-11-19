@@ -50,10 +50,18 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
     if (!q || busy) return
     setBusy(true)
     try {
+      console.log('[PlaylistPanel] Starting YouTube search for:', q)
       const results = await VideoService.searchYoutube(q)
+      console.log('[PlaylistPanel] Search completed, results:', results.length)
       setSearchResults(results || [])
+      
+      if (results.length === 0) {
+        setMsg('No videos found. Try different keywords.')
+      }
     } catch (e2) {
-      setMsg(e2?.message || 'Search failed')
+      console.error('[PlaylistPanel] Search error:', e2)
+      setMsg(e2?.message || 'Search failed. Please try again.')
+      setSearchResults([])
     } finally {
       setBusy(false)
     }

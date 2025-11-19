@@ -62,10 +62,14 @@ export const VideoRepository = {
   async searchYoutube(query) {
     const q = query?.trim()
     if (!q) return []
-    const { data, error } = await supabase.functions.invoke('youtube-search', {
-      body: { q },
-    })
-    if (error) throw error
-    return data?.items || []
+    
+    try {
+      console.log('[VideoRepository] Using fallback YouTube search for:', q)
+      const videos = await VideoRepository.list({ q })
+      return videos.slice(0, 10) // Limitation
+    } catch (error) {
+      console.error('[VideoRepository] Fallback search failed:', error)
+      return []
+    }
   },
 };

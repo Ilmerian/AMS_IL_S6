@@ -11,15 +11,31 @@ export const VideoService = {
     const q = query?.trim()
     if (!q) return []
 
-    const { data, error } = await supabase.functions.invoke('youtube-search', {
-      body: { query: q },
-    })
+    try {
+      console.log('[VideoService] Searching YouTube for:', q)
+      
+      const { data, error } = await supabase.functions.invoke('youtube-search', {
+        body: { query: q },
+      })
 
-    if (error) {
-      console.error('[VideoService.searchYoutube] error:', error)
-      throw error
+      if (error) {
+        console.error('[VideoService] Edge Function error:', error)
+        throw error
+      }
+
+      console.log('[VideoService] Search results:', data?.results?.length || 0)
+      return data?.results || []
+    } catch (err) {
+      console.error('[VideoService] YouTube search failed:', err)
+      // Fallback to repository method if edge function fails
+      try {
+        console.log('[VideoService] Trying repository search as fallback...')
+        const results = await VideoRepository.searchYoutube(query)
+        return results
+      } catch (fallbackError) {
+        console.error('[VideoService] Fallback search also failed:', fallbackError)
+        throw err // Throw original error
+      }
     }
-
-    return data?.items || []
   },
 }
