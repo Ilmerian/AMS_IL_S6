@@ -15,7 +15,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 // Icône pour "Afficher plus"
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
-export default function ChatBox({ roomId }) {
+// NOUVEAU: Accepte la prop isBanned
+export default function ChatBox({ roomId, isBanned }) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { messages, send, remove, loadMore, hasMore } = useChat(roomId)
@@ -57,19 +58,14 @@ export default function ChatBox({ roomId }) {
 
     // 2. NOUVEAUX MESSAGES (Défilement seulement si l'utilisateur est déjà en bas)
     if (isAtBottom) {
-      // Défilement doux pour les nouveaux messages (sauf si c'est le message de l'utilisateur, géré dans onSubmit)
-      // On utilise un `setTimeout` de 0 ou un `queueMicrotask` pour s'assurer que le DOM est mis à jour
+      // Défilement doux pour les nouveaux messages
       queueMicrotask(() => {
         scrollToBottom('smooth')
         setPrevScrollHeight(currentScrollHeight)
       })
     }
     
-    // Si l'utilisateur a défilé vers le haut, on met isAtBottom à false,
-    // mais on ne le force pas ici, on le fait dans le handler de défilement.
-    
     // 3. CHARGEMENT D'HISTORIQUE (Pagination): Position inchangée
-    // On ajuste la position de défilement pour qu'elle reste la même
     if (currentScrollHeight > prevScrollHeight && !isAtBottom) {
         const offset = currentScrollHeight - prevScrollHeight
         list.scrollTop += offset
@@ -99,7 +95,6 @@ export default function ChatBox({ roomId }) {
   const handleScroll = () => {
     const list = listRef.current
     if (list) {
-      // On vérifie si la position de défilement est proche du bas
       // On utilise une petite marge (ex: 10px) pour la tolérance
       const tolerance = 10
       const newIsAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - tolerance
@@ -126,9 +121,8 @@ export default function ChatBox({ roomId }) {
       <Stack spacing={1.5}>
         <Box 
           ref={listRef}
-           // AJOUT DU HANDLER DE SCROLL
           onScroll={handleScroll}
-          sx={{ maxHeight: '40dvh', overflowY: 'auto', px: 0.5 }}
+          sx={{ maxHeight: '60dvh', minHeight: '40dvh', overflowY: 'auto', px: 0.5 }}
         >
           {/* BANDEAU "AFFICHER PLUS" */}
           {hasMore && (
@@ -201,19 +195,28 @@ export default function ChatBox({ roomId }) {
             </Button>
           </Box>
         ) : (
-          <Stack component="form" direction="row" spacing={1} onSubmit={onSubmit}>
-            <TextField
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={t('chat.placeholder')}
-              autoComplete="off"
-              fullWidth
-              size="small"
-            />
-            <Button type="submit" variant="contained" color="primary">
-              {t('chat.send')}
-            </Button>
-          </Stack>
+          // LOGIQUE MODIFIÉE POUR GÉRER isBanned
+          !isBanned ? (
+            <Stack component="form" direction="row" spacing={1} onSubmit={onSubmit}>
+              <TextField
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={t('chat.placeholder')}
+                autoComplete="off"
+                fullWidth
+                size="small"
+              />
+              <Button type="submit" variant="contained" color="primary">
+                {t('chat.send')}
+              </Button>
+            </Stack>
+          ) : (
+            <Box sx={{ p: 2, textAlign: 'center', opacity: 0.8 }}>
+              <Typography color="error">
+                {t('chat.banned_message', 'Vous avez été banni de cette salle.')}
+              </Typography>
+            </Box>
+          )
         )}
       </Stack>
     </Box>

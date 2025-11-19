@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom'
 
 export default function MainLayout() {
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="false">
       <Outlet />
     </Container>
   )

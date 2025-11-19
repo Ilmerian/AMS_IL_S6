@@ -49,13 +49,37 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
     if (!playlistId) throw new Error('No playlist')
     const yid = getYouTubeId(rawUrl)
     if (!yid) throw new Error('Unsupported YouTube URL')
+
+    // --- DEBUT DE LA RECUPERATION DU TITRE ---
+    let title = 'Vidéo YouTube' // Valeur par défaut
+    try {
+      // ASTUCE : On utilise la recherche existante en cherchant l'ID exact.
+      // Cela force l'API YouTube à nous renvoyer les infos de cette vidéo.
+      const results = await VideoService.searchYoutube(yid)
+      
+      if (results && results.length > 0) {
+        const bestMatch = results[0]
+        // On récupère le titre selon la structure renvoyée par votre API
+        title = bestMatch.title || bestMatch.snippet?.title || title
+      }
+    } catch (err) {
+      console.warn("Impossible de récupérer le titre via search, utilisation du défaut", err)
+    }
+    // --- FIN DE LA RECUPERATION ---
+
     const watchUrl = toWatchUrl(yid)
+
+    // On ajoute la vidéo avec le bon titre trouvé
     await PlaylistService.addVideoByUrl({
       playlistId,
       url: watchUrl,
-      title: null,
+      title: title, 
     })
-    setEmbedUrl(toEmbedUrl(yid))
+
+    // Logique pour ne pas couper la lecture en cours
+    if (!embedUrl) {
+      setEmbedUrl(toEmbedUrl(yid))
+    }
   }
 
   const playYouTubeId = (youtubeId) => {

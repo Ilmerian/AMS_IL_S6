@@ -8,12 +8,18 @@ export default function VideoPlayerShell({ embedUrl }) {
   const { t } = useTranslation()
 
   return (
-    <Card sx={{ p: 0, overflow: 'hidden', minHeight: { xs: 200, md: 360 } }}>
+    <Card
+      sx={{
+        p: 0,
+        overflow: 'hidden',
+        minHeight: { xs: 360, sm: 420, md: 480, lg: 540 },
+      }}
+    >
       <Box
         sx={{
           position: 'relative',
           width: '100%',
-          aspectRatio: '16 / 9',
+          height: { xs: 320, sm: 420, md: '55vh', lg: '65vh' },
           display: 'grid',
           placeItems: 'center',
           bgcolor: 'rgba(0,0,0,0.7)',

@@ -13,6 +13,7 @@ import ListItemText from '@mui/material/ListItemText'
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction'
 import DeleteIcon from '@mui/icons-material/Delete'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import Card from '../ui/Card'
 import { PlaylistService } from '../services/PlaylistService'
 import { getYouTubeId } from '../utils/youtube'
@@ -93,25 +94,30 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
     }
   }
 
-  const handlePickResult = async (item) => {
+  const extractYoutubeId = (item) => item.videoId || item.id?.videoId || item.id
+
+  const handleAddResult = async (item) => {
     if (!playlistId) return
     setBusy(true)
     setMsg('')
     try {
-      const youtubeId = item.videoId || item.id?.videoId || item.id
+      const youtubeId = extractYoutubeId(item)
       if (!youtubeId) {
         throw new Error('Invalid YouTube search result')
       }
       const pickedUrl = `https://www.youtube.com/watch?v=${youtubeId}`
       await onAdd?.(pickedUrl)
       await load()
-      setSearchResults([])
-      setSearch('')
     } catch (e) {
       setMsg(e?.message || t('playlist.failedAdd'))
     } finally {
       setBusy(false)
     }
+  }
+
+  const handlePlayResult = (item) => {
+    const youtubeId = extractYoutubeId(item)
+    if (youtubeId) onPlay?.(youtubeId)
   }
 
   const handlePlay = (videoUrl) => {
@@ -143,9 +149,18 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
           </Stack>
 
           {searchResults.length > 0 && (
-            <List dense sx={{ maxHeight: 220, overflowY: 'auto', borderRadius: 1, border: '1px solid rgba(255,255,255,0.08)', mt: 1 }}>
+            <List
+              dense
+              sx={{
+                maxHeight: 260,
+                overflowY: 'auto',
+                borderRadius: 1,
+                border: '1px solid rgba(255,255,255,0.08)',
+                mt: 1,
+              }}
+            >
               {searchResults.map((item) => {
-                const youtubeId = item.videoId || item.id?.videoId || item.id
+                const youtubeId = extractYoutubeId(item)
                 const title =
                   item.title ||
                   item.snippet?.title ||
@@ -153,16 +168,88 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
                   'YouTube video'
                 const channelTitle =
                   item.channelTitle || item.snippet?.channelTitle || ''
+                // On essaie de récupérer la miniature via l'objet, sinon on la construit via l'ID
+                const thumbnail =
+                item.thumbnail ||
+                item.snippet?.thumbnails?.medium?.url ||
+                item.snippet?.thumbnails?.default?.url ||
+                (youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/mqdefault.jpg` : null)
+
                 return (
                   <ListItem
                     key={youtubeId}
-                    button
-                    onClick={() => handlePickResult(item)}
+                    divider
+                    sx={{
+                      alignItems: 'flex-start',
+                      py: 1,
+                    }}
                   >
-                    <ListItemText
-                      primary={title}
-                      secondary={channelTitle}
-                    />
+                    <Stack direction="row" spacing={1.5} sx={{ width: '100%' }}>
+                      {thumbnail ? (
+                        <Box
+                          component="img"
+                          src={thumbnail}
+                          alt={title}
+                          sx={{
+                            width: 96,
+                            height: 54,
+                            borderRadius: 1,
+                            objectFit: 'cover',
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 96,
+                            height: 54,
+                            borderRadius: 1,
+                            bgcolor: 'rgba(255,255,255,0.08)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0,
+                            fontSize: 12,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                            opacity: 0.7,
+                          }}
+                        >
+                          {t('playlist.noPreview', 'Preview')}
+                        </Box>
+                      )}
+
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, lineHeight: 1.4 }}
+                        >
+                          {title}
+                        </Typography>
+                        {channelTitle ? (
+                          <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            {channelTitle}
+                          </Typography>
+                        ) : null}
+                      </Box>
+
+                      <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                        <IconButton
+                          size="small"
+                          aria-label={t('playlist.play')}
+                          onClick={() => handlePlayResult(item)}
+                        >
+                          <PlayArrowIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          aria-label={t('playlist.add')}
+                          onClick={() => handleAddResult(item)}
+                          disabled={busy || !playlistId}
+                        >
+                          <PlaylistAddIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    </Stack>
                   </ListItem>
                 )
               })}
@@ -206,33 +293,61 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
           </Typography>
         ) : (
           <List dense>
-            {[...new Map(items.map((v) => [v.id, v])).values()].map((v) => (
-              <ListItem key={v.id} divider>
-                <ListItemText
-                  primary={v.title || v.url}
-                  secondary={v.url}
-                  sx={{ pr: 10 }}
-                />
-                <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    aria-label={t('playlist.play')}
-                    onClick={() => handlePlay(v.url)}
-                    sx={{ mr: 1 }}
-                  >
-                    <PlayArrowIcon />
-                  </IconButton>
-                  <IconButton
-                    edge="end"
-                    aria-label={t('playlist.delete')}
-                    color="error"
-                    onClick={() => handleDelete(v.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-            ))}
+            {[...new Map(items.map((v) => [v.id, v])).values()].map((v) => {
+              // 1. On extrait l'ID pour construire l'URL de l'image
+              const vId = getYouTubeId(v.url)
+              const thumbUrl = vId 
+                ? `https://i.ytimg.com/vi/${vId}/mqdefault.jpg` 
+                : null
+
+              return (
+                <ListItem key={v.id} divider>
+                  
+                  {/* 2. On affiche l'image à gauche du texte */}
+                  {thumbUrl && (
+                    <Box
+                      component="img"
+                      src={thumbUrl}
+                      alt="miniature"
+                      sx={{
+                        width: 80,        // Taille un peu plus petite que la recherche
+                        height: 45,
+                        borderRadius: 1,
+                        objectFit: 'cover',
+                        mr: 2,            // Marge à droite pour espacer du texte
+                        flexShrink: 0     // Empêche l'image de s'écraser
+                      }}
+                    />
+                  )}
+
+                  <ListItemText
+                    primary={v.title || v.url}
+                    // On peut masquer l'URL en secondaire si on veut, ou la garder
+                    secondary={v.title ? null : v.url} 
+                    sx={{ pr: 10 }}
+                  />
+
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
+                      aria-label={t('playlist.play')}
+                      onClick={() => handlePlay(v.url)}
+                      sx={{ mr: 1 }}
+                    >
+                      <PlayArrowIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label={t('playlist.delete')}
+                      color="error"
+                      onClick={() => handleDelete(v.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              )
+            })}
           </List>
         )}
       </Stack>
