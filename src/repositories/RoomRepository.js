@@ -153,5 +153,43 @@ export const RoomRepository = {
 
     if (error) throw error;
     return Room.fromRow(data);
+  },
+
+  async getVideoHistoryForRoom(roomId) {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getPlaylistVideos(roomId) {
+    const { data: playlist, error: e1 } = await supabase
+      .from("playlists")
+      .select("*")
+      .eq("room_id", roomId)
+      .single();
+
+    if (e1) throw e1;
+
+    if (!playlist?.video_ids?.length) return [];
+
+    const { data: videos, error: e2 } = await supabase
+      .from("videos")
+      .select("*")
+      .in("id", playlist.video_ids);
+
+    if (e2) throw e2;
+
+    const ordered = playlist.video_ids
+      .map(id => videos.find(v => v.id === id))
+      .filter(Boolean);
+
+    return ordered;
   }
+
+
 };

@@ -17,6 +17,8 @@ import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import PlaylistPanel from '../components/PlaylistPanel';
+import { UserRepository } from "../repositories/UserRepository";
+
 
 // Imports UI nécessaires pour la modération
 import Box from '@mui/material/Box';
@@ -56,6 +58,7 @@ const getRoleBadge = (role) => {
 };
 
 
+
 export default function Room() {
     const { t } = useTranslation();
     const { roomId } = useParams();
@@ -84,6 +87,7 @@ export default function Room() {
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedMember, setSelectedMember] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+    const [onlineCount, setOnlineCount] = useState(0);
 
 
     const {
@@ -199,6 +203,40 @@ export default function Room() {
         };
 
     }, [roomId, user, room, roomLoading, needPw, refresh, loadRoomData]);
+
+
+    // === PRESENCE SYSTEM ===
+    useEffect(() => {
+        if (!room || !user) return;
+
+        let unsubPresence = () => { };
+
+        async function startPresence() {
+            // Récupère le profil complet du user
+            const profile = await UserRepository.getById(user.id);
+
+            // Join presence
+            await RealtimeService.joinPresence(room.id, {
+                user_id: user.id,
+                username: profile.username,
+                avatar_url: profile.avatar_url
+            });
+
+            // Listen presence updates
+            unsubPresence = RealtimeService.subscribePresence(room.id, ({ count }) => {
+                setOnlineCount(count);
+            });
+        }
+
+        startPresence();
+
+        // Quand on quitte la room
+        return () => {
+            RealtimeService.leavePresence(room.id);
+            unsubPresence();
+        };
+    }, [room, user]);
+
 
 
     const handleAction = async (action, targetMember) => {

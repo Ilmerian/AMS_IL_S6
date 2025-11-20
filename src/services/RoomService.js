@@ -48,4 +48,31 @@ export const RoomService = {
     if (error) throw error;
     return !!data;
   },
+
+  async getPlaylist(roomId) {
+    const res = await supabase
+      .from("playlists")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("position", { ascending: true })
+
+    if (res.error) throw res.error
+    return res.data || []
+  },
+
+  async getVideoHistoryForRoom(roomId) {
+    const { data, error } = await supabase
+      .from("video_history")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error loading video history:", error);
+      return [];
+    }
+    return data || [];
+  }
+
+
 };
