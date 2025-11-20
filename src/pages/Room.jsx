@@ -6,14 +6,14 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 
 // Ajout des Repositories et Services nécessaires pour la modération
-import { RoleService } from '../services/RoleService'; 
+import { RoleService } from '../services/RoleService';
 import { BanRepository } from '../repositories/BanRepository';
 
 import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
 import { useRoom } from '../hooks/useRoom';
 import { usePlaylistForRoom } from '../hooks/usePlaylistForRoom';
 import { RealtimeService } from '../services/RealtimeService'; // Conservé pour l'abonnement room
-import ChatBox from '../components/ChatBox'; 
+import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import PlaylistPanel from '../components/PlaylistPanel';
@@ -74,11 +74,11 @@ export default function Room() {
         refresh,
         verifyPassword,
     } = useRoom(roomId);
-    
+
     // NOUVEAU: États de Modération/ACL
     const [members, setMembers] = useState([]);
-    const [userRole, setUserRole] = useState(null); 
-    const [isBanned, setIsBanned] = useState(false); 
+    const [userRole, setUserRole] = useState(null);
+    const [isBanned, setIsBanned] = useState(false);
     const [loading, setLoading] = useState(true); // Chargement de la modération
 
     const [anchorEl, setAnchorEl] = useState(null);
@@ -128,7 +128,7 @@ export default function Room() {
 
         return false;
     }, [userRole, user]);
-    
+
     const loadRoomData = useCallback(async () => {
         if (!user || !roomId) {
             setLoading(false);
@@ -163,7 +163,7 @@ export default function Room() {
         if (!user || !roomId || roomLoading) return;
 
         let banUnsub;
-        
+
         if (room && !needPw) {
             setLoading(true);
             loadRoomData(); // Charger les données de modération
@@ -192,7 +192,7 @@ export default function Room() {
                 }
             },
         });
-        
+
         return () => {
             banUnsub?.();
             unsub?.();
@@ -212,7 +212,7 @@ export default function Room() {
                     break;
                 case 'demote':
                     if (targetMember.role === ROLES.OWNER) {
-                         throw new Error("Cannot demote the room owner.");
+                        throw new Error("Cannot demote the room owner.");
                     }
                     await RoleService.demote(roomId, targetMember.userId);
                     setSnackbar({ open: true, message: t('role.demoted', { user: targetMember.name }), severity: 'success' });
@@ -293,7 +293,7 @@ export default function Room() {
             </Box>
         );
     }
-    
+
     // --- Rendu Principal ---
     const isModerator = userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
 
@@ -341,20 +341,20 @@ export default function Room() {
             ) : (
                 // Contenu principal de la salle (Vidéo, Chat, Playlist, Modération)
                 <Stack spacing={2} sx={{ mt: 2 }}>
-                    
+
                     {/* LAYOUT ABSOLUTE (Design Original) */}
-                    <Box 
-                        sx={{ 
+                    <Box
+                        sx={{
                             position: 'relative',
                             width: '100%',
-                            display: 'block' 
+                            display: 'block'
                         }}
                     >
                         {/* Conteneur principal de la vidéo */}
-                        <Box 
-                            sx={{ 
-                                mr: { xs: 0, lg: '466px' }, 
-                                minWidth: 0 
+                        <Box
+                            sx={{
+                                mr: { xs: 0, lg: '466px' },
+                                minWidth: 0
                             }}
                         >
                             <VideoPlayerShell embedUrl={embedUrl} />
@@ -387,12 +387,13 @@ export default function Room() {
                                 >
                                     <Tab label="Playlist" value="playlist" />
                                     <Tab label="Chat" value="chat" />
+                                    {isModerator && <Tab label="Modération" value="moderation" />}
                                 </Tabs>
                             </Box>
 
-                            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-                                
-                                <Box sx={{ p: 1, height: '100%' }}> 
+                            <Box sx={{ flex: 1, minHeight: 0, overflowY: activeTab === 'chat' ? 'hidden' : 'auto' }}>
+
+                                <Box sx={{ p: 1, height: '100%' }}>
                                     {activeTab === 'playlist' && (
                                         <PlaylistPanel
                                             playlistId={playlistId}
@@ -403,60 +404,55 @@ export default function Room() {
 
                                     {activeTab === 'chat' && (
                                         <Box sx={{ height: '100%', minHeight: 300 }}>
-                                            {/* Passage de isBanned au ChatBox */}
                                             <ChatBox roomId={roomId} isBanned={isBanned} />
+                                        </Box>
+                                    )}
+
+                                    {activeTab === 'moderation' && isModerator && (
+                                        <Box sx={{ height: '100%', overflowY: 'auto' }}>
+                                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1, mt: 1 }}>
+                                                <GavelIcon fontSize="small" sx={{ mr: 1 }} />
+                                                {t('room.moderation_panel', 'Panneau de Modération')}
+                                            </Typography>
+                                            <List dense>
+                                                {members.map((member) => {
+                                                    const memberRole = getMemberRole(member);
+                                                    const isCurrentUser = member.userId === user.id;
+                                                    const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
+
+                                                    return (
+                                                        <ListItem
+                                                            key={member.userId}
+                                                            secondaryAction={
+                                                                canActOn && (
+                                                                    <IconButton
+                                                                        edge="end"
+                                                                        aria-label="actions"
+                                                                        onClick={(e) => {
+                                                                            setAnchorEl(e.currentTarget);
+                                                                            setSelectedMember({ ...member, name: member.name, role: memberRole });
+                                                                        }}
+                                                                    >
+                                                                        <MoreVertIcon />
+                                                                    </IconButton>
+                                                                )
+                                                            }
+                                                        >
+                                                            <ListItemText
+                                                                primary={isCurrentUser ? `${member.name} (${t('room.you')})` : member.name}
+                                                                secondary={getRoleBadge(memberRole)}
+                                                                secondaryTypographyProps={{ component: 'span' }}
+                                                            />
+                                                        </ListItem>
+                                                    );
+                                                })}
+                                            </List>
                                         </Box>
                                     )}
                                 </Box>
                             </Box>
                         </Box>
                     </Box>
-
-                    {/* PANNEAU DE MODÉRATION (Sous la vidéo) */}
-                    <Divider sx={{ my: 2 }} />
-
-                    {isModerator && (
-                        <Box sx={{ mb: 3 }}>
-                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-                                <GavelIcon fontSize="small" sx={{ mr: 1 }} />
-                                {t('room.moderation_panel', 'Panneau de Modération')} (Rôle: {userRole})
-                            </Typography>
-
-                            <List dense>
-                                {members.map((member) => {
-                                    const memberRole = getMemberRole(member);
-                                    const isCurrentUser = member.userId === user.id;
-                                    const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
-
-                                    return (
-                                        <ListItem
-                                            key={member.userId}
-                                            secondaryAction={
-                                                canActOn && (
-                                                    <IconButton
-                                                        edge="end"
-                                                        aria-label="actions"
-                                                        onClick={(e) => {
-                                                            setAnchorEl(e.currentTarget);
-                                                            setSelectedMember({ ...member, name: member.name, role: memberRole });
-                                                        }}
-                                                    >
-                                                        <MoreVertIcon />
-                                                    </IconButton>
-                                                )
-                                            }
-                                        >
-                                            <ListItemText
-                                                primary={isCurrentUser ? `${member.name} (${t('room.you')})` : member.name}
-                                                secondary={getRoleBadge(memberRole)}
-                                                secondaryTypographyProps={{ component: 'span' }} 
-                                            />
-                                        </ListItem>
-                                    );
-                                })}
-                            </List>
-                        </Box>
-                    )}
                 </Stack>
             )}
 
@@ -474,14 +470,14 @@ export default function Room() {
                                 {t('action.promote', 'Promouvoir Manager')}
                             </MenuItem>
                         )}
-                        
+
                         {/* DEMOTE (Owner peut rétrograder Manager) */}
                         {selectedMember.role === ROLES.MANAGER && userRole === ROLES.OWNER && (
                             <MenuItem onClick={() => handleAction('demote', selectedMember)}>
                                 {t('action.demote', 'Rétrograder Membre')}
                             </MenuItem>
                         )}
-                        
+
                         {/* KICK/BAN */}
                         <MenuItem onClick={() => handleAction('kick', selectedMember)}>
                             {t('action.kick', 'Exclure (Kick)')}

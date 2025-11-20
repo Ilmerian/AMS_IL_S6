@@ -64,11 +64,11 @@ export default function ChatBox({ roomId, isBanned }) {
         setPrevScrollHeight(currentScrollHeight)
       })
     }
-    
+
     // 3. CHARGEMENT D'HISTORIQUE (Pagination): Position inchangée
     if (currentScrollHeight > prevScrollHeight && !isAtBottom) {
-        const offset = currentScrollHeight - prevScrollHeight
-        list.scrollTop += offset
+      const offset = currentScrollHeight - prevScrollHeight
+      list.scrollTop += offset
     }
 
     setPrevScrollHeight(currentScrollHeight)
@@ -98,7 +98,7 @@ export default function ChatBox({ roomId, isBanned }) {
       // On utilise une petite marge (ex: 10px) pour la tolérance
       const tolerance = 10
       const newIsAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - tolerance
-      
+
       // Mettre à jour l'état uniquement si la valeur change
       if (newIsAtBottom !== isAtBottom) {
         setIsAtBottom(newIsAtBottom)
@@ -108,21 +108,21 @@ export default function ChatBox({ roomId, isBanned }) {
 
   // Fonction pour charger plus de messages
   const handleLoadMore = () => {
-      const list = listRef.current
-      if (list) {
-        // Enregistrer la hauteur actuelle pour maintenir la position
-        setPrevScrollHeight(list.scrollHeight) 
-      }
-      loadMore()
+    const list = listRef.current
+    if (list) {
+      // Enregistrer la hauteur actuelle pour maintenir la position
+      setPrevScrollHeight(list.scrollHeight)
+    }
+    loadMore()
   }
 
   return (
-    <Box sx={{ border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1, p: 2 }}>
-      <Stack spacing={1.5}>
-        <Box 
+    <Box sx={{ height: '100%', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1, p: 2, boxSizing: 'border-box' }}>
+      <Stack spacing={1.5} sx={{ height: '100%' }}>
+        <Box
           ref={listRef}
           onScroll={handleScroll}
-          sx={{ maxHeight: '60dvh', minHeight: '40dvh', overflowY: 'auto', px: 0.5 }}
+          sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 0.5 }}
         >
           {/* BANDEAU "AFFICHER PLUS" */}
           {hasMore && (

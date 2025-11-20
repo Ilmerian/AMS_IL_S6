@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { ChatMessage } from '../models/ChatMessage';
 
 export const ChatRepository = {
-  async listByRoom(roomId, { limit = 50,before } = {}) {
+  async listByRoom(roomId, { limit = 50, before } = {}) {
 
     let query = supabase
       .from('chat_messages')
@@ -12,23 +12,23 @@ export const ChatRepository = {
       // 1. Ordre par created_at DESC (du plus récent au plus ancien)
       .order('created_at', { ascending: false })
       // 2. Ordre secondaire par id DESC (essentiel pour une pagination stable)
-      .order('id', { ascending: false }); 
+      .order('id', { ascending: false });
 
     // 3. Application de la pagination: ne sélectionner que les messages PLUS ANCIENS que 'before'
     if (before) {
       // Si on pagine vers le haut, on veut les messages dont l'ID est inférieur (plus ancien)
       query = query.lt('id', before);
     }
-    
+
     // 4. Application de la limite
     query = query.limit(limit);
 
     const { data, error } = await query;
-      //.from('chat_messages')
-      //.select('*')
-      //.eq('room_id', roomId)
-      //.order('created_at', { ascending: false })
-      //.limit(limit);
+    //.from('chat_messages')
+    //.select('*')
+    //.eq('room_id', roomId)
+    //.order('created_at', { ascending: false })
+    //.limit(limit);
     if (error) throw error;
     return (data || []).map(ChatMessage.fromRow).reverse();
   },

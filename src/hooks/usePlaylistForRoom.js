@@ -45,38 +45,64 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
     })()
   }, [room, accessGranted, roomId])
 
-  const addVideoByRawUrl = async (rawUrl) => {
+  // ---------------------------------------------------------
+  // C'EST ICI QUE LA MAGIE OPERE (Fonction Modifiée)
+  // ---------------------------------------------------------
+  const addVideoByRawUrl = async (inputValue) => {
     if (!playlistId) throw new Error('No playlist')
-    const yid = getYouTubeId(rawUrl)
-    if (!yid) throw new Error('Unsupported YouTube URL')
 
-    // --- DEBUT DE LA RECUPERATION DU TITRE ---
-    let title = 'Vidéo YouTube' // Valeur par défaut
-    try {
-      // ASTUCE : On utilise la recherche existante en cherchant l'ID exact.
-      // Cela force l'API YouTube à nous renvoyer les infos de cette vidéo.
-      const results = await VideoService.searchYoutube(yid)
-      
-      if (results && results.length > 0) {
-        const bestMatch = results[0]
-        // On récupère le titre selon la structure renvoyée par votre API
-        title = bestMatch.title || bestMatch.snippet?.title || title
-      }
-    } catch (err) {
-      console.warn("Impossible de récupérer le titre via search, utilisation du défaut", err)
+    let yid = getYouTubeId(inputValue) // Tente d'extraire un ID si c'est un lien
+    let title = 'Vidéo YouTube'
+
+    // CAS 1 : C'est une recherche (Pas d'ID trouvé dans l'input)
+    if (!yid) {
+       console.log("Pas d'URL détectée, tentative de recherche pour :", inputValue);
+       try {
+         // On utilise l'input comme mots-clés de recherche
+         const results = await VideoService.searchYoutube(inputValue);
+         
+         if (results && results.length > 0) {
+            const firstHit = results[0];
+            
+            // Gestion des formats différents selon l'API (id.videoId ou id tout court)
+            yid = firstHit.id?.videoId || firstHit.id; 
+            
+            // Récupération du titre
+            title = firstHit.snippet?.title || firstHit.title || title;
+         } else {
+            throw new Error('Aucun résultat trouvé pour cette recherche.');
+         }
+       } catch (err) {
+         console.error("Erreur recherche :", err);
+         throw new Error('Echec de la recherche YouTube.');
+       }
+    } 
+    
+    // CAS 2 : C'était déjà une URL (yid existe), on récupère juste le titre
+    else {
+       try {
+         const results = await VideoService.searchYoutube(yid);
+         if (results && results.length > 0) {
+           title = results[0].snippet?.title || results[0].title || title;
+         }
+       } catch (err) {
+         console.warn("Impossible de récupérer le titre metadata", err);
+       }
     }
-    // --- FIN DE LA RECUPERATION ---
+
+    // Vérification finale
+    if (!yid) throw new Error('Impossible de trouver une vidéo valide.');
 
     const watchUrl = toWatchUrl(yid)
 
-    // On ajoute la vidéo avec le bon titre trouvé
+    // Ajout à la playlist
     await PlaylistService.addVideoByUrl({
       playlistId,
       url: watchUrl,
-      title: title, 
+      title: title, // On envoie le bon titre trouvé
     })
 
-    // Logique pour ne pas couper la lecture en cours
+    // Si rien ne joue, on lance la vidéo
     if (!embedUrl) {
       setEmbedUrl(toEmbedUrl(yid))
     }
