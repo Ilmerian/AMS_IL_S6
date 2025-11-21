@@ -8,55 +8,48 @@ export function useRoom(roomId) {
   const [checked, setChecked] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  
+  // Token interne pour forcer le refresh
   const [reloadToken, setReloadToken] = useState(0)
 
-  const forceReload = useCallback(() => {
-    setReloadToken((x) => x + 1)
-  }, [])
-
-  useEffect(() => {
-    if (!roomId) {
+  const load = useCallback(async () => {
+    if (!roomId) return
+    setLoading(true)
+    setError('')
+    try {
+      const r = await RoomService.get(roomId)
+      setRoom(r)
+      const hasPw = r?.hasPassword ?? !!r?.password
+      setNeedPw(!!hasPw)
+      setChecked(true) // Ou logique plus complexe si déjà entré
+    } catch (err) {
+      console.error('[useRoom] failed', err)
       setRoom(null)
-      setNeedPw(false)
-      setChecked(false)
-      setError('')
+      setError(err?.message || 'Failed to load room')
+    } finally {
       setLoading(false)
-      return
     }
+  }, [roomId])
 
-    let cancelled = false
+  // 1. Chargement initial et rechargement manuel
+  useEffect(() => {
+    load()
+  }, [load, reloadToken])
 
-    ;(async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const r = await RoomService.get(roomId)
-        if (cancelled) return
-
-        setRoom(r)
-        
-        const hasPw = r?.hasPassword ?? !!r?.password
-        setNeedPw(!!hasPw)
-
-        setChecked(true)
-      } catch (err) {
-        if (cancelled) return
-        console.error('[useRoom] failed to load room', err)
-        setRoom(null)
-        setNeedPw(false)
-        setChecked(false)
-        setError(err?.message || 'Failed to load room')
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+  // 2. CRUCIAL : Recharger quand l'utilisateur revient sur l'onglet
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab active again: refreshing room data...')
+        load()
       }
-    })()
-
-    return () => {
-      cancelled = true
     }
-  }, [roomId, reloadToken])
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [load])
 
   const verifyPassword = useCallback(async (password) => {
     setError('')
@@ -64,7 +57,7 @@ export function useRoom(roomId) {
       const ok = await RoomService.join(roomId, password)
       if (ok) {
         setChecked(true)
-        forceReload()
+        setReloadToken(prev => prev + 1) // Force reload
         return true
       } else {
         setError('Invalid password')
@@ -74,7 +67,7 @@ export function useRoom(roomId) {
       setError(e?.message || 'Error')
       return false
     }
-  }, [roomId, forceReload])
+  }, [roomId])
 
   return {
     room,
@@ -84,7 +77,7 @@ export function useRoom(roomId) {
     error,
     setError,
     loading,
-    refresh: forceReload,
+    refresh: () => setReloadToken(x => x + 1),
     verifyPassword,
   }
 }

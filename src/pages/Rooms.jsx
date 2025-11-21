@@ -137,7 +137,9 @@ export default function Rooms() {
         try {
           const v = await VideoRepository.getById(vid)
           vmap[vid] = v.url
-        } catch { }
+        } catch (e) {
+          console.error('[Rooms] failed to load video', vid, e)
+        }
       }
 
       setVideosMap(vmap)
