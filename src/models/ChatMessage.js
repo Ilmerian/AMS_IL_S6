@@ -1,11 +1,12 @@
 // src/models/ChatMessage.js
 export class ChatMessage {
-  constructor({ id, userId, roomId, createdAt, content } = {}) {
+  constructor({ id, userId, roomId, createdAt, content, username } = {}) {
     this.id = id;
     this.userId = userId;
     this.roomId = roomId;
     this.createdAt = createdAt ? new Date(createdAt) : null;
     this.content = content;
+    this.username = username || null; // Nouveau champ
   }
   static fromRow(r) {
     if (!r) return null;
@@ -15,6 +16,8 @@ export class ChatMessage {
       roomId: r.room_id,
       createdAt: r.created_at,
       content: r.content,
+      // Récupération du username depuis la jointure (si disponible)
+      username: r.users?.username || null, 
     });
   }
 }

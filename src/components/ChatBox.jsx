@@ -4,6 +4,8 @@ import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth'
 import { useChat } from '../hooks/useChat'
+// ON IMPORTE LA NOUVELLE FONCTION
+import { stringToColor } from '../utils/formatters'
 
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
@@ -12,22 +14,18 @@ import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-// Icône pour "Afficher plus"
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
-// NOUVEAU: Accepte la prop isBanned
 export default function ChatBox({ roomId, isBanned }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { messages, send, remove, loadMore, hasMore } = useChat(roomId)
   const [text, setText] = useState('')
   const listRef = useRef(null)
 
-  //  ÉTAT : Pour suivre si l'utilisateur est ancré en bas
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [prevScrollHeight, setPrevScrollHeight] = useState(0)
 
-  //  UTILITAIRE : Pour effectuer le défilement
   const scrollToBottom = (behavior) => {
     const list = listRef.current
     if (list) {
@@ -38,16 +36,13 @@ export default function ChatBox({ roomId, isBanned }) {
     }
   }
 
-  // GÈRE LE DÉFILEMENT INITIAL (changement de salon) ET L'ARRIVÉE DE NOUVEAUX MESSAGES
   useEffect(() => {
     const list = listRef.current
     if (!list) return
 
     const currentScrollHeight = list.scrollHeight
 
-    // 1. DÉFILEMENT À L'OUVERTURE (Changement de `roomId`)
     if (list.scrollTop === 0 && currentScrollHeight > list.clientHeight) {
-      // Si on est au tout début d'un nouveau salon, défilement direct
       if (messages.length > 0) {
         queueMicrotask(() => scrollToBottom('instant'))
       }
@@ -56,16 +51,13 @@ export default function ChatBox({ roomId, isBanned }) {
       return
     }
 
-    // 2. NOUVEAUX MESSAGES (Défilement seulement si l'utilisateur est déjà en bas)
     if (isAtBottom) {
-      // Défilement doux pour les nouveaux messages
       queueMicrotask(() => {
         scrollToBottom('smooth')
         setPrevScrollHeight(currentScrollHeight)
       })
     }
 
-    // 3. CHARGEMENT D'HISTORIQUE (Pagination): Position inchangée
     if (currentScrollHeight > prevScrollHeight && !isAtBottom) {
       const offset = currentScrollHeight - prevScrollHeight
       list.scrollTop += offset
@@ -75,7 +67,6 @@ export default function ChatBox({ roomId, isBanned }) {
 
   }, [messages, roomId, isAtBottom, prevScrollHeight])
 
-  // GÈRE LE DÉFILEMENT LORS DE L'ENVOI D'UN MESSAGE PAR L'UTILISATEUR
   const onSubmit = async (e) => {
     e?.preventDefault()
     if (!user) return
@@ -84,33 +75,26 @@ export default function ChatBox({ roomId, isBanned }) {
     const ok = await send(text)
     if (ok) setText('')
 
-    // DÉFILEMENT DOUX POUR LE MESSAGE DE L'UTILISATEUR (Consigne)
     queueMicrotask(() => {
       scrollToBottom('smooth')
-      setIsAtBottom(true) // L'utilisateur est maintenant ancré en bas
+      setIsAtBottom(true)
     })
   }
 
-  // GÈRE LE SUIVI DE LA POSITION DE DÉFILEMENT DE L'UTILISATEUR
   const handleScroll = () => {
     const list = listRef.current
     if (list) {
-      // On utilise une petite marge (ex: 10px) pour la tolérance
       const tolerance = 10
       const newIsAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - tolerance
-
-      // Mettre à jour l'état uniquement si la valeur change
       if (newIsAtBottom !== isAtBottom) {
         setIsAtBottom(newIsAtBottom)
       }
     }
   }
 
-  // Fonction pour charger plus de messages
   const handleLoadMore = () => {
     const list = listRef.current
     if (list) {
-      // Enregistrer la hauteur actuelle pour maintenir la position
       setPrevScrollHeight(list.scrollHeight)
     }
     loadMore()
@@ -124,7 +108,6 @@ export default function ChatBox({ roomId, isBanned }) {
           onScroll={handleScroll}
           sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 0.5 }}
         >
-          {/* BANDEAU "AFFICHER PLUS" */}
           {hasMore && (
             <Box sx={{ textAlign: 'center', py: 1 }}>
               <Button
@@ -137,38 +120,50 @@ export default function ChatBox({ roomId, isBanned }) {
               </Button>
             </Box>
           )}
-          {/* FIN BANDEAU */}
 
+          {messages.map((m) => {
+            const displayName = m.username || 
+                                (m.__optimistic && profile?.username) || 
+                                m.userId?.slice(0, 6) || 
+                                t('chat.guest');
+            
+            // On utilise l'ID utilisateur comme graine pour la couleur (stable),
+            // sinon le nom d'affichage en repli.
+            const userColor = stringToColor(m.userId || displayName);
 
-          {messages.map((m) => (
-            <Stack
-              key={m.id}
-              direction="row"
-              spacing={1}
-              alignItems="flex-start"
-              sx={{ py: 0.75, opacity: m.__error ? 0.6 : 1 }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  <b>{m.userId?.slice(0, 6) || t('chat.guest')}</b> ·{' '}
-                  {new Date(m.createdAt).toLocaleTimeString()}
-                  {m.__optimistic ? ` · ${t('chat.sending')}` : ''}
-                  {m.__error ? ` · ${t('chat.failed')}` : ''}
-                </Typography>
-                <div>{m.content}</div>
-              </Box>
-              {m.userId === user?.id && !m.__optimistic && (
-                <IconButton
-                  size="small"
-                  color="inherit"
-                  onClick={() => remove(m.id)}
-                  aria-label={t('chat.delete', 'Supprimer')}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              )}
-            </Stack>
-          ))}
+            return (
+              <Stack
+                key={m.id}
+                direction="row"
+                spacing={1}
+                alignItems="flex-start"
+                sx={{ py: 0.75, opacity: m.__error ? 0.6 : 1 }}
+              >
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    {/* APPLICATION DE LA COULEUR ICI */}
+                    <b style={{ color: userColor }}>{displayName}</b> ·{' '}
+                    <span style={{ fontSize: '0.85em', opacity: 0.7 }}>
+                      {new Date(m.createdAt).toLocaleTimeString()}
+                    </span>
+                    {m.__optimistic ? ` · ${t('chat.sending')}` : ''}
+                    {m.__error ? ` · ${t('chat.failed')}` : ''}
+                  </Typography>
+                  <div style={{ wordBreak: 'break-word' }}>{m.content}</div>
+                </Box>
+                {m.userId === user?.id && !m.__optimistic && (
+                  <IconButton
+                    size="small"
+                    color="inherit"
+                    onClick={() => remove(m.id)}
+                    aria-label={t('chat.delete', 'Supprimer')}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Stack>
+            )
+          })}
         </Box>
 
         {!user ? (
@@ -195,7 +190,6 @@ export default function ChatBox({ roomId, isBanned }) {
             </Button>
           </Box>
         ) : (
-          // LOGIQUE MODIFIÉE POUR GÉRER isBanned
           !isBanned ? (
             <Stack component="form" direction="row" spacing={1} onSubmit={onSubmit}>
               <TextField

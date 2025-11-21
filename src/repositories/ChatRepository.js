@@ -7,28 +7,19 @@ export const ChatRepository = {
 
     let query = supabase
       .from('chat_messages')
-      .select('*')
+      // ON MODIFIE ICI : on ajoute la jointure users(username)
+      .select('*, users(username)')
       .eq('room_id', roomId)
-      // 1. Ordre par created_at DESC (du plus récent au plus ancien)
       .order('created_at', { ascending: false })
-      // 2. Ordre secondaire par id DESC (essentiel pour une pagination stable)
       .order('id', { ascending: false });
 
-    // 3. Application de la pagination: ne sélectionner que les messages PLUS ANCIENS que 'before'
     if (before) {
-      // Si on pagine vers le haut, on veut les messages dont l'ID est inférieur (plus ancien)
       query = query.lt('id', before);
     }
 
-    // 4. Application de la limite
     query = query.limit(limit);
 
     const { data, error } = await query;
-    //.from('chat_messages')
-    //.select('*')
-    //.eq('room_id', roomId)
-    //.order('created_at', { ascending: false })
-    //.limit(limit);
     if (error) throw error;
     return (data || []).map(ChatMessage.fromRow).reverse();
   },
@@ -49,7 +40,8 @@ export const ChatRepository = {
     const { data: row, error } = await supabase
       .from('chat_messages')
       .insert(payload)
-      .select()
+      // ON MODIFIE ICI : on demande le username au retour de l'insertion
+      .select('*, users(username)')
       .single();
     if (error) throw error;
     return ChatMessage.fromRow(row);
@@ -66,9 +58,25 @@ export const ChatRepository = {
           table: 'chat_messages',
           filter: `room_id=eq.${roomId}`,
         },
-        (payload) => {
+        async (payload) => {
           try {
-            callback?.(ChatMessage.fromRow(payload.new));
+            // Pour le realtime, le payload ne contient pas la jointure "users".
+            // On doit récupérer le nom de l'utilisateur manuellement.
+            const msgRow = payload.new;
+            
+            // Si l'utilisateur est déjà attaché (cas rare via realtime), on l'utilise
+            if (!msgRow.users && msgRow.user_id) {
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('username')
+                    .eq('user_id', msgRow.user_id)
+                    .single();
+                
+                // On attache manuellement les données pour que fromRow fonctionne
+                msgRow.users = userData;
+            }
+
+            callback?.(ChatMessage.fromRow(msgRow));
           } catch (e) {
             console.error('[ChatRepository.onNewMessage] callback failed:', e?.message || e);
           }
