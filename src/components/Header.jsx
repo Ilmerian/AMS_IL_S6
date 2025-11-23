@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import { useTranslation } from 'react-i18next'
 import { useMemo, useCallback, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
@@ -43,7 +42,7 @@ function NavItem({ to, children }) {
   )
 }
 
-export default function Header() {
+export default function Header({ onOpenLogin, onOpenRegister }) {
   const { t, i18n } = useTranslation()
   const { user, profile } = useAuth()
   const current = i18n.language?.slice(0, 2) || 'en'
@@ -81,6 +80,17 @@ export default function Header() {
       setAnchorEl(null)
     }
   }, [navigate, setAnchorEl])
+
+  // Handlers pour le menu
+  const handleLoginClick = () => {
+    setAnchorEl(null)
+    if (onOpenLogin) onOpenLogin()
+  }
+
+  const handleRegisterClick = () => {
+    setAnchorEl(null)
+    if (onOpenRegister) onOpenRegister()
+  }
 
   return (
     <AppBar position="sticky" elevation={6}
@@ -157,10 +167,11 @@ export default function Header() {
                 {t('nav.logout')}
               </MenuItem>
             ] : [
-              <MenuItem key="login" component={RouterLink} to="/login" onClick={() => setAnchorEl(null)}>
+              // BOUTONS QUI OUVRENT LES POPUPS
+              <MenuItem key="login" onClick={handleLoginClick}>
                 {t('nav.login')}
               </MenuItem>,
-              <MenuItem key="register" component={RouterLink} to="/register" onClick={() => setAnchorEl(null)}>
+              <MenuItem key="register" onClick={handleRegisterClick}>
                 {t('nav.register')}
               </MenuItem>,
             ]}

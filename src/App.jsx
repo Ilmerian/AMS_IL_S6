@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import './App.css'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import Home from './pages/Home.jsx'
 import NotFound from './pages/NotFound.jsx'
-import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
+
+import LoginDialog from './components/LoginDialog.jsx'
+import RegisterDialog from './components/RegisterDialog.jsx'
+
 import MainLayout from './layouts/MainLayout.jsx'
 import AuthLayout from './layouts/AuthLayout.jsx'
 import AuthProvider from './context/AuthProvider.jsx'
@@ -21,7 +24,7 @@ import UpdatePassword from './pages/UpdatePassword.jsx'
 function Protected({ children }) {
   const { user, loading } = useAuth()
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/" replace />
   return children
 }
 
@@ -34,11 +37,18 @@ function Providers({ children }) {
 }
 
 export default function App() {
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(false)
+
+  const openLogin = () => { setRegisterOpen(false); setLoginOpen(true) }
+  const openRegister = () => { setLoginOpen(false); setRegisterOpen(true) }
+
   return (
     <Providers>
       <BrowserRouter>
         <div className="app">
-          <Header />
+          <Header onOpenLogin={openLogin} onOpenRegister={openRegister} />
+          
           <main className="content" role="main" aria-label="Main content">
             <Routes>
               <Route element={<MainLayout />}>
@@ -65,15 +75,25 @@ export default function App() {
               </Route>
 
               <Route element={<AuthLayout />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/reset" element={<ResetPassword />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
+          
           <Footer />
+
+          <LoginDialog 
+            open={loginOpen} 
+            onClose={() => setLoginOpen(false)} 
+            onSwitchToRegister={openRegister}
+          />
+          <RegisterDialog 
+            open={registerOpen} 
+            onClose={() => setRegisterOpen(false)} 
+            onSwitchToLogin={openLogin}
+          />
         </div>
       </BrowserRouter>
     </Providers>

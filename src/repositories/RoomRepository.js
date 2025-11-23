@@ -12,7 +12,7 @@ export const RoomRepository = {
 
     const { data: own, error: e1 } = await supabase
       .from('rooms')
-      .select('*')
+      .select('*, users(username, avatar_url)')
       .eq('owner_id', user.id)
       .order('room_id', { ascending: false });
     if (e1) throw e1;
@@ -29,7 +29,7 @@ export const RoomRepository = {
     if (memberIds.length > 0) {
       const { data: memberRooms, error: e2 } = await supabase
         .from('rooms')
-        .select('*')
+        .select('*, users(username, avatar_url)')
         .in('room_id', memberIds)
         .order('room_id', { ascending: false });
       if (e2) throw e2;
@@ -42,23 +42,42 @@ export const RoomRepository = {
     return Array.from(byId.values()).map(Room.fromRow);
   },
 
-
-
   async listPublic() {
     const { data, error } = await supabase.rpc('list_discoverable_rooms');
     if (error) throw error;
+    
+    const roomsData = data || [];
+    
+    const ownerIds = [...new Set(roomsData.map(r => r.owner_id).filter(Boolean))];
+    
+    let usersMap = {};
+    if (ownerIds.length > 0) {
+        const { data: users } = await supabase
+            .from('users')
+            .select('user_id, username, avatar_url')
+            .in('user_id', ownerIds);
+            
+        if (users) {
+            users.forEach(u => {
+                usersMap[u.user_id] = u;
+            });
+        }
+    }
 
-    return (data || []).map(r => ({
-      id: r.room_id,
-      name: r.name,
-      ownerId: r.owner_id,
-      hasPassword: !!r.has_password,
-      password: null,
-      videoHistory: [],
-    }));
+    return roomsData.map(r => {
+       const owner = usersMap[r.owner_id];
+       return {
+          id: r.room_id,
+          name: r.name,
+          ownerId: r.owner_id,
+          ownerName: owner?.username || null,
+          ownerAvatar: owner?.avatar_url || null,
+          hasPassword: !!r.has_password,
+          password: null,
+          videoHistory: [],
+       };
+    }).map(r => new Room(r)); 
   },
-
-
 
   async getById(roomId) {
     const { data, error } = await supabase
@@ -66,16 +85,16 @@ export const RoomRepository = {
       .single();
     if (error) throw error;
 
+    
     return {
       id: data.room_id,
       name: data.name,
       ownerId: data.owner_id,
+      ownerName: data.owner_name || null, 
       password: data.has_password ? '***' : null,
       videoHistory: [],
     };
   },
-
-
 
   async create({ name, password }) {
     const { data, error: authError } = await supabase.auth.getUser();
@@ -92,14 +111,12 @@ export const RoomRepository = {
     const { data: row, error } = await supabase
       .from('rooms')
       .insert(payload)
-      .select()
+      .select('*, users(username, avatar_url)')
       .single();
     if (error) throw error;
 
     return Room.fromRow(row);
   },
-
-
 
   async remove(roomId) {
     const { error } = await supabase
@@ -190,6 +207,4 @@ export const RoomRepository = {
 
     return ordered;
   }
-
-
 };

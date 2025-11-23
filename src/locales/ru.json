@@ -63,6 +63,7 @@
     "creating": "Создание...",
     "create_account": "Создать аккаунт",
     "have_account": "У меня уже есть аккаунт",
+    "no_account": "Нет аккаунта?",
     "passwords_no_match": "Пароли не совпадают",
     "password_too_weak": "Пароль слишком слабый",
     "signup_error": "Ошибка регистрации",

@@ -63,6 +63,7 @@
     "creating": "Creating...",
     "create_account": "Create account",
     "have_account": "I have an account",
+    "no_account": "No account yet?",
     "passwords_no_match": "Passwords do not match",
     "password_too_weak": "Password is too weak",
     "signup_error": "Sign-up error",
