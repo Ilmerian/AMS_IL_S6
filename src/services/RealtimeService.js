@@ -33,34 +33,51 @@ export const RealtimeService = {
   // Crée un channel pour envoyer/recevoir des événements éphémères
   joinBroadcast(roomId, onEvent, onSubscribe) {
     const channelName = `room_broadcast:${roomId}`;
-    let channel = supabase.getChannels().find(c => c.topic === channelName);
-    
-    if (!channel) {
-        channel = supabase.channel(channelName);
+    const existingChannel = supabase.getChannels().find(c => c.topic === channelName);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
     }
+
+    const channel = supabase.channel(channelName, {
+      config: {
+        broadcast: { self: false }
+      }
+    });
 
     channel
       .on('broadcast', { event: 'player_action' }, (payload) => {
+        console.log(`[BROADCAST RECEIVED]`, payload);
         if (onEvent) onEvent(payload.payload);
       })
       .subscribe((status) => {
+        console.log(`[BROADCAST STATUS] ${status} for room ${roomId}`);
         if (status === 'SUBSCRIBED' && onSubscribe) {
-            onSubscribe();
+          onSubscribe();
         }
       });
 
     return {
       send: async (type, data) => {
-        const canSend = channel.state === 'joined' || channel.state === 'joining';
-        if (!canSend) return; 
+        if (channel.state !== 'joined') {
+          console.warn(`[BROADCAST] Channel not ready, state: ${channel.state}`);
+          return;
+        }
 
-        await channel.send({
-          type: 'broadcast',
-          event: 'player_action',
-          payload: { type, ...data },
-        });
+        try {
+          await channel.send({
+            type: 'broadcast',
+            event: 'player_action',
+            payload: { type, ...data },
+          });
+          console.log(`[BROADCAST SENT] ${type}`);
+        } catch (error) {
+          console.error(`[BROADCAST ERROR] Failed to send:`, error);
+        }
       },
-      unsubscribe: () => supabase.removeChannel(channel),
+      unsubscribe: () => {
+        console.log(`[BROADCAST] Unsubscribing from ${channelName}`);
+        supabase.removeChannel(channel);
+      },
     };
   },
   _presenceChannels: {},

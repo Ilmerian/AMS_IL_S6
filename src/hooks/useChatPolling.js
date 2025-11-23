@@ -52,9 +52,22 @@ export function useChatPolling(roomId) {
     }
   }
 
+  const remove = async (messageId) => {
+    if (!user) return false
+    
+    try {
+      await ChatService.remove(messageId)
+      setTimeout(loadMessages, 500)
+      return true
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      return false
+    }
+  }
   return {
     messages,
     send,
+    remove,
     loading,
     isPolling: isProduction
   }
