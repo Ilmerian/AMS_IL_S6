@@ -4,7 +4,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth'
 import { useChat } from '../hooks/useChat'
-// ON IMPORTE LA NOUVELLE FONCTION
+import { useChatPolling } from '../hooks/useChatPolling'
 import { stringToColor } from '../utils/formatters'
 
 import Box from '@mui/material/Box'
@@ -19,7 +19,17 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 export default function ChatBox({ roomId, isBanned }) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { messages, send, remove, loadMore, hasMore } = useChat(roomId)
+  
+  const isProduction = typeof window !== 'undefined' && 
+    window.location.hostname !== 'localhost' && 
+    window.location.hostname !== '127.0.0.1'
+  
+  const chatDataRealtime = useChat(roomId)
+  const chatDataPolling = useChatPolling(roomId)
+  
+  const chatData = isProduction ? chatDataPolling : chatDataRealtime
+  const { messages, send, remove, loadMore, hasMore } = chatData
+  
   const [text, setText] = useState('')
   const listRef = useRef(null)
 
@@ -109,6 +119,15 @@ export default function ChatBox({ roomId, isBanned }) {
   return (
     <Box sx={{ height: '100%', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1, p: 2, boxSizing: 'border-box' }}>
       <Stack spacing={1.5} sx={{ height: '100%' }}>
+        
+        {isProduction && (
+          <Box sx={{ textAlign: 'center', py: 1, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 1 }}>
+            <Typography variant="caption">
+              Production Mode: Chat updates every 3 seconds
+            </Typography>
+          </Box>
+        )}
+
         <Box
           ref={listRef}
           onScroll={handleScroll}
@@ -132,8 +151,6 @@ export default function ChatBox({ roomId, isBanned }) {
                               m.userId?.slice(0, 6) || 
                               t('chat.guest');
             
-            // On utilise l'ID utilisateur comme graine pour la couleur (stable),
-            // sinon le nom d'affichage en repli.
             const userColor = stringToColor(m.userId || displayName);
 
             return (
@@ -146,7 +163,6 @@ export default function ChatBox({ roomId, isBanned }) {
               >
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {/* APPLICATION DE LA COULEUR ICI */}
                     <b style={{ color: userColor }}>{displayName}</b> ·{' '}
                     <span style={{ fontSize: '0.85em', opacity: 0.7 }}>
                       {new Date(m.createdAt).toLocaleTimeString()}

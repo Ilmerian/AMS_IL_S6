@@ -15,9 +15,9 @@ export const supabase = createClient(url, key, {
     detectSessionInUrl: true,
   },
   realtime: {
-    timeout: 60000,
+    timeout: 30000,
     params: {
-      eventsPerSecond: 10,
+      eventsPerSecond: 5,
       apikey: key,
     },
   },

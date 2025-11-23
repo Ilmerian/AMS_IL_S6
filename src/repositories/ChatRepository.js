@@ -48,8 +48,15 @@ export const ChatRepository = {
     const numRoomId = Number(roomId);
     console.log(`🎯 Subscribing to chat messages for room ${numRoomId}`);
 
+    const isProduction = window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1';
+    if (isProduction) {
+      console.log('🚫 Realtime disabled in production due to WebSocket restrictions');
+      return () => {};
+    }
+
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2;
 
     const setupSubscription = () => {
       const channel = supabase
@@ -94,23 +101,20 @@ export const ChatRepository = {
           
           if (status === 'SUBSCRIBED') {
             console.log('✅ Successfully subscribed to chat messages');
-            retryCount = 0; 
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Channel error, attempting to resubscribe...');
+            retryCount = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            console.warn('⚠️ Realtime connection issue');
             if (retryCount < maxRetries) {
               retryCount++;
               console.log(`🔄 Retry attempt ${retryCount}/${maxRetries}`);
               setTimeout(() => {
                 if (!_cancelled) {
-                  console.log('🔄 Reconnecting subscription...');
                   setupSubscription();
                 }
               }, 2000 * retryCount);
             } else {
               console.error('❌ Max retry attempts reached');
             }
-          } else if (status === 'CLOSED') {
-            console.log('🔴 Channel closed');
           }
         });
 
