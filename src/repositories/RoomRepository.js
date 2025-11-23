@@ -12,7 +12,7 @@ export const RoomRepository = {
 
     const { data: own, error: e1 } = await supabase
       .from('rooms')
-      .select('*, users(username, avatar_url)')
+      .select('*, users!fk_rooms_owner(username, avatar_url)')
       .eq('owner_id', user.id)
       .order('room_id', { ascending: false });
     if (e1) throw e1;
@@ -29,7 +29,7 @@ export const RoomRepository = {
     if (memberIds.length > 0) {
       const { data: memberRooms, error: e2 } = await supabase
         .from('rooms')
-        .select('*, users(username, avatar_url)')
+        .select('*, users!fk_rooms_owner(username, avatar_url)')
         .in('room_id', memberIds)
         .order('room_id', { ascending: false });
       if (e2) throw e2;
@@ -111,7 +111,7 @@ export const RoomRepository = {
     const { data: row, error } = await supabase
       .from('rooms')
       .insert(payload)
-      .select('*, users(username, avatar_url)')
+      .select('*, users!fk_rooms_owner(username, avatar_url)')
       .single();
     if (error) throw error;
 

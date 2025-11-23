@@ -18,7 +18,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
 export default function ChatBox({ roomId, isBanned }) {
   const { t } = useTranslation()
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const { messages, send, remove, loadMore, hasMore } = useChat(roomId)
   const [text, setText] = useState('')
   const listRef = useRef(null)
@@ -72,8 +72,14 @@ export default function ChatBox({ roomId, isBanned }) {
     if (!user) return
     if (!text.trim()) return
 
-    const ok = await send(text)
-    if (ok) setText('')
+    const originalText = text
+    setText('')
+
+    const ok = await send(originalText)
+    
+    if (!ok) {
+      setText(originalText)
+    }
 
     queueMicrotask(() => {
       scrollToBottom('smooth')
@@ -123,9 +129,8 @@ export default function ChatBox({ roomId, isBanned }) {
 
           {messages.map((m) => {
             const displayName = m.username || 
-                                (m.__optimistic && profile?.username) || 
-                                m.userId?.slice(0, 6) || 
-                                t('chat.guest');
+                              m.userId?.slice(0, 6) || 
+                              t('chat.guest');
             
             // On utilise l'ID utilisateur comme graine pour la couleur (stable),
             // sinon le nom d'affichage en repli.

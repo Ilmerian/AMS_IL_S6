@@ -12,6 +12,21 @@ export const RoomService = {
   setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),
   pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
 
+  // NOUVEAU : Met à jour l'état de lecture global de la salle
+  async updatePlaybackState(roomId, { isPlaying, currentVideoId }) {
+    const updates = {};
+    if (isPlaying !== undefined) updates.is_playing = isPlaying;
+    if (currentVideoId !== undefined) updates.current_video_id = currentVideoId;
+
+    if (Object.keys(updates).length === 0) return;
+
+    const { error } = await supabase
+      .from('rooms')
+      .update(updates)
+      .eq('room_id', roomId);
+    
+    if (error) throw error;
+  },
 
   async create({ name, password }) {
     const room = await RoomRepository.create({ name, password });

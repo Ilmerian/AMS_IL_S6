@@ -21,7 +21,7 @@ export function useRoom(roomId) {
       setRoom(r)
       const hasPw = r?.hasPassword ?? !!r?.password
       setNeedPw(!!hasPw)
-      setChecked(true) // Ou logique plus complexe si déjà entré
+      setChecked(true) 
     } catch (err) {
       console.error('[useRoom] failed', err)
       setRoom(null)
@@ -36,28 +36,13 @@ export function useRoom(roomId) {
     load()
   }, [load, reloadToken])
 
-  // 2. CRUCIAL : Recharger quand l'utilisateur revient sur l'onglet
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('Tab active again: refreshing room data...')
-        load()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [load])
-
   const verifyPassword = useCallback(async (password) => {
     setError('')
     try {
       const ok = await RoomService.join(roomId, password)
       if (ok) {
         setChecked(true)
-        setReloadToken(prev => prev + 1) // Force reload
+        setReloadToken(prev => prev + 1)
         return true
       } else {
         setError('Invalid password')
@@ -69,6 +54,10 @@ export function useRoom(roomId) {
     }
   }, [roomId])
 
+  const refresh = useCallback(() => {
+    setReloadToken(x => x + 1)
+  }, [])
+
   return {
     room,
     needPw,
@@ -77,7 +66,7 @@ export function useRoom(roomId) {
     error,
     setError,
     loading,
-    refresh: () => setReloadToken(x => x + 1),
+    refresh,
     verifyPassword,
   }
 }

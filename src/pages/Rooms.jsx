@@ -54,17 +54,12 @@ export default function Rooms() {
         const pub = await RoomService.listPublic()
         setRooms(pub)
       } else {
-        const [mine, pub] = await Promise.all([
-          RoomService.listMy(),
-          RoomService.listPublic(),
-        ])
-        const merged = Array.from(
-          new Map([...mine, ...pub].map(r => [r.id, r]))
-        ).map(([_, r]) => r)
-        setRooms(merged)
+        const pub = await RoomService.listPublic()
+        setRooms(pub)
       }
     } catch (e) {
       console.error('[Rooms.load]', e)
+      setRooms([])
     }
   }
 

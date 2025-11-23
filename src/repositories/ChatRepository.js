@@ -4,10 +4,8 @@ import { ChatMessage } from '../models/ChatMessage';
 
 export const ChatRepository = {
   async listByRoom(roomId, { limit = 50, before } = {}) {
-
     let query = supabase
       .from('chat_messages')
-      // ON MODIFIE ICI : on ajoute la jointure users(username)
       .select('*, users(username)')
       .eq('room_id', roomId)
       .order('created_at', { ascending: false })
@@ -40,7 +38,6 @@ export const ChatRepository = {
     const { data: row, error } = await supabase
       .from('chat_messages')
       .insert(payload)
-      // ON MODIFIE ICI : on demande le username au retour de l'insertion
       .select('*, users(username)')
       .single();
     if (error) throw error;
@@ -48,42 +45,88 @@ export const ChatRepository = {
   },
 
   onNewMessage(roomId, callback) {
-    const channel = supabase
-      .channel(`room:${roomId}:chat`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `room_id=eq.${roomId}`,
-        },
-        async (payload) => {
-          try {
-            // Pour le realtime, le payload ne contient pas la jointure "users".
-            // On doit récupérer le nom de l'utilisateur manuellement.
-            const msgRow = payload.new;
-            
-            // Si l'utilisateur est déjà attaché (cas rare via realtime), on l'utilise
-            if (!msgRow.users && msgRow.user_id) {
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('username')
-                    .eq('user_id', msgRow.user_id)
-                    .single();
-                
-                // On attache manuellement les données pour que fromRow fonctionne
-                msgRow.users = userData;
-            }
+    const numRoomId = Number(roomId);
+    console.log(`🎯 Subscribing to chat messages for room ${numRoomId}`);
 
-            callback?.(ChatMessage.fromRow(msgRow));
-          } catch (e) {
-            console.error('[ChatRepository.onNewMessage] callback failed:', e?.message || e);
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const setupSubscription = () => {
+      const channel = supabase
+        .channel(`room:${numRoomId}:chat`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `room_id=eq.${numRoomId}`,
+          },
+          async (payload) => {
+            try {
+              console.log('📨 New message received via subscription:', payload);
+              const msgRow = payload.new;
+              let username = null;
+              
+              if (msgRow.user_id) {
+                const { data: userData } = await supabase
+                  .from('users')
+                  .select('username')
+                  .eq('user_id', msgRow.user_id)
+                  .single();
+                username = userData?.username;
+              }
+
+              const message = ChatMessage.fromRow({
+                ...msgRow,
+                users: username ? { username } : null
+              });
+
+              console.log('✅ Processed message for callback:', message);
+              callback?.(message);
+            } catch (e) {
+              console.error('[ChatRepository.onNewMessage] callback failed:', e?.message || e);
+            }
+          },
+        )
+        .subscribe((status) => {
+          console.log(`📡 Subscription status for room ${numRoomId}:`, status);
+          
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Successfully subscribed to chat messages');
+            retryCount = 0; 
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Channel error, attempting to resubscribe...');
+            if (retryCount < maxRetries) {
+              retryCount++;
+              console.log(`🔄 Retry attempt ${retryCount}/${maxRetries}`);
+              setTimeout(() => {
+                if (!_cancelled) {
+                  console.log('🔄 Reconnecting subscription...');
+                  setupSubscription();
+                }
+              }, 2000 * retryCount);
+            } else {
+              console.error('❌ Max retry attempts reached');
+            }
+          } else if (status === 'CLOSED') {
+            console.log('🔴 Channel closed');
           }
-        },
-      )
-      .subscribe();
-    return () => supabase.removeChannel(channel);
+        });
+
+      return channel;
+    };
+
+    let channel = setupSubscription();
+    let _cancelled = false;
+
+    return () => {
+      _cancelled = true;
+      console.log(`🔴 Unsubscribing from room:${numRoomId}:chat`);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   },
 
   async remove(id) {
@@ -104,25 +147,35 @@ export const ChatRepository = {
   },
 
   onDeleteMessage(roomId, callback) {
+    const numRoomId = Number(roomId);
+    console.log(`🎯 Subscribing to message deletions for room ${numRoomId}`);
+
     const channel = supabase
-      .channel(`room:${roomId}:chat`)
+      .channel(`room:${numRoomId}:chat-delete`)
       .on(
         'postgres_changes',
         {
           event: 'DELETE',
           schema: 'public',
           table: 'chat_messages',
-          filter: `room_id=eq.${roomId}`,
+          filter: `room_id=eq.${numRoomId}`,
         },
         (payload) => {
           try {
+            console.log('🗑️ Message deleted:', payload);
             callback?.(ChatMessage.fromRow(payload.old));
           } catch (e) {
             console.error('[ChatRepository.onDeleteMessage] callback failed:', e?.message || e);
           }
         },
       )
-      .subscribe();
-    return () => supabase.removeChannel(channel);
+      .subscribe((status) => {
+        console.log(`📡 Delete subscription status for room ${numRoomId}:`, status);
+      });
+
+    return () => {
+      console.log(`🔴 Unsubscribing from room:${numRoomId}:chat-delete`);
+      supabase.removeChannel(channel);
+    };
   },
 };

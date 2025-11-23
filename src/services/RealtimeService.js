@@ -29,7 +29,40 @@ export const RealtimeService = {
     return () => supabase.removeChannel(channel);
   },
 
+  // --- NOUVEAU : BROADCAST (Pour le Seek/Sync temporel) ---
+  // Crée un channel pour envoyer/recevoir des événements éphémères
+  joinBroadcast(roomId, onEvent, onSubscribe) {
+    const channelName = `room_broadcast:${roomId}`;
+    let channel = supabase.getChannels().find(c => c.topic === channelName);
+    
+    if (!channel) {
+        channel = supabase.channel(channelName);
+    }
 
+    channel
+      .on('broadcast', { event: 'player_action' }, (payload) => {
+        if (onEvent) onEvent(payload.payload);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED' && onSubscribe) {
+            onSubscribe();
+        }
+      });
+
+    return {
+      send: async (type, data) => {
+        const canSend = channel.state === 'joined' || channel.state === 'joining';
+        if (!canSend) return; 
+
+        await channel.send({
+          type: 'broadcast',
+          event: 'player_action',
+          payload: { type, ...data },
+        });
+      },
+      unsubscribe: () => supabase.removeChannel(channel),
+    };
+  },
   _presenceChannels: {},
 
   async joinPresence(roomId, user) {

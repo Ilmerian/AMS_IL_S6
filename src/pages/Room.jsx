@@ -1,26 +1,29 @@
 // src/pages/Room.jsx
-
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 
-// Ajout des Repositories et Services nécessaires pour la modération
+// Repositories et Services
 import { RoleService } from '../services/RoleService';
 import { BanRepository } from '../repositories/BanRepository';
+import { RealtimeService } from '../services/RealtimeService';
+import { UserRepository } from "../repositories/UserRepository";
 
+// Components & Utils
 import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
 import { useRoom } from '../hooks/useRoom';
 import { usePlaylistForRoom } from '../hooks/usePlaylistForRoom';
-import { RealtimeService } from '../services/RealtimeService'; // Conservé pour l'abonnement room
 import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import PlaylistPanel from '../components/PlaylistPanel';
-import { UserRepository } from "../repositories/UserRepository";
+import { toWatchUrl } from '../utils/youtube';
 
+// IMPORT DU NOUVEAU HOOK
+import { useVideoSync } from '../hooks/useVideoSync';
 
-// Imports UI nécessaires pour la modération
+// UI Imports
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
@@ -28,8 +31,6 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -41,8 +42,9 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import Chip from '@mui/material/Chip';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningIcon from '@mui/icons-material/Warning';
 
-// Rôles et hiérarchie (Owner > Manager > Member)
 const ROLES = {
     OWNER: 'owner',
     MANAGER: 'manager',
@@ -57,17 +59,66 @@ const getRoleBadge = (role) => {
     }
 };
 
+function ControlStatus({ controlInfo, user }) {
+  const { t } = useTranslation();
+  
+  if (!user) return null;
+  
+  if (controlInfo.canControl) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'success.dark', borderRadius: 1 }}>
+        <CheckCircleIcon fontSize="small" />
+        <Typography variant="body2">
+          {controlInfo.isLeader 
+            ? t('room.you_are_leader', 'You are controlling playback')
+            : t('room.you_can_control', 'You can control playback')
+          }
+        </Typography>
+        {controlInfo.isLeader && (
+          <Button 
+            size="small" 
+            variant="outlined" 
+            onClick={controlInfo.releaseLeadership}
+            sx={{ ml: 1 }}
+          >
+            {t('room.release_control', 'Release Control')}
+          </Button>
+        )}
+      </Box>
+    );
+  }
 
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'warning.dark', borderRadius: 1 }}>
+      <WarningIcon fontSize="small" />
+      <Typography variant="body2">
+        {controlInfo.currentLeader 
+          ? t('room.someone_controlling', 'Someone else is controlling playback')
+          : t('room.request_control', 'Request control to manage playback')
+        }
+      </Typography>
+      <Button 
+        size="small" 
+        variant="contained" 
+        onClick={controlInfo.takeLeadership}
+        sx={{ ml: 1 }}
+      >
+        {t('room.take_control', 'Take Control')}
+      </Button>
+    </Box>
+  );
+}
 
 export default function Room() {
     const { t } = useTranslation();
     const { roomId } = useParams();
     const { user } = useAuth();
 
-    // États du design original
+    // UI States
     const [activeTab, setActiveTab] = useState('playlist');
     const [pw, setPw] = useState('');
-
+    
+    // Room Data Hooks
     const {
         room,
         needPw,
@@ -78,28 +129,23 @@ export default function Room() {
         verifyPassword,
     } = useRoom(roomId);
 
-    // NOUVEAU: États de Modération/ACL
+    // Moderation States
     const [members, setMembers] = useState([]);
     const [userRole, setUserRole] = useState(null);
     const [isBanned, setIsBanned] = useState(false);
-    const [loading, setLoading] = useState(true); // Chargement de la modération
 
+    // UI Helpers
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedMember, setSelectedMember] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-    const [onlineCount, setOnlineCount] = useState(0);
 
-
+    // --- PLAYLIST ---
     const {
         playlistId,
-        embedUrl,
         addVideoByRawUrl,
-        playYouTubeId,
     } = usePlaylistForRoom({ room, roomId, accessGranted: !needPw || checked });
 
-    // Fonctions manquantes de la version HEAD (pour la playlist)
     const handleAddVideo = addVideoByRawUrl;
-    const handlePlay = playYouTubeId;
 
     const verify = async (e) => {
         e.preventDefault();
@@ -108,7 +154,28 @@ export default function Room() {
     };
 
     // ------------------------------------------
-    // LOGIQUE DE MODÉRATION (ACL)
+    // INTEGRATION DU HOOK DE SYNCHRONISATION
+    // ------------------------------------------
+    const {
+        syncVideoId,
+        syncIsPlaying,
+        seekTimestamp,
+        triggerPlay,
+        triggerPause,
+        triggerSeek,
+        changeVideo,
+        updateLocalProgress,
+        controlInfo
+    } = useVideoSync({
+        roomId,
+        user,
+        userRole,
+        initialVideoId: room?.current_video_id,
+        initialPlaying: room?.is_playing
+    });
+
+    // ------------------------------------------
+    // MODERATION & DATA LOADING
     // ------------------------------------------
 
     const getMemberRole = useCallback((member) => {
@@ -121,31 +188,19 @@ export default function Room() {
 
     const canInteract = useCallback((targetRole, targetUserId) => {
         if (!userRole || targetUserId === user?.id) return false;
-
-        if (userRole === ROLES.OWNER) {
-            return true;
-        }
-
-        if (userRole === ROLES.MANAGER) {
-            return targetRole === ROLES.MEMBER;
-        }
-
+        if (userRole === ROLES.OWNER) return true;
+        if (userRole === ROLES.MANAGER) return targetRole === ROLES.MEMBER;
         return false;
     }, [userRole, user]);
 
     const loadRoomData = useCallback(async () => {
         if (!user || !roomId) {
-            setLoading(false);
             return;
         }
-
         try {
             const bannedStatus = await BanRepository.isUserBanned(roomId, user.id);
             setIsBanned(bannedStatus);
-
-            if (bannedStatus) {
-                return;
-            }
+            if (bannedStatus) return;
 
             const initialMembers = await RoleService.listMembers(roomId);
             setMembers(initialMembers);
@@ -153,27 +208,18 @@ export default function Room() {
             const currentUserMember = initialMembers.find(m => m.userId === user.id);
             const currentUserRole = getMemberRole(currentUserMember);
             setUserRole(currentUserRole);
-
         } catch (error) {
             console.error('Error loading room data:', error);
             setSnackbar({ open: true, message: error.message || t('auth.error', 'Error'), severity: 'error' });
-        } finally {
-            setLoading(false);
         }
     }, [roomId, user, getMemberRole, t]);
 
-
     useEffect(() => {
         if (!user || !roomId || roomLoading) return;
-
         let banUnsub;
-
         if (room && !needPw) {
-            setLoading(true);
-            loadRoomData(); // Charger les données de modération
-
+            loadRoomData();
             try {
-                // Abonnement aux bans pour mise à jour immédiate
                 banUnsub = BanRepository.onBanChange(roomId, (payload) => {
                     if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
                         setIsBanned(payload.eventType === 'INSERT');
@@ -186,62 +232,11 @@ export default function Room() {
                 console.warn('Realtime subscription failed:', e.message);
             }
         }
-
-        // Conservation de l'abonnement original du hook useRoom (RealtimeService.onUpdate sur 'rooms')
-        const unsub = RealtimeService.onUpdate({
-            table: 'rooms',
-            cb: (payload) => {
-                if (payload?.new?.room_id === Number(roomId)) {
-                    refresh();
-                }
-            },
-        });
-
-        return () => {
-            banUnsub?.();
-            unsub?.();
-        };
-
+        return () => { banUnsub?.(); };
     }, [roomId, user, room, roomLoading, needPw, refresh, loadRoomData]);
-
-
-    // === PRESENCE SYSTEM ===
-    useEffect(() => {
-        if (!room || !user) return;
-
-        let unsubPresence = () => { };
-
-        async function startPresence() {
-            // Récupère le profil complet du user
-            const profile = await UserRepository.getById(user.id);
-
-            // Join presence
-            await RealtimeService.joinPresence(room.id, {
-                user_id: user.id,
-                username: profile.username,
-                avatar_url: profile.avatar_url
-            });
-
-            // Listen presence updates
-            unsubPresence = RealtimeService.subscribePresence(room.id, ({ count }) => {
-                setOnlineCount(count);
-            });
-        }
-
-        startPresence();
-
-        // Quand on quitte la room
-        return () => {
-            RealtimeService.leavePresence(room.id);
-            unsubPresence();
-        };
-    }, [room, user]);
-
-
 
     const handleAction = async (action, targetMember) => {
         setAnchorEl(null);
-
         try {
             switch (action) {
                 case 'promote':
@@ -249,9 +244,7 @@ export default function Room() {
                     setSnackbar({ open: true, message: t('role.promoted', { user: targetMember.name }), severity: 'success' });
                     break;
                 case 'demote':
-                    if (targetMember.role === ROLES.OWNER) {
-                        throw new Error("Cannot demote the room owner.");
-                    }
+                    if (targetMember.role === ROLES.OWNER) throw new Error("Cannot demote the room owner.");
                     await RoleService.demote(roomId, targetMember.userId);
                     setSnackbar({ open: true, message: t('role.demoted', { user: targetMember.name }), severity: 'success' });
                     break;
@@ -262,7 +255,6 @@ export default function Room() {
                     break;
                 case 'ban':
                     if (!window.confirm(t('confirm.ban', { user: targetMember.name }))) return;
-
                     await BanRepository.banUser(roomId, targetMember.userId);
                     await RoleService.remove(roomId, targetMember.userId);
                     setSnackbar({ open: true, message: t('role.banned', { user: targetMember.name }), severity: 'warning' });
@@ -272,8 +264,7 @@ export default function Room() {
                     await BanRepository.unbanUser(roomId, targetMember.userId);
                     setSnackbar({ open: true, message: t('role.unbanned', { user: targetMember.name }), severity: 'success' });
                     break;
-                default:
-                    break;
+                default: break;
             }
             loadRoomData();
         } catch (err) {
@@ -281,9 +272,8 @@ export default function Room() {
         }
     };
 
-
     // ------------------------------------------
-    // 3. RENDU CONDITIONNEL
+    // RENDER
     // ------------------------------------------
 
     if (roomLoading && !room) {
@@ -320,7 +310,6 @@ export default function Room() {
         );
     }
 
-    // --- Rendu Banni ---
     if (isBanned) {
         return (
             <Box component={Section} sx={{ p: 4, textAlign: 'center' }}>
@@ -332,7 +321,6 @@ export default function Room() {
         );
     }
 
-    // --- Rendu Principal ---
     const isModerator = userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
 
     return (
@@ -342,8 +330,14 @@ export default function Room() {
                     <GuestUpgradeBanner />
                 </Box>
             )}
+            
+            {user && controlInfo && (
+                <Box sx={{ mb: 2 }}>
+                    <ControlStatus controlInfo={controlInfo} user={user} />
+                </Box>
+            )}
 
-            {/* Titre et statut de la salle (Design Original) */}
+            {/* HEADER */}
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
                 <Typography
                     variant="h4"
@@ -356,7 +350,7 @@ export default function Room() {
                 {room.password ? t('room.private') : t('room.public')}
             </Typography>
 
-            {/* Formulaire de mot de passe (Design Original) */}
+            {/* PASSWORD FORM */}
             {needPw && !checked ? (
                 <Box component="form" onSubmit={verify} sx={{ mt: 2, maxWidth: 480 }}>
                     <Stack spacing={2}>
@@ -377,10 +371,8 @@ export default function Room() {
                     </Stack>
                 </Box>
             ) : (
-                // Contenu principal de la salle (Vidéo, Chat, Playlist, Modération)
+                // MAIN CONTENT
                 <Stack spacing={2} sx={{ mt: 2 }}>
-
-                    {/* LAYOUT ABSOLUTE (Design Original) */}
                     <Box
                         sx={{
                             position: 'relative',
@@ -388,17 +380,25 @@ export default function Room() {
                             display: 'block'
                         }}
                     >
-                        {/* Conteneur principal de la vidéo */}
+                        {/* VIDEO PLAYER */}
                         <Box
                             sx={{
                                 mr: { xs: 0, lg: '466px' },
                                 minWidth: 0
                             }}
                         >
-                            <VideoPlayerShell embedUrl={embedUrl} />
+                            <VideoPlayerShell 
+                                url={syncVideoId ? toWatchUrl(syncVideoId) : null}
+                                playing={syncIsPlaying}
+                                onPlay={triggerPlay}
+                                onPause={triggerPause}
+                                onSeek={triggerSeek}
+                                onProgress={updateLocalProgress}
+                                seekToTimestamp={seekTimestamp}
+                            />
                         </Box>
 
-                        {/* Conteneur absolu pour la Playlist/Chat (Barre latérale) */}
+                        {/* SIDEBAR */}
                         <Box
                             sx={{
                                 position: { xs: 'static', lg: 'absolute' },
@@ -430,13 +430,12 @@ export default function Room() {
                             </Box>
 
                             <Box sx={{ flex: 1, minHeight: 0, overflowY: activeTab === 'chat' ? 'hidden' : 'auto' }}>
-
                                 <Box sx={{ p: 1, height: '100%' }}>
                                     {activeTab === 'playlist' && (
                                         <PlaylistPanel
                                             playlistId={playlistId}
                                             onAdd={handleAddVideo}
-                                            onPlay={handlePlay}
+                                            onPlay={changeVideo}
                                         />
                                     )}
 
@@ -455,7 +454,7 @@ export default function Room() {
                                             <List dense>
                                                 {members.map((member) => {
                                                     const memberRole = getMemberRole(member);
-                                                    const isCurrentUser = member.userId === user.id;
+                                                    const isCurrentUser = member.userId === user?.id;
                                                     const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
 
                                                     return (
@@ -494,7 +493,7 @@ export default function Room() {
                 </Stack>
             )}
 
-            {/* MENU CONTEXTUEL DES ACTIONS */}
+            {/* CONTEXT MENU */}
             <Menu
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
@@ -502,14 +501,14 @@ export default function Room() {
             >
                 {selectedMember && (
                     <Box>
-                        {/* PROMOTE (Owner peut promouvoir Member/Manager) */}
+                        {/* PROMOTE */}
                         {(selectedMember.role === ROLES.MEMBER || selectedMember.role === ROLES.MANAGER) && userRole === ROLES.OWNER && (
                             <MenuItem onClick={() => handleAction('promote', selectedMember)}>
                                 {t('action.promote', 'Promouvoir Manager')}
                             </MenuItem>
                         )}
 
-                        {/* DEMOTE (Owner peut rétrograder Manager) */}
+                        {/* DEMOTE */}
                         {selectedMember.role === ROLES.MANAGER && userRole === ROLES.OWNER && (
                             <MenuItem onClick={() => handleAction('demote', selectedMember)}>
                                 {t('action.demote', 'Rétrograder Membre')}
@@ -527,7 +526,7 @@ export default function Room() {
                 )}
             </Menu>
 
-            {/* SNACKBAR DE NOTIFICATION */}
+            {/* SNACKBAR */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}

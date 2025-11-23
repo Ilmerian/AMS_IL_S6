@@ -15,14 +15,15 @@ export const supabase = createClient(url, key, {
     detectSessionInUrl: true,
   },
   realtime: {
-    timeout: 20000, 
+    timeout: 60000,
     params: {
       eventsPerSecond: 10,
+      apikey: key,
     },
   },
   global: {
-    fetch: (url, options) => {
-      return fetch(url, { ...options, keepalive: true })
+    headers: {
+      'X-Client-Info': 'watch-with-me'
     }
   }
 })

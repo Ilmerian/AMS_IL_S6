@@ -27,17 +27,21 @@ export default function AuthProvider({ children }) {
 
   // Fonction pour rafraîchir la session quand l'utilisateur revient sur l'onglet
   const refreshSession = useCallback(async () => {
-    const { data, error } = await supabase.auth.getSession()
-    if (error || !data.session) {
-      // Si la session est morte, on nettoie
-      setUser(null)
-      setProfile(null)
-    } else {
-      // Si l'utilisateur a changé (rare) ou si on veut être sûr d'avoir les dernières infos
-      if (data.session.user.id !== user?.id) {
-        setUser(data.session.user)
-        fetchProfile(data.session.user.id)
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error || !data.session) {
+        // Si la session est morte, on nettoie
+        setUser(null)
+        setProfile(null)
+      } else {
+        // Si l'utilisateur a changé (rare) ou si on veut être sûr d'avoir les dernières infos
+        if (data.session.user.id !== user?.id) {
+          setUser(data.session.user)
+          fetchProfile(data.session.user.id)
+        }
       }
+    } catch (error) {
+      console.warn('[AuthProvider] refreshSession error:', error)
     }
   }, [user, fetchProfile])
 
@@ -51,11 +55,17 @@ export default function AuthProvider({ children }) {
         
         if (session?.user) {
           if (mounted) setUser(session.user)
-          await AuthService.ensureProfile() // Vérifie que le profil existe
+          try {
+            await AuthService.ensureProfile()
+          } catch (e) {
+            console.warn('[AuthProvider] ensureProfile failed:', e)
+          }
           if (mounted) await fetchProfile(session.user.id)
         }
       } catch (e) {
-        console.error('Auth init error:', e)
+        if (e.name !== 'AbortError') {
+          console.error('Auth init error:', e)
+        }
       } finally {
         if (mounted) setLoading(false)
       }
@@ -82,12 +92,10 @@ export default function AuthProvider({ children }) {
     })
 
     // 3. REVALIDATION AUTO AU RETOUR SUR L'ONGLET
-    // C'est la partie cruciale pour votre problème
     const handleFocus = () => {
       refreshSession()
     }
     window.addEventListener('focus', handleFocus)
-    // Optionnel: écouter visibilitychange aussi
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') refreshSession()
     })
