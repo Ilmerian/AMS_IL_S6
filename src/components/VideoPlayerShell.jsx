@@ -92,6 +92,13 @@ export default function VideoPlayerShell({
       if (event.origin !== 'https://www.youtube.com') return;
       
       try {
+        const allowedOrigins = [
+          'https://www.youtube.com',
+          'https://www.youtube-nocookie.com',
+          'https://youtube.com'
+        ];
+        
+        if (!allowedOrigins.includes(event.origin)) return;        
         const data = JSON.parse(event.data);
         
         if (data.event === 'infoDelivery' && data.info) {

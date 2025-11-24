@@ -27,7 +27,7 @@ export function useVideoSync({ roomId, user }) {
   // 1. DATABASE SYNC
   // =========================================================================
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || isProduction) return;
 
     console.log(`[DB SYNC] Setting up for room: ${roomId}, user: ${safeUser.id}`);
 
@@ -47,12 +47,7 @@ export function useVideoSync({ roomId, user }) {
 
           if (now - lastUpdate < 1000) return;
 
-          console.log(`[DB SYNC] Room updated by user ${safeUser.id}:`, newData);
-
-          if (newData.last_updated_by === safeUser.id) {
-            console.log(`[DB SYNC] Ignoring self-update from user ${safeUser.id}`);
-            return;
-          }
+          console.log(`[DB SYNC] Room updated:`, newData);
 
           if (newData.current_video_id !== stateRef.current.videoId) {
             console.log(`[DB SYNC] Video changed to: ${newData.current_video_id}`);
@@ -79,7 +74,7 @@ export function useVideoSync({ roomId, user }) {
       console.log(`[DB SYNC] Cleaning up for room: ${roomId}, user: ${safeUser.id}`);
       supabase.removeChannel(channel);
     };
-  }, [roomId, lastUpdate, safeUser.id]);
+  }, [roomId, lastUpdate, safeUser.id, isProduction]);
 
   // =========================================================================
   // 2. POLLING SYNC
@@ -93,7 +88,7 @@ export function useVideoSync({ roomId, user }) {
         if (room) {
           const now = Date.now();
           
-          if (room.current_video_id !== stateRef.current.videoId) {
+          if (room.current_video_id !== stateRef.current.videoId && room.current_video_id !== undefined) {
             console.log(`[POLLING SYNC] Video changed to: ${room.current_video_id} for user ${safeUser.id}`);
             setSyncVideoId(room.current_video_id);
             stateRef.current.videoId = room.current_video_id;
@@ -101,7 +96,7 @@ export function useVideoSync({ roomId, user }) {
             setSeekTimestamp(0);
           }
           
-          if (room.is_playing !== stateRef.current.isPlaying) {
+          if (room.is_playing !== stateRef.current.isPlaying && room.is_playing !== undefined) {
             console.log(`[POLLING SYNC] Playback state: ${room.is_playing ? 'PLAY' : 'PAUSE'} for user ${safeUser.id}`);
             setSyncIsPlaying(room.is_playing);
             stateRef.current.isPlaying = room.is_playing;
@@ -114,7 +109,7 @@ export function useVideoSync({ roomId, user }) {
       }
     };
 
-    const interval = isProduction ? 2000 : 5000;
+    const interval = isProduction ? 3000 : 5000;
     
     syncRoomState();
     syncIntervalRef.current = setInterval(syncRoomState, interval);
@@ -146,9 +141,7 @@ export function useVideoSync({ roomId, user }) {
     try {
       await RoomService.updatePlaybackState(roomId, { 
         isPlaying: true,
-        ...(syncVideoId && { currentVideoId: syncVideoId }),
-        last_updated_by: safeUser.id,
-        last_playback_position: targetTimestamp
+        ...(syncVideoId && { currentVideoId: syncVideoId })
       });
       setLastUpdate(Date.now());
       console.log(`[DB UPDATE] Playback state updated to PLAY at position ${targetTimestamp} by user ${safeUser.id}`);
@@ -165,9 +158,7 @@ export function useVideoSync({ roomId, user }) {
 
     try {
       await RoomService.updatePlaybackState(roomId, { 
-        isPlaying: false,
-        last_updated_by: safeUser.id,
-        last_playback_position: localProgressRef.current
+        isPlaying: false
       });
       setLastUpdate(Date.now());
       console.log(`[DB UPDATE] Playback state updated to PAUSE by user ${safeUser.id}`);
@@ -184,8 +175,7 @@ export function useVideoSync({ roomId, user }) {
 
     const debouncedSeekUpdate = () => {
       RoomService.updatePlaybackState(roomId, {
-        last_playback_position: seconds,
-        last_updated_by: safeUser.id
+         last_playback_position: seconds
       }).catch(e => console.warn('Seek position update failed:', e));
     };
     
@@ -209,9 +199,7 @@ export function useVideoSync({ roomId, user }) {
     try {
       await RoomService.updatePlaybackState(roomId, { 
         currentVideoId: cleanId, 
-        isPlaying: true,
-        last_updated_by: safeUser.id,
-        last_playback_position: 0
+        isPlaying: true
       });
       setLastUpdate(Date.now());
       console.log(`[DB UPDATE] Video changed to: ${cleanId} by user ${safeUser.id}`);
