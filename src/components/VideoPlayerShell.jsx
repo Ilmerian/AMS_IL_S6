@@ -1,9 +1,9 @@
 // src/components/VideoPlayerShell.jsx
-import { useEffect, useRef, useState, useCallback } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Card from '../ui/Card'
-import { getYouTubeId, toEmbedUrl } from '../utils/youtube'
+import { useEffect, useRef, useState, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Card from '../ui/Card';
+import { getYouTubeId, toEmbedUrl } from '../utils/youtube';
 
 export default function VideoPlayerShell({ 
   url, 
@@ -14,19 +14,19 @@ export default function VideoPlayerShell({
   onProgress,
   seekToTimestamp 
 }) {
-  const iframeRef = useRef(null)
-  const intervalRef = useRef(null)
-  const [isIframeReady, setIsIframeReady] = useState(false)
-  const [currentVideoId, setCurrentVideoId] = useState(null)
-  const [pendingCommands, setPendingCommands] = useState([])
+  const iframeRef = useRef(null);
+  const [isIframeReady, setIsIframeReady] = useState(false);
+  const [currentVideoId, setCurrentVideoId] = useState(null);
+  const [pendingCommands, setPendingCommands] = useState([]);
+  const commandTimeoutRef = useRef(null);
 
-  const videoId = getYouTubeId(url || '')
-  const embedUrl = videoId ? toEmbedUrl(videoId) : null
+  const videoId = getYouTubeId(url || '');
+  const embedUrl = videoId ? toEmbedUrl(videoId) : null;
 
   const sendCommand = useCallback((command, value = null) => {
     if (!iframeRef.current?.contentWindow || !isIframeReady) {
-      setPendingCommands(prev => [...prev, { command, value }])
-      return false
+      setPendingCommands(prev => [...prev, { command, value }]);
+      return false;
     }
 
     try {
@@ -34,128 +34,123 @@ export default function VideoPlayerShell({
         event: 'command',
         func: command,
         args: value !== null ? [value] : undefined
-      })
+      });
       
-      iframeRef.current.contentWindow.postMessage(message, 'https://www.youtube.com')
-      return true
+      iframeRef.current.contentWindow.postMessage(message, 'https://www.youtube.com');
+      return true;
     } catch (error) {
-      console.error('Failed to send command to YouTube iframe:', error)
-      return false
+      console.warn('Failed to send command to YouTube iframe:', error);
+      return false;
     }
-  }, [isIframeReady])
+  }, [isIframeReady]);
 
   useEffect(() => {
     if (isIframeReady && pendingCommands.length > 0) {
-      pendingCommands.forEach(({ command, value }) => {
-        sendCommand(command, value)
-      })
-      setPendingCommands([])
+      const executeCommands = () => {
+        pendingCommands.forEach(({ command, value }) => {
+          sendCommand(command, value);
+        });
+        setPendingCommands([]);
+      };
+      
+      const timeoutId = setTimeout(executeCommands, 1000);
+      return () => clearTimeout(timeoutId);
     }
-  }, [isIframeReady, pendingCommands, sendCommand])
+  }, [isIframeReady, pendingCommands, sendCommand]);
 
   useEffect(() => {
     if (videoId && videoId !== currentVideoId) {
-      console.log("🎬 Video changed from", currentVideoId, "to", videoId)
-      setCurrentVideoId(videoId)
-      setIsIframeReady(false)
-      setPendingCommands([])
+      console.log("🎬 Video changed from", currentVideoId, "to", videoId);
+      setCurrentVideoId(videoId);
+      setIsIframeReady(false);
+      setPendingCommands([]);
     }
-  }, [videoId, currentVideoId])
+  }, [videoId, currentVideoId]);
 
   useEffect(() => {
-    if (!embedUrl) return
+    if (!embedUrl) return;
 
     if (playing) {
-      console.log("▶️ Sending play command")
-      sendCommand('playVideo')
+      console.log("▶️ Sending play command");
+      sendCommand('playVideo');
     } else {
-      console.log("⏸️ Sending pause command")
-      sendCommand('pauseVideo')
+      console.log("⏸️ Sending pause command");
+      sendCommand('pauseVideo');
     }
-  }, [playing, embedUrl, sendCommand])
+  }, [playing, embedUrl, sendCommand]);
 
   useEffect(() => {
-    if (seekToTimestamp === null || seekToTimestamp === undefined) return
-    if (!embedUrl) return
+    if (seekToTimestamp === null || seekToTimestamp === undefined) return;
+    if (!embedUrl) return;
 
-    console.log("🎯 Sending seek command:", seekToTimestamp)
-    sendCommand('seekTo', seekToTimestamp)
-  }, [seekToTimestamp, embedUrl, sendCommand])
-
-  useEffect(() => {
-    if (!embedUrl || !isIframeReady) return
-
-    const checkProgress = () => {
-      const iframe = iframeRef.current
-      if (!iframe?.contentWindow) return
-
-      const message = JSON.stringify({
-        event: 'listening',
-        id: iframe.dataset.id
-      })
-      
-      iframe.contentWindow.postMessage(message, 'https://www.youtube.com')
-    }
-
-    intervalRef.current = setInterval(checkProgress, 1000)
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-    }
-  }, [embedUrl, isIframeReady])
+    console.log("🎯 Sending seek command:", seekToTimestamp);
+    sendCommand('seekTo', seekToTimestamp);
+  }, [seekToTimestamp, embedUrl, sendCommand]);
 
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.origin !== 'https://www.youtube.com') return
+      if (event.origin !== 'https://www.youtube.com') return;
       
       try {
-        const data = JSON.parse(event.data)
+        const data = JSON.parse(event.data);
         
         if (data.event === 'infoDelivery' && data.info) {
           if (data.info.currentTime !== undefined && onProgress) {
-            onProgress(data.info.currentTime)
+            onProgress(data.info.currentTime);
           }
 
           if (data.info.playerState !== undefined) {
-            const playerState = data.info.playerState
+            const playerState = data.info.playerState;
             if (playerState === 1 && !playing && onPlay) {
-              console.log("👆 YouTube Player Started Playing")
-              onPlay()
+              console.log("👆 YouTube Player Started Playing");
+              onPlay();
             } else if (playerState === 2 && playing && onPause) {
-              console.log("👆 YouTube Player Paused")
-              onPause()
+              console.log("👆 YouTube Player Paused");
+              onPause();
             }
           }
         }
       } catch (error) {
-        console.error('Failed to parse message from YouTube iframe:', error)
+        console.warn("Failed to parse message from YouTube iframe:", error);
       }
     }
 
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [playing, onPlay, onPause, onProgress])
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [playing, onPlay, onPause, onProgress]);
 
   const handleLoad = () => {
-    console.log("✅ YouTube iframe loaded")
-    setIsIframeReady(true)
+    console.log("✅ YouTube iframe loaded");
+    setIsIframeReady(true);
     
-    if (iframeRef.current?.contentWindow) {
-      const message = JSON.stringify({
-        event: 'listening',
-        id: iframeRef.current.dataset.id
-      })
-      
-      iframeRef.current.contentWindow.postMessage(message, 'https://www.youtube.com')
+    if (commandTimeoutRef.current) {
+      clearTimeout(commandTimeoutRef.current);
     }
-  }
+    
+    commandTimeoutRef.current = setTimeout(() => {
+      if (iframeRef.current?.contentWindow) {
+        const message = JSON.stringify({
+          event: 'listening',
+          id: iframeRef.current.dataset.id
+        });
+        
+        iframeRef.current.contentWindow.postMessage(message, 'https://www.youtube.com');
+      }
+    }, 1500);
+  };
 
   const handleError = () => {
-    console.error("❌ YouTube iframe failed to load")
-    setIsIframeReady(false)
-  }
+    console.error("❌ YouTube iframe failed to load");
+    setIsIframeReady(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (commandTimeoutRef.current) {
+        clearTimeout(commandTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!embedUrl) {
     return (
@@ -172,7 +167,7 @@ export default function VideoPlayerShell({
           <Typography>Select a video to play</Typography>
         </Box>
       </Card>
-    )
+    );
   }
 
   return (
@@ -214,8 +209,9 @@ export default function VideoPlayerShell({
             display: 'block'
           }}
           data-id="1"
+          title="YouTube video player"
         />
       </Box>
     </Card>
-  )
+  );
 }

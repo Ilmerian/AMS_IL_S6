@@ -13,10 +13,12 @@ export const RoomService = {
   pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
 
   // NOUVEAU : Met à jour l'état de lecture global de la salle
-  async updatePlaybackState(roomId, { isPlaying, currentVideoId }) {
+  async updatePlaybackState(roomId, { isPlaying, currentVideoId, last_updated_by, last_playback_position }) {
     const updates = {};
     if (isPlaying !== undefined) updates.is_playing = isPlaying;
     if (currentVideoId !== undefined) updates.current_video_id = currentVideoId;
+    if (last_updated_by !== undefined) updates.last_updated_by = last_updated_by;
+    if (last_playback_position !== undefined) updates.last_playback_position = last_playback_position;
 
     if (Object.keys(updates).length === 0) return;
 
@@ -25,7 +27,12 @@ export const RoomService = {
       .update(updates)
       .eq('room_id', roomId);
     
-    if (error) throw error;
+    if (error) {
+      console.error('RoomService.updatePlaybackState error:', error);
+      throw error;
+    }
+    
+    return true;
   },
 
   async create({ name, password }) {
