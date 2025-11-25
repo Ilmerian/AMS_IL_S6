@@ -109,6 +109,39 @@ function ControlStatus({ controlInfo, user }) {
   );
 }
 
+function ConnectionStatus({ connectionStatus }) {
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case 'connected':
+        return { text: '🟢 Synchronisation en temps réel', color: 'success.main' };
+      case 'polling':
+        return { text: '🟡 Synchronisation active', color: 'warning.main' };
+      case 'error':
+        return { text: '🔴 Problème de connexion', color: 'error.main' };
+      default:
+        return { text: '⚪ Connexion...', color: 'grey.500' };
+    }
+  };
+
+  const statusInfo = getStatusInfo(connectionStatus);
+
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 1,
+      p: 1, 
+      borderRadius: 1,
+      backgroundColor: statusInfo.color,
+      opacity: 0.9
+    }}>
+      <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+        {statusInfo.text}
+      </Typography>
+    </Box>
+  );
+}
+
 export default function Room() {
     const { t } = useTranslation();
     const { roomId } = useParams();
@@ -165,6 +198,7 @@ export default function Room() {
         triggerSeek,
         changeVideo,
         updateLocalProgress,
+        connectionStatus,
         controlInfo
     } = useVideoSync({
         roomId,
@@ -336,7 +370,11 @@ export default function Room() {
                     <ControlStatus controlInfo={controlInfo} user={user} />
                 </Box>
             )}
-
+            {user && (
+            <Box sx={{ mb: 1 }}>
+                <ConnectionStatus connectionStatus={connectionStatus} />
+            </Box>
+            )}
             {/* HEADER */}
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
                 <Typography

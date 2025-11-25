@@ -5,7 +5,29 @@ import { supabase } from '../lib/supabaseClient';
 
 export const RoomService = {
   listMy: () => RoomRepository.listMy(),
-  get: (id) => RoomRepository.getById(id),
+  async get(roomId) {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('room_id', roomId)
+        .single();
+      
+      if (error) throw error;
+      
+      return {
+        id: data.room_id,
+        name: data.name,
+        ownerId: data.owner_id,
+        current_video_id: data.current_video_id,
+        is_playing: data.is_playing,
+        has_password: !!data.password
+      };
+    } catch (error) {
+      console.error('RoomService.get error:', error);
+      throw error;
+    }
+  },
   listPublic: () => RoomRepository.listPublic(),
   updatePosition: (roomId, position) => RoomRepository.updatePosition(roomId, position),
   archive: (id) => RoomRepository.archive(id),
