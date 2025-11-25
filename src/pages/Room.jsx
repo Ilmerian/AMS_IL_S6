@@ -372,7 +372,21 @@ export default function Room() {
             )}
             {user && (
             <Box sx={{ mb: 1 }}>
-                <ConnectionStatus connectionStatus={connectionStatus} />
+                <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                p: 1, 
+                borderRadius: 1,
+                backgroundColor: connectionStatus === 'polling' ? 'success.main' : 
+                                connectionStatus === 'error' ? 'error.main' : 'warning.main',
+                opacity: 0.9
+                }}>
+                <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+                    {connectionStatus === 'polling' ? '🟢 Synchronisé' :
+                    connectionStatus === 'error' ? '🔴 Problème de connexion' : '🟡 Connexion...'}
+                </Typography>
+                </Box>
             </Box>
             )}
             {/* HEADER */}

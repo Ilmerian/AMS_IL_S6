@@ -85,12 +85,12 @@ export const RoomRepository = {
       .single();
     if (error) throw error;
 
-    
     return {
       id: data.room_id,
       name: data.name,
       ownerId: data.owner_id,
-      ownerName: data.owner_name || null, 
+      current_video_id: data.current_video_id,
+      is_playing: data.is_playing,
       password: data.has_password ? '***' : null,
       videoHistory: [],
     };

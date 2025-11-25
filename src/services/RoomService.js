@@ -9,11 +9,15 @@ export const RoomService = {
     try {
       const { data, error } = await supabase
         .from('rooms')
-        .select('*')
+        .select('room_id, name, owner_id, current_video_id, is_playing, password')
         .eq('room_id', roomId)
         .single();
       
       if (error) throw error;
+      
+      if (!data) {
+        throw new Error('Room not found');
+      }
       
       return {
         id: data.room_id,
