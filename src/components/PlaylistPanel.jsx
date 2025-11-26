@@ -19,7 +19,7 @@ import { PlaylistService } from '../services/PlaylistService'
 import { getYouTubeId } from '../utils/youtube'
 import { VideoService } from '../services/VideoService'
 
-export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
+export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
   const { t } = useTranslation()
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
@@ -150,7 +150,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
             <Button
               variant="outlined"
               onClick={runSearch}
-              disabled={busy || !playlistId}
+              disabled={busy || !playlistId || !canEdit}
             >
               Search
             </Button>
@@ -252,7 +252,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
                           size="small"
                           aria-label={t('playlist.add')}
                           onClick={() => handleAddResult(item)}
-                          disabled={busy || !playlistId}
+                          disabled={busy || !playlistId || !canEdit}
                         >
                           <PlaylistAddIcon fontSize="small" />
                         </IconButton>
@@ -279,7 +279,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
             type="submit"
             variant="contained"
             color="primary"
-            disabled={busy || !playlistId}
+            disabled={busy || !playlistId || !canEdit}
           >
             {busy ? t('playlist.adding') : t('playlist.add')}
           </Button>
@@ -341,6 +341,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
                       aria-label={t('playlist.play')}
                       onClick={() => handlePlay(v.url)}
                       sx={{ mr: 1 }}
+                      disabled={busy}
                     >
                       <PlayArrowIcon />
                     </IconButton>
@@ -349,6 +350,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay }) {
                       aria-label={t('playlist.delete')}
                       color="error"
                       onClick={() => handleDelete(v.id)}
+                      disabled={!canEdit}
                     >
                       <DeleteIcon />
                     </IconButton>

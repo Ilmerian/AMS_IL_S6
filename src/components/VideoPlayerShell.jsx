@@ -12,7 +12,8 @@ export default function VideoPlayerShell({
   onPause, 
   onSeek, 
   onProgress,
-  seekToTimestamp 
+  seekToTimestamp,
+  canControl
 }) {
   const iframeRef = useRef(null);
   const [isIframeReady, setIsIframeReady] = useState(false);
@@ -24,6 +25,12 @@ export default function VideoPlayerShell({
   const embedUrl = videoId ? toEmbedUrl(videoId) : null;
 
   const sendCommand = useCallback((command, value = null) => {
+    // BLOCAGE CÔTÉ CLIENT SI L'UTILISATEUR N'EST PAS AUTORISÉ
+    if (!canControl && ['playVideo', 'pauseVideo', 'seekTo'].includes(command)) {
+        console.warn(`[ACL] Command blocked: ${command}. User does not have control.`);
+        return false;
+    }
+
     if (!iframeRef.current?.contentWindow || !isIframeReady) {
       setPendingCommands(prev => [...prev, { command, value }]);
       return false;
@@ -42,7 +49,7 @@ export default function VideoPlayerShell({
       console.warn('Failed to send command to YouTube iframe:', error);
       return false;
     }
-  }, [isIframeReady]);
+  }, [isIframeReady, canControl]); // Ajouter canControl aux dépendances
 
   useEffect(() => {
     if (isIframeReady && pendingCommands.length > 0) {

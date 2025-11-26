@@ -442,6 +442,7 @@ export default function Room() {
                             <VideoPlayerShell 
                                 url={syncVideoId ? toWatchUrl(syncVideoId) : null}
                                 playing={syncIsPlaying}
+                                canControl={canControlVideo}
                                 onPlay={triggerPlay}
                                 onPause={triggerPause}
                                 onSeek={triggerSeek}
@@ -486,6 +487,7 @@ export default function Room() {
                                     {activeTab === 'playlist' && (
                                         <PlaylistPanel
                                             playlistId={playlistId}
+                                            canEdit={canControlVideo} 
                                             onAdd={handleAddVideo}
                                             onPlay={changeVideo}
                                         />
