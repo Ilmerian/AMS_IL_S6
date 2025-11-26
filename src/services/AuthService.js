@@ -106,22 +106,25 @@ export const AuthService = {
     const user = await AuthService.getUser()
     if (!user) return null
 
+    let profileExists = false;
     try {
       const profile = await UserRepository.getById(user.id)
-      if (profile) return profile
-    } catch (e) {
-      const status = e?.status ?? e?.code
-      const msg = e?.message || ''
-      if (
-        status === 403 ||
-        status === '42501' ||
-        msg.includes('permission denied for table users')
-      ) {
-        console.warn('[AuthService.ensureProfile] RLS denied on users, skip upsert')
-        return null
+      if (profile) {
+        profileExists = true;
+        return profile;
       }
-      console.error('[AuthService.ensureProfile] getById failed:', e?.message || e)
+    } catch (e) {
+      const msg = e?.message || '';
+      if (
+        (e.code !== '404' && e.code !== 404) && // Si ce n'est PAS un 404, on loggue l'erreur
+        !msg.includes('NetworkError') &&
+        !msg.includes('502')
+      ) {
+        console.error('[AuthService.ensureProfile] getById failed unexpectedly:', e?.message || e);
+      }
     }
+
+    if (profileExists) return;
 
     const username =
       user.user_metadata?.username ||

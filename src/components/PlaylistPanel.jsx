@@ -70,6 +70,13 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
   const submit = async (e) => {
     e.preventDefault()
     setMsg('')
+    
+    // VÉRIFICATION ACL
+    if (!canEdit) {
+        setMsg(t('playlist.permissionDenied', 'Permission refusée pour modifier la playlist.'));
+        return;
+    }
+
     const u = url.trim()
     if (!u || busy) return
     setBusy(true)
@@ -85,6 +92,12 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
   }
 
   const handleDelete = async (videoId) => {
+// VÉRIFICATION ACL
+    if (!canEdit) {
+        setMsg(t('playlist.permissionDenied', 'Permission refusée pour modifier la playlist.'));
+        return;
+    }
+
     if (!playlistId) return
     setBusy(true)
     setMsg('')
@@ -105,6 +118,12 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
   const extractYoutubeId = (item) => item.videoId || item.id?.videoId || item.id
 
   const handleAddResult = async (item) => {
+    // VÉRIFICATION ACL
+    if (!canEdit) {
+        setMsg(t('playlist.permissionDenied', 'Permission refusée pour modifier la playlist.'));
+        return;
+    }
+
     if (!playlistId) return
     setBusy(true)
     setMsg('')
@@ -252,7 +271,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
                           size="small"
                           aria-label={t('playlist.add')}
                           onClick={() => handleAddResult(item)}
-                          disabled={busy || !playlistId || !canEdit}
+                          disabled={busy || !playlistId}
                         >
                           <PlaylistAddIcon fontSize="small" />
                         </IconButton>
@@ -279,7 +298,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
             type="submit"
             variant="contained"
             color="primary"
-            disabled={busy || !playlistId || !canEdit}
+            disabled={busy || !playlistId || !canEdit} // AJOUT DE !canEdit
           >
             {busy ? t('playlist.adding') : t('playlist.add')}
           </Button>

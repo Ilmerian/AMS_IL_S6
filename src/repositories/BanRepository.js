@@ -46,22 +46,34 @@ export const BanRepository = {
 
     /**
      * Vérifie si un utilisateur est banni d'une salle.
+     * RÉSILIENCE AMÉLIORÉE: Capture les NetworkError et retourne false par défaut.
      */
     async isUserBanned(roomId, userId) {
         if (!userId) return false;
         
-        const { data, error } = await supabase
-            .from(BAN_TABLE)
-            .select('id')
-            .eq('room_id', roomId)
-            .eq('user_id', userId)
-            .maybeSingle(); 
+        try {
+            const { data, error } = await supabase
+                .from(BAN_TABLE)
+                .select('id')
+                .eq('room_id', roomId)
+                .eq('user_id', userId)
+                .maybeSingle(); 
 
-        if (error) {
-            console.error('Ban check failed:', error);
-            throw error;
+            if (error) {
+                // Si l'erreur est un AbortError (code 20), on le loggue comme avertissement
+                if (error.code === '20' || error.message.includes('AbortError')) {
+                    console.warn('Ban check failed (Supabase AbortError, temporary network issue):', error);
+                    return false; // Traiter comme non banni par résilience
+                }
+                console.error('Ban check failed (Supabase structured error):', error);
+                throw error; // Lancer d'autres erreurs structurées (RLS, etc.)
+            }
+            return !!data;
+        } catch (e) {
+            // Utilisé pour attraper les NetworkError / FetchError (qui ne sont pas des objets error Supabase structurés)
+            console.warn('Ban check failed (Network/Fetch error), returning default (false):', e);
+            return false;
         }
-        return !!data;
     },
 
     /**

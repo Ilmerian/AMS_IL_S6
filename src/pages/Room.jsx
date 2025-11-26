@@ -199,7 +199,7 @@ export default function Room() {
         changeVideo,
         updateLocalProgress,
         connectionStatus,
-        controlInfo
+        controlInfo = {} 
     } = useVideoSync({
         roomId,
         user,
@@ -207,7 +207,8 @@ export default function Room() {
         initialVideoId: room?.current_video_id,
         initialPlaying: room?.is_playing
     });
-
+    const canControlVideo = controlInfo.canControl || userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
+    // ------------------------------------------
     // ------------------------------------------
     // MODERATION & DATA LOADING
     // ------------------------------------------
@@ -249,15 +250,21 @@ export default function Room() {
     }, [roomId, user, getMemberRole, t]);
 
     useEffect(() => {
-        if (!user || !roomId || roomLoading) return;
-        let banUnsub;
-        if (room && !needPw) {
-            loadRoomData();
+            // Condition de garde stricte : doit avoir un utilisateur, un ID de salle, la salle chargée (room), 
+            // et ne pas être en attente de mot de passe (needPw)
+            if (!user || !roomId || roomLoading || !room || needPw) return; 
+
+            let banUnsub;
+            
+            loadRoomData(); // Lancer le chargement des membres/bans
+
             try {
+                // Abonnement aux bans
                 banUnsub = BanRepository.onBanChange(roomId, (payload) => {
                     if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
                         setIsBanned(payload.eventType === 'INSERT');
                     }
+                    // Recharger la liste des membres si un ban/unban a lieu pour un utilisateur quelconque
                     if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
                         loadRoomData();
                     }
@@ -265,9 +272,9 @@ export default function Room() {
             } catch (e) {
                 console.warn('Realtime subscription failed:', e.message);
             }
-        }
-        return () => { banUnsub?.(); };
-    }, [roomId, user, room, roomLoading, needPw, refresh, loadRoomData]);
+            
+            return () => { banUnsub?.(); };
+        }, [roomId, user, room, roomLoading, needPw, loadRoomData]);
 
     const handleAction = async (action, targetMember) => {
         setAnchorEl(null);
@@ -442,7 +449,8 @@ export default function Room() {
                             <VideoPlayerShell 
                                 url={syncVideoId ? toWatchUrl(syncVideoId) : null}
                                 playing={syncIsPlaying}
-                                canControl={canControlVideo}
+                                // AJOUT DE LA PROP D'AUTORISATION
+                                canControl={canControlVideo} 
                                 onPlay={triggerPlay}
                                 onPause={triggerPause}
                                 onSeek={triggerSeek}
