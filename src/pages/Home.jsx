@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import { useTranslation } from "react-i18next";
+//import { useTranslation } from "react-i18next";
 import { Link as RouterLink } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -13,7 +13,7 @@ import CardContent from "@mui/material/CardContent";
 import { FiPlus, FiVideo, FiUsers, FiLock, FiMessageCircle } from "react-icons/fi";
 
 export default function Home() {
-  const { t } = useTranslation();
+  //const { t } = useTranslation();
 
   return (
     <Box sx={{ minHeight: "100vh", color: "white" }}>

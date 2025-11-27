@@ -1,8 +1,9 @@
 // src/hooks/usePlaylistForRoom.js
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { PlaylistService } from '../services/PlaylistService'
 import { VideoService } from '../services/VideoService'
 import { getYouTubeId, toWatchUrl, toEmbedUrl } from '../utils/youtube'
+import { PlaybackRepository } from '../repositories/PlaybackRepository'
 
 function extractIdFromStoredValue(val) {
   if (!val) return null
@@ -13,6 +14,9 @@ function extractIdFromStoredValue(val) {
 export function usePlaylistForRoom({ room, roomId, accessGranted }) {
   const [playlistId, setPlaylistId] = useState(null)
   const [embedUrl, setEmbedUrl] = useState(null)
+  const [currentVideoId, setCurrentVideoId] = useState(null)
+  const [playlistItems, setPlaylistItems] = useState([])
+  const retryCountRef = useRef(new Map())
 
   useEffect(() => {
     if (!room || !accessGranted) return
@@ -25,19 +29,45 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
         }
         setPlaylistId(pl?.id || null)
 
+        // Load playlist items
+        const { videos } = await PlaylistService.loadItems(pl.id)
+        setPlaylistItems(videos)
+
+        // Check current playback state
+        const playback = await PlaybackRepository.getCurrentPlayback(roomId)
+        if (playback?.video_id) {
+          const currentVideo = videos.find(v => v.id === playback.video_id)
+          if (currentVideo) {
+            const yid = getYouTubeId(currentVideo.url)
+            if (yid) {
+              setCurrentVideoId(yid)
+              setEmbedUrl(toEmbedUrl(yid))
+              return
+            }
+          }
+        }
+
+        // Fallback to last video
         const last = pl?.videoIds?.slice(-1)[0]
         if (last) {
           const stored = extractIdFromStoredValue(last)
           if (stored && !/^https?:\/\//.test(String(stored)) && !/^[\w-]{6,}$/.test(String(stored))) {
             const video = await VideoService.getById(stored)
             const yid = getYouTubeId(video?.url)
-            if (yid) setEmbedUrl(toEmbedUrl(yid))
+            if (yid) {
+              setCurrentVideoId(yid)
+              setEmbedUrl(toEmbedUrl(yid))
+            }
           } else {
             const yid = getYouTubeId(stored) || stored
-            if (yid) setEmbedUrl(toEmbedUrl(yid))
+            if (yid) {
+              setCurrentVideoId(yid)
+              setEmbedUrl(toEmbedUrl(yid))
+            }
           }
         } else {
           setEmbedUrl(null)
+          setCurrentVideoId(null)
         }
       } catch (e) {
         console.warn('[usePlaylistForRoom] init failed:', e?.message || e)
@@ -108,9 +138,121 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
     }
   }
 
+  const playVideoById = useCallback(async (videoId) => {
+    if (!playlistId) return;
+    
+    try {
+      const video = playlistItems.find(v => v.id === videoId);
+      if (!video) return;
+      
+      const yid = getYouTubeId(video.url);
+      if (!yid) return;
+      
+      // Réinitialiser le compteur de rétroactions lors du changement de vidéo
+      retryCountRef.current.delete(yid);
+      
+      setCurrentVideoId(yid);
+      setEmbedUrl(toEmbedUrl(yid));
+      
+      // Save to playback state
+      await PlaybackRepository.setCurrentPlayback(roomId, playlistId, videoId);
+    } catch (error) {
+      console.error('Failed to play video:', error);
+    }
+  }, [playlistId, playlistItems, roomId])
+
+  const getNextVideo = useCallback(() => {
+    if (!playlistItems.length) return null
+    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === currentVideoId)
+    const nextIndex = (currentIndex + 1) % playlistItems.length
+    return playlistItems[nextIndex]
+  }, [playlistItems, currentVideoId])
+
+  const getPrevVideo = () => {
+    if (!playlistItems.length) return null
+    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === currentVideoId)
+    const prevIndex = (currentIndex - 1 + playlistItems.length) % playlistItems.length
+    return playlistItems[prevIndex]
+  }
+
+  const playNextVideo = useCallback(async () => {
+    const nextVideo = getNextVideo()
+    if (nextVideo) {
+      await playVideoById(nextVideo.id)
+    }
+  }, [getNextVideo, playVideoById])
+
+  const playPrevVideo = async () => {
+    const prevVideo = getPrevVideo()
+    if (prevVideo) {
+      await playVideoById(prevVideo.id)
+    }
+  }
+
+  const handleVideoError = useCallback((errorInfo) => {
+    if (!errorInfo.videoId) return;
+    
+    const { videoId, isFatal, isTransient } = errorInfo;
+    
+    // Pour les erreurs fatales, passez immédiatement à la vidéo suivante
+    if (isFatal) {
+      playNextVideo();
+      return;
+    }
+    
+    // Pour les erreurs temporaires - une tentative automatique
+    if (isTransient) {
+      const currentRetryCount = retryCountRef.current.get(videoId) || 0;
+      if (currentRetryCount < 1) {
+        retryCountRef.current.set(videoId, currentRetryCount + 1);
+        // Retray automatique en 2 secondes
+        setTimeout(() => {
+          if (currentVideoId === videoId) {
+            setEmbedUrl(toEmbedUrl(videoId));
+          }
+        }, 2000);
+      }
+    }
+  }, [currentVideoId, playNextVideo]);
+
+  // Subscribe to playback changes
+  useEffect(() => {
+    if (!roomId || !playlistId) return
+
+    const unsubscribe = PlaybackRepository.onPlaybackChange(roomId, async (payload) => {
+      if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+        const newVideoId = payload.new.video_id
+        if (newVideoId && newVideoId !== currentVideoId) {
+          const video = playlistItems.find(v => v.id === newVideoId)
+          if (video) {
+            const yid = getYouTubeId(video.url)
+            setCurrentVideoId(yid)
+            setEmbedUrl(toEmbedUrl(yid))
+          }
+        }
+      }
+    })
+
+    return unsubscribe
+  }, [roomId, playlistId, currentVideoId, playlistItems])  
+
   const playYouTubeId = (youtubeId) => {
     setEmbedUrl(youtubeId ? toEmbedUrl(youtubeId) : null)
   }
 
-  return { playlistId, embedUrl, addVideoByRawUrl, playYouTubeId, setEmbedUrl }
+  return { 
+    playlistId, 
+    embedUrl, 
+    currentVideoId,
+    playlistItems,
+    addVideoByRawUrl, 
+    playYouTubeId, 
+    setEmbedUrl,
+    playVideoById,
+    playNextVideo,
+    playPrevVideo,
+    getNextVideo,
+    getPrevVideo,
+    handleVideoError
+  }
 }

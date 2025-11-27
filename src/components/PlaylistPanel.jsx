@@ -18,8 +18,9 @@ import Card from '../ui/Card'
 import { PlaylistService } from '../services/PlaylistService'
 import { getYouTubeId } from '../utils/youtube'
 import { VideoService } from '../services/VideoService'
+import PlaylistDnD from './PlaylistDnD';
 
-export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
+export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, currentVideoId, onVideoSelect }) {
   const { t } = useTranslation()
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
@@ -115,6 +116,34 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
     }
   }
 
+  const handleReorder = async (sourceIndex, destinationIndex) => {
+    if (!playlistId || !canEdit) return;
+    
+    setBusy(true);
+    setMsg('');
+    
+    try {
+      // Mise à jour de l'interface utilisateur optimiste
+      const newItems = [...items];
+      const [movedItem] = newItems.splice(sourceIndex, 1);
+      newItems.splice(destinationIndex, 0, movedItem);
+      setItems(newItems);
+
+      // Garder le nouvel ordre
+      await PlaylistService.updateOrder({
+        playlistId,
+        videoIds: newItems.map(item => item.id)
+      });
+      
+    } catch (error) {
+      setMsg(error?.message || t('playlist.reorderFailed', 'Failed to reorder videos'));
+      // Annuler les modifications en cas d'erreur
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const extractYoutubeId = (item) => item.videoId || item.id?.videoId || item.id
 
   const handleAddResult = async (item) => {
@@ -144,7 +173,14 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
 
   const handlePlayResult = (item) => {
     const youtubeId = extractYoutubeId(item)
-    if (youtubeId) onPlay?.(youtubeId)
+    if (youtubeId) {
+      if (onVideoSelect) {
+        const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`
+        onVideoSelect(watchUrl)
+      } else {
+        onPlay?.(youtubeId)
+      }
+    }
   }
 
   const handlePlay = (videoUrl) => {
@@ -314,70 +350,16 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit }) {
           <Typography sx={{ opacity: 0.8 }}>
             {t('playlist.noPlaylist')}
           </Typography>
-        ) : items.length === 0 ? (
-          <Typography sx={{ opacity: 0.8 }}>
-            {t('playlist.noVideosYet')}
-          </Typography>
         ) : (
-          <List dense>
-            {[...new Map(items.map((v) => [v.id, v])).values()].map((v) => {
-              // 1. On extrait l'ID pour construire l'URL de l'image
-              const vId = getYouTubeId(v.url)
-              const thumbUrl = vId 
-                ? `https://i.ytimg.com/vi/${vId}/mqdefault.jpg` 
-                : null
-
-              return (
-                <ListItem key={v.id} divider>
-                  
-                  {/* 2. On affiche l'image à gauche du texte */}
-                  {thumbUrl && (
-                    <Box
-                      component="img"
-                      src={thumbUrl}
-                      alt="miniature"
-                      sx={{
-                        width: 80,        // Taille un peu plus petite que la recherche
-                        height: 45,
-                        borderRadius: 1,
-                        objectFit: 'cover',
-                        mr: 2,            // Marge à droite pour espacer du texte
-                        flexShrink: 0     // Empêche l'image de s'écraser
-                      }}
-                    />
-                  )}
-
-                  <ListItemText
-                    primary={v.title || v.url}
-                    // On peut masquer l'URL en secondaire si on veut, ou la garder
-                    secondary={v.title ? null : v.url} 
-                    sx={{ pr: 10 }}
-                  />
-
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      aria-label={t('playlist.play')}
-                      onClick={() => handlePlay(v.url)}
-                      sx={{ mr: 1 }}
-                      disabled={busy}
-                    >
-                      <PlayArrowIcon />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      aria-label={t('playlist.delete')}
-                      color="error"
-                      onClick={() => handleDelete(v.id)}
-                      disabled={!canEdit}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              )
-            })}
-          </List>
+          <PlaylistDnD
+            items={items}
+            onDelete={handleDelete}
+            onPlay={onVideoSelect || handlePlay}
+            onReorder={handleReorder}
+            busy={busy}
+            canEdit={canEdit}
+            currentVideoId={currentVideoId}
+          />
         )}
       </Stack>
     </Card>

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { RoomService } from '../services/RoomService'
 import { PlaylistRepository } from '../repositories/PlaylistRepository'
 import { VideoRepository } from '../repositories/VideoRepository'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/auth'
 import { RealtimeService } from '../services/RealtimeService'
 import ChatBox from '../components/ChatBox'
@@ -18,9 +18,12 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
+import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
 
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'
+import SearchIcon from '@mui/icons-material/Search'
 
 // --- YOUTUBE HELPERS ---
 function extractYoutubeId(url) {
@@ -37,6 +40,8 @@ function buildEmbedUrl(url) {
 export default function Rooms() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
 
   const [rooms, setRooms] = useState([])
   const [playlistMap, setPlaylistMap] = useState({})
@@ -64,6 +69,7 @@ export default function Rooms() {
   }
 
   useEffect(() => { load() }, [user])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!rooms || rooms.length === 0 || !user) return;
@@ -105,6 +111,7 @@ export default function Rooms() {
       RealtimeService.onDelete({ table: 'rooms', cb: load }),
     ]
     return () => unsubs.forEach(off => off?.())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // LOAD PLAYLISTS + VIDEOS
@@ -144,10 +151,14 @@ export default function Rooms() {
   }, [rooms])
 
   // CAROUSEL
-  const nextRoom = () => setCarouselIndex(i => (i + 1) % rooms.length)
-  const prevRoom = () => setCarouselIndex(i => (i - 1 + rooms.length) % rooms.length)
-
-  const featured = rooms[carouselIndex] || null
+  const filteredRooms = rooms.filter(room => 
+    searchQuery ? room.name.toLowerCase().includes(searchQuery.toLowerCase()) : true
+  )
+  
+  const nextRoom = () => setCarouselIndex(i => (i + 1) % filteredRooms.length)
+  const prevRoom = () => setCarouselIndex(i => (i - 1 + filteredRooms.length) % filteredRooms.length)
+  
+  const featured = filteredRooms[carouselIndex] || null
 
   // DELETE
   const confirmDelete = room => { setToDelete(room); setErr('') }
@@ -178,7 +189,7 @@ export default function Rooms() {
       }}>
 
       {/* HEADER */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 900, color: 'rgba(150,70,255,0.45)' }}>
           {user ? t('rooms.titleMy') : t('rooms.titlePublic')}
         </Typography>
@@ -192,6 +203,32 @@ export default function Rooms() {
             + {t('rooms.newRoom')}
           </Button>
         )}
+      </Box>
+
+      {/* SEARCH FIELD */}
+      <Box sx={{ maxWidth: 400, mb: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Rechercher des salons..."
+          value={searchQuery}
+          onChange={(e) => {
+            const value = e.target.value
+            setSearchQuery(value)
+            if (value.trim()) {
+              searchParams.set('q', value)
+            } else {
+              searchParams.delete('q')
+            }
+            setSearchParams(searchParams)
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
       </Box>
 
       {/* CAROUSEL*/}
@@ -407,7 +444,27 @@ export default function Rooms() {
         gridTemplateColumns: "repeat(auto-fill, minmax(320px,1fr))",
         gap: 3
       }}>
-        {rooms.map(r => {
+        {filteredRooms.length === 0 && rooms.length > 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, gridColumn: '1 / -1' }}>
+            <Typography variant="h6" sx={{ opacity: 0.8, mb: 1 }}>
+              Aucun résultat pour « {searchQuery} »
+            </Typography>
+            <Button onClick={() => { 
+              setSearchQuery(''); 
+              searchParams.delete('q'); 
+              setSearchParams(searchParams); 
+            }}>
+              Effacer la recherche
+            </Button>
+          </Box>
+        ) : filteredRooms.length === 0 && rooms.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, gridColumn: '1 / -1' }}>
+            <Typography variant="h6" sx={{ opacity: 0.8 }}>
+              {user ? t('rooms.emptyMy') : t('rooms.emptyPublic')}
+            </Typography>
+          </Box>
+        ) : (
+          filteredRooms.map(r => {
           const pl = playlistMap[r.id];
           const first = pl?.videoIds?.[0];
           const url = videosMap[first];
@@ -584,7 +641,8 @@ export default function Rooms() {
 
             </Box>
           )
-        })}
+          })
+        )}
       </Box>
 
       {/* DELETE dialog */}

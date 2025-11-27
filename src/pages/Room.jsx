@@ -14,6 +14,7 @@ import { UserRepository } from "../repositories/UserRepository";
 import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
 import { useRoom } from '../hooks/useRoom';
 import { usePlaylistForRoom } from '../hooks/usePlaylistForRoom';
+import { PlaybackRepository } from '../repositories/PlaybackRepository'
 import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
@@ -175,10 +176,21 @@ export default function Room() {
     // --- PLAYLIST ---
     const {
         playlistId,
+        embedUrl,
+        currentVideoId,
+        playlistItems,
         addVideoByRawUrl,
-    } = usePlaylistForRoom({ room, roomId, accessGranted: !needPw || checked });
+        playVideoById,
+        playNextVideo,
+        playPrevVideo,
+        handleVideoError
+    } = usePlaylistForRoom({ room, roomId, accessGranted: !needPw || checked })
 
     const handleAddVideo = addVideoByRawUrl;
+    const handleVideoEnded = useCallback(() => {
+        console.log('Video ended, playing next...')
+        playNextVideo()
+    }, [playNextVideo])
 
     const verify = async (e) => {
         e.preventDefault();
@@ -447,7 +459,7 @@ export default function Room() {
                             }}
                         >
                             <VideoPlayerShell 
-                                url={syncVideoId ? toWatchUrl(syncVideoId) : null}
+                                url={embedUrl || (syncVideoId ? toWatchUrl(syncVideoId) : null)}
                                 playing={syncIsPlaying}
                                 // AJOUT DE LA PROP D'AUTORISATION
                                 canControl={canControlVideo} 
@@ -456,7 +468,28 @@ export default function Room() {
                                 onSeek={triggerSeek}
                                 onProgress={updateLocalProgress}
                                 seekToTimestamp={seekTimestamp}
+                                onEnded={handleVideoEnded}
+                                onError={handleVideoError}
                             />
+                            {/* NAVIGATION BUTTONS */}
+                            {canControlVideo && playlistItems.length > 1 && (
+                            <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                <Button 
+                                variant="outlined" 
+                                onClick={playPrevVideo}
+                                disabled={!currentVideoId}
+                                >
+                                Previous
+                                </Button>
+                                <Button 
+                                variant="outlined" 
+                                onClick={playNextVideo}
+                                disabled={!currentVideoId}
+                                >
+                                Next
+                                </Button>
+                            </Box>
+                            )}
                         </Box>
 
                         {/* SIDEBAR */}
@@ -498,6 +531,13 @@ export default function Room() {
                                             canEdit={canControlVideo} 
                                             onAdd={handleAddVideo}
                                             onPlay={changeVideo}
+                                            currentVideoId={currentVideoId}
+                                            onVideoSelect={async (url) => {
+                                            const video = playlistItems.find(v => v.url === url)
+                                              if (video && canControlVideo) {
+                                                await playVideoById(video.id)
+                                              }
+                                            }}
                                         />
                                     )}
 

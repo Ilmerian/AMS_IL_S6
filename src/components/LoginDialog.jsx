@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuthService } from '../services/AuthService'
-import { passwordIssues } from '../utils/validators'
 
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'

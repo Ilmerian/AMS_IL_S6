@@ -32,4 +32,11 @@ export const PlaylistService = {
     const videos = await VideoRepository.listByIds(ids);
     return { playlist: pl, videos };
   },
+
+  async reorderVideos({ playlistId, videoIds }) {
+    return PlaylistRepository.updateOrder({
+      playlistId,
+      videoIds
+    });
+  },  
 };

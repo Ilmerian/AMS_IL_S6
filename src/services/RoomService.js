@@ -32,7 +32,7 @@ export const RoomService = {
       throw error;
     }
   },
-  listPublic: () => RoomRepository.listPublic(),
+  listPublic: (query = '') => RoomRepository.listPublic(query),
   updatePosition: (roomId, position) => RoomRepository.updatePosition(roomId, position),
   archive: (id) => RoomRepository.archive(id),
   setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),

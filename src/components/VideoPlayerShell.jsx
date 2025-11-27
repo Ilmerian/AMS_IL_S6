@@ -1,5 +1,6 @@
 // src/components/VideoPlayerShell.jsx
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { YOUTUBE_ERROR_CODES, isFatalError, isTransientError, getErrorMessage } from '../utils/youtubeErrors';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '../ui/Card';
@@ -9,23 +10,47 @@ export default function VideoPlayerShell({
   url, 
   playing, 
   onPlay, 
-  onPause, 
-  onSeek, 
+  onPause,  
   onProgress,
   seekToTimestamp,
-  canControl
+  canControl,
+  onEnded,
+  onError
 }) {
   const iframeRef = useRef(null);
   const [isIframeReady, setIsIframeReady] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState(null);
   const [pendingCommands, setPendingCommands] = useState([]);
   const commandTimeoutRef = useRef(null);
+  const [errorState, setErrorState] = useState(null);
 
   const videoId = getYouTubeId(url || '');
   const embedUrl = videoId ? toEmbedUrl(videoId) : null;
 
+  const handlePlayerError = useCallback((errorCode) => {
+    console.error(`🎬 YouTube Player Error: ${errorCode}`, getErrorMessage(errorCode));
+    
+    const errorInfo = {
+      type: 'youtube_error',
+      code: errorCode,
+      message: getErrorMessage(errorCode),
+      videoId: currentVideoId,
+      isFatal: isFatalError(errorCode),
+      isTransient: isTransientError(errorCode)
+    };
+    
+    setErrorState(errorInfo);
+    
+    if (onError) {
+      onError(errorInfo);
+    }
+    
+    if (onPause) {
+      onPause();
+    }
+  }, [currentVideoId, onError, onPause]);  
+
   const sendCommand = useCallback((command, value = null) => {
-    // BLOCAGE CÔTÉ CLIENT SI L'UTILISATEUR N'EST PAS AUTORISÉ
     if (!canControl && ['playVideo', 'pauseVideo', 'seekTo'].includes(command)) {
         console.warn(`[ACL] Command blocked: ${command}. User does not have control.`);
         return false;
@@ -49,7 +74,7 @@ export default function VideoPlayerShell({
       console.warn('Failed to send command to YouTube iframe:', error);
       return false;
     }
-  }, [isIframeReady, canControl]); // Ajouter canControl aux dépendances
+  }, [isIframeReady, canControl]);
 
   useEffect(() => {
     if (isIframeReady && pendingCommands.length > 0) {
@@ -71,6 +96,7 @@ export default function VideoPlayerShell({
       setCurrentVideoId(videoId);
       setIsIframeReady(false);
       setPendingCommands([]);
+      setErrorState(null);
     }
   }, [videoId, currentVideoId]);
 
@@ -108,6 +134,12 @@ export default function VideoPlayerShell({
         if (!allowedOrigins.includes(event.origin)) return;        
         const data = JSON.parse(event.data);
         
+        if (data.event === 'error' && data.info) {
+          const errorCode = data.info;
+          handlePlayerError(errorCode);
+          return;
+        }
+        
         if (data.event === 'infoDelivery' && data.info) {
           if (data.info.currentTime !== undefined && onProgress) {
             onProgress(data.info.currentTime);
@@ -117,10 +149,14 @@ export default function VideoPlayerShell({
             const playerState = data.info.playerState;
             if (playerState === 1 && !playing && onPlay) {
               console.log("👆 YouTube Player Started Playing");
+              setErrorState(null);
               onPlay();
             } else if (playerState === 2 && playing && onPause) {
               console.log("👆 YouTube Player Paused");
               onPause();
+            } else if (playerState === 0 && onEnded) {
+              console.log("👆 YouTube Player Ended");
+              onEnded();
             }
           }
         }
@@ -131,7 +167,7 @@ export default function VideoPlayerShell({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [playing, onPlay, onPause, onProgress]);
+  }, [playing, onPlay, onPause, onProgress, onEnded, handlePlayerError]);
 
   const handleLoad = () => {
     console.log("✅ YouTube iframe loaded");
@@ -151,11 +187,6 @@ export default function VideoPlayerShell({
         iframeRef.current.contentWindow.postMessage(message, 'https://www.youtube.com');
       }
     }, 1500);
-  };
-
-  const handleError = () => {
-    console.error("❌ YouTube iframe failed to load");
-    setIsIframeReady(false);
   };
 
   useEffect(() => {
@@ -192,6 +223,57 @@ export default function VideoPlayerShell({
         height: { xs: 320, sm: 420, md: '55vh', lg: '65vh' }, 
         bgcolor: 'black'
       }}>
+        {errorState && (
+          <Box sx={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'grid', 
+            placeItems: 'center',
+            color: 'white',
+            zIndex: 2,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            p: 2
+          }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" color="error" gutterBottom>
+                Playback error
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                {errorState.message}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                {errorState.isTransient && (
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={() => {
+                      setErrorState(null);
+                      if (onPlay) onPlay();
+                    }}
+                  >
+                    Retry
+                  </Button>
+                )}
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={() => {
+                    setErrorState(null);
+                    if (onError && errorState.isFatal) {
+                      onError({ ...errorState, action: 'skip' });
+                    }
+                  }}
+                >
+                  {errorState.isFatal ? 'Skip' : 'Cloese'}
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        )}
+        
         {!isIframeReady && (
           <Box sx={{ 
             position: 'absolute',
@@ -218,7 +300,7 @@ export default function VideoPlayerShell({
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           onLoad={handleLoad}
-          onError={handleError}
+          onError={() => handlePlayerError(2)}
           style={{
             display: 'block'
           }}

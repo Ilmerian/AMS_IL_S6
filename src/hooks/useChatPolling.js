@@ -4,7 +4,7 @@ import { ChatService } from '../services/ChatService'
 import { useAuth } from '../context/auth'
 
 export function useChatPolling(roomId) {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const intervalRef = useRef(null)

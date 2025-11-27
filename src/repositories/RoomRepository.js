@@ -43,39 +43,28 @@ export const RoomRepository = {
   },
 
   async listPublic() {
-    const { data, error } = await supabase.rpc('list_discoverable_rooms');
+    let queryBuilder = supabase
+      .from('rooms')
+      .select('*, users!fk_rooms_owner(username, avatar_url)')
+      .eq('is_private', false)
+      .order('created_at', { ascending: false });
+
+    const { data, error } = await queryBuilder;
     if (error) throw error;
     
     const roomsData = data || [];
-    
-    const ownerIds = [...new Set(roomsData.map(r => r.owner_id).filter(Boolean))];
-    
-    let usersMap = {};
-    if (ownerIds.length > 0) {
-        const { data: users } = await supabase
-            .from('users')
-            .select('user_id, username, avatar_url')
-            .in('user_id', ownerIds);
-            
-        if (users) {
-            users.forEach(u => {
-                usersMap[u.user_id] = u;
-            });
-        }
-    }
 
     return roomsData.map(r => {
-       const owner = usersMap[r.owner_id];
-       return {
+      return {
           id: r.room_id,
           name: r.name,
           ownerId: r.owner_id,
-          ownerName: owner?.username || null,
-          ownerAvatar: owner?.avatar_url || null,
-          hasPassword: !!r.has_password,
+          ownerName: r.users?.username || null,
+          ownerAvatar: r.users?.avatar_url || null,
+          hasPassword: !!r.password,
           password: null,
           videoHistory: [],
-       };
+      };
     }).map(r => new Room(r)); 
   },
 

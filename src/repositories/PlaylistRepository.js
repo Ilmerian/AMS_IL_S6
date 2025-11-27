@@ -112,4 +112,21 @@ export const PlaylistRepository = {
     pl.videoIds = normalizeVideoIds(pl.videoIds);
     return pl;
   },
+
+  async updateOrder({ playlistId, videoIds }) {
+    const normalizedIds = normalizeVideoIds(videoIds);
+    
+    const { data, error } = await supabase
+      .from('playlists')
+      .update({ video_ids: normalizedIds })
+      .eq('playlist_id', playlistId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    const pl = Playlist.fromRow(data);
+    pl.videoIds = normalizeVideoIds(pl.videoIds);
+    return pl;
+  },  
 };
