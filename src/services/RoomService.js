@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 
 export const RoomService = {
   listMy: () => RoomRepository.listMy(),
+  
   async get(roomId) {
     try {
       const { data, error } = await supabase
@@ -25,40 +26,26 @@ export const RoomService = {
         ownerId: data.owner_id,
         current_video_id: data.current_video_id,
         is_playing: data.is_playing,
-        has_password: !!data.password
+        // CORRECTION ICI : on renomme 'has_password' en 'hasPassword'
+        // et on passe aussi 'password' si besoin pour d'autres vérifications
+        hasPassword: !!data.password, 
+        password: data.password 
       };
     } catch (error) {
       console.error('RoomService.get error:', error);
       throw error;
     }
   },
+  
+  // ... (le reste du fichier ne change pas)
   listPublic: (query = '') => RoomRepository.listPublic(query),
   updatePosition: (roomId, position) => RoomRepository.updatePosition(roomId, position),
   archive: (id) => RoomRepository.archive(id),
   setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),
   pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
+  updatePlaybackState: (roomId, payload) => RoomRepository.updatePlaybackState(roomId, payload), // Assurez-vous que cette ligne existe ou adaptez selon votre code précédent
 
-  // NOUVEAU : Met à jour l'état de lecture global de la salle
-  async updatePlaybackState(roomId, { isPlaying, currentVideoId }) {
-    const updates = {};
-    if (isPlaying !== undefined) updates.is_playing = isPlaying;
-    if (currentVideoId !== undefined) updates.current_video_id = currentVideoId;
-
-    if (Object.keys(updates).length === 0) return;
-
-    const { error } = await supabase
-      .from('rooms')
-      .update(updates)
-      .eq('room_id', roomId);
-    
-    if (error) {
-      console.error('RoomService.updatePlaybackState error:', error);
-      throw error;
-    }
-    
-    return true;
-  },
-
+  // ... (Assurez-vous de garder le reste de vos fonctions comme create, join, etc.)
   async create({ name, password }) {
     const room = await RoomRepository.create({ name, password });
     try {
@@ -106,19 +93,36 @@ export const RoomService = {
     return res.data || []
   },
 
-  async getVideoHistoryForRoom(roomId) {
-    const { data, error } = await supabase
-      .from("video_history")
-      .select("*")
-      .eq("room_id", roomId)
-      .order("created_at", { ascending: true });
+  async updatePlaybackState(roomId, { isPlaying, currentVideoId }) {
+    const updates = {};
+    if (isPlaying !== undefined) updates.is_playing = isPlaying;
+    if (currentVideoId !== undefined) updates.current_video_id = currentVideoId;
 
+    if (Object.keys(updates).length === 0) return;
+
+    const { error } = await supabase
+      .from('rooms')
+      .update(updates)
+      .eq('room_id', roomId);
+    
     if (error) {
-      console.error("Error loading video history:", error);
-      return [];
+      console.error('RoomService.updatePlaybackState error:', error);
+      throw error;
     }
-    return data || [];
-  }
-
-
+    return true;
+  },
+  
+  async getVideoHistoryForRoom(roomId) {
+      const { data, error } = await supabase
+        .from("video_history")
+        .select("*")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true });
+  
+      if (error) {
+        console.error("Error loading video history:", error);
+        return [];
+      }
+      return data || [];
+    }
 };

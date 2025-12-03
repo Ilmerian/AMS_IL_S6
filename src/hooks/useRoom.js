@@ -9,8 +9,15 @@ export function useRoom(roomId) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   
-  // Token interne pour forcer le refresh
   const [reloadToken, setReloadToken] = useState(0)
+
+  useEffect(() => {
+    setRoom(null)
+    setChecked(false)
+    setNeedPw(false)
+    setError('')
+    setLoading(true)
+  }, [roomId])
 
   const load = useCallback(async () => {
     if (!roomId) return
@@ -19,9 +26,13 @@ export function useRoom(roomId) {
     try {
       const r = await RoomService.get(roomId)
       setRoom(r)
+      
       const hasPw = r?.hasPassword ?? !!r?.password
       setNeedPw(!!hasPw)
-      setChecked(true) 
+
+      
+      setChecked(prev => prev || !hasPw) 
+      
     } catch (err) {
       console.error('[useRoom] failed', err)
       setRoom(null)
@@ -31,7 +42,6 @@ export function useRoom(roomId) {
     }
   }, [roomId])
 
-  // 1. Chargement initial et rechargement manuel
   useEffect(() => {
     load()
   }, [load, reloadToken])
@@ -41,8 +51,7 @@ export function useRoom(roomId) {
     try {
       const ok = await RoomService.join(roomId, password)
       if (ok) {
-        setChecked(true)
-        setReloadToken(prev => prev + 1)
+        setChecked(true) 
         return true
       } else {
         setError('Invalid password')
