@@ -11,7 +11,8 @@ export class Room {
     isPrivate,
     position,
     createdAt,
-    archivedAt
+    archivedAt,
+    hasPassword 
   } = {}) {
     this.id = id;
     this.name = name;
@@ -24,6 +25,7 @@ export class Room {
     this.position = position ?? 0;
     this.createdAt = createdAt || null;
     this.archivedAt = archivedAt || null;
+    this.hasPassword = hasPassword !== undefined ? hasPassword : !!this.password;
   }
 
   static fromRow(r) {
@@ -39,7 +41,8 @@ export class Room {
       isPrivate: r.is_private,
       position: r.position,
       createdAt: r.created_at,
-      archivedAt: r.archived_at
+      archivedAt: r.archived_at,
+      hasPassword: r.hasPassword 
     });
   }
 }

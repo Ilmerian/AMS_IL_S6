@@ -9,6 +9,7 @@ import { useAuth } from '../context/auth'
 import { RealtimeService } from '../services/RealtimeService'
 import ChatBox from '../components/ChatBox'
 import { UserRepository } from "../repositories/UserRepository";
+import { cacheService } from "../services/CacheService";
 
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -54,17 +55,36 @@ export default function Rooms() {
   const [onlineCounts, setOnlineCounts] = useState({});
 
   const load = async () => {
+    const cacheKey = `rooms_list_public_${user?.id || 'guest'}`;
+    
     try {
+      // First, we try from the persistent cache (5 minutes)
+      const cached = cacheService.getPersistent(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 300000) {
+        console.log('[Rooms] Persistent cache HIT (5min)');
+        setRooms(cached.data);
+        return;
+      }
+
       if (!user) {
-        const pub = await RoomService.listPublic()
-        setRooms(pub)
+        const pub = await RoomService.listPublic();
+        setRooms(pub);
+        // Saving the cache in persistent
+        cacheService.setPersistent(cacheKey, {
+          data: pub,
+          timestamp: Date.now()
+        }, 300000);
       } else {
-        const pub = await RoomService.listPublic()
-        setRooms(pub)
+        const pub = await RoomService.listPublic();
+        setRooms(pub);
+        cacheService.setPersistent(cacheKey, {
+          data: pub,
+          timestamp: Date.now()
+        }, 300000);
       }
     } catch (e) {
-      console.error('[Rooms.load]', e)
-      setRooms([])
+      console.error('[Rooms.load]', e);
+      setRooms([]);
     }
   }
 
@@ -117,38 +137,90 @@ export default function Rooms() {
   // LOAD PLAYLISTS + VIDEOS
   useEffect(() => {
     async function loadAll() {
-      if (rooms.length === 0) return
+      if (rooms.length === 0) return;
 
-      const newPlaylistMap = {}
-      const allVideoIds = []
-
-      for (const r of rooms) {
-        const pls = await PlaylistRepository.getByRoom(r.id)
-        if (pls.length > 0) {
-          newPlaylistMap[r.id] = pls[0]
-          allVideoIds.push(...pls[0].videoIds)
+      const cacheKey = `rooms_playlists_${rooms.map(r => r.id).join('_')}`;
+      
+      try {
+        const cached = cacheService.getMemory(cacheKey);
+        if (cached && Date.now() - cached.timestamp < 120000) {
+          console.log('[Rooms] Cache HIT (2min) for playlists');
+          setPlaylistMap(cached.playlistMap);
+          setVideosMap(cached.videosMap);
+          return;
         }
+
+
+        const newPlaylistMap = {};
+        const allVideoIds = [];
+
+        // Use Promise.all for parallel requests
+        const playlistPromises = rooms.map(async (r) => {
+          try {
+            const pls = await PlaylistRepository.getByRoom(r.id);
+            if (pls.length > 0) {
+              newPlaylistMap[r.id] = pls[0];
+              allVideoIds.push(...pls[0].videoIds);
+            }
+          } catch (e) {
+            console.warn(`Failed to load playlist for room ${r.id}:`, e);
+          }
+        });
+
+        // Wait for all requests at the same time
+        await Promise.all(playlistPromises);
+        setPlaylistMap(newPlaylistMap);
+
+        // Get unique Video IDs
+        const uniqueVideoIds = [...new Set(allVideoIds)];
+        const videoPromises = uniqueVideoIds.map(async (vid) => {
+          try {
+            const v = await VideoRepository.getById(vid);
+            return { [vid]: v.url };
+          } catch (e) {
+            console.warn(`Failed to load video ${vid}:`, e);
+            return {};
+          }
+        });
+
+        // Upload all videos in parallel
+        const videoResults = await Promise.all(videoPromises);
+        const vmap = Object.assign({}, ...videoResults);
+        setVideosMap(vmap);
+
+        // Save to cache
+        cacheService.setMemory(cacheKey, {
+          timestamp: Date.now(),
+          playlistMap: newPlaylistMap,
+          videosMap: vmap
+        }, 120000);
+
+      } catch (error) {
+        console.error('Failed to load playlists and videos:', error);
       }
-
-      setPlaylistMap(newPlaylistMap)
-
-      const unique = [...new Set(allVideoIds)]
-      const vmap = {}
-
-      for (const vid of unique) {
-        try {
-          const v = await VideoRepository.getById(vid)
-          vmap[vid] = v.url
-        } catch (e) {
-          console.error('[Rooms] failed to load video', vid, e)
-        }
-      }
-
-      setVideosMap(vmap)
     }
 
-    loadAll()
-  }, [rooms])
+    // Use debounce to prevent frequent calls
+    let timeoutId;
+    const debouncedLoad = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(loadAll, 1000);
+    };
+
+    debouncedLoad();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [rooms]);
+
+  // this useEffect is for clearing the cache when unmounting:
+  useEffect(() => {
+    return () => {
+      // Clear the cache when unmounting a component
+      cacheService.invalidate('rooms_playlists_');
+    };
+  }, []);
 
   // CAROUSEL
   const filteredRooms = rooms.filter(room => 

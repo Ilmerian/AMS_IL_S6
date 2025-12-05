@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { AuthContext } from './auth'
 import { AuthService } from '../services/AuthService'
 import { UserRepository } from '../repositories/UserRepository'
+import { cacheService } from '../services/CacheService'
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -13,17 +14,27 @@ export default function AuthProvider({ children }) {
   // Charge le profil utilisateur depuis la DB
   const fetchProfile = useCallback(async (uid) => {
     if (!uid) {
-      setProfile(null)
-      return
+      setProfile(null);
+      return;
     }
+    
+    const cacheKey = `user_profile_${uid}`;
+    const cached = cacheService.getMemory(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < 60000) {
+      console.log(`[AuthProvider] Profile cache HIT for ${uid}`);
+      setProfile(cached.data);
+      return;
+    }
+    
     try {
-      // On charge toujours la donnée fraîche pour éviter les désynchronisations
-      const p = await UserRepository.getById(uid)
-      setProfile(p)
+      console.log(`[AuthProvider] Profile cache MISS for ${uid}, fetching...`);
+      const p = await UserRepository.getById(uid);
+      setProfile(p);
     } catch (e) {
-      console.warn('[AuthProvider] fetchProfile failed:', e)
+      console.warn('[AuthProvider] fetchProfile failed:', e);
     }
-  }, [])
+  }, []);
 
   // Fonction pour rafraîchir la session quand l'utilisateur revient sur l'onglet
   const refreshSession = useCallback(async () => {
@@ -81,6 +92,10 @@ export default function AuthProvider({ children }) {
         setUser(null)
         setProfile(null)
         setLoading(false)
+        if (cacheService) {
+          cacheService.invalidate(`room_data_`);
+          cacheService.invalidate(`rooms_list_public_`);
+        }
       } else if (session?.user) {
         setUser(session.user)
         // On ne recharge le profil que s'il n'est pas déjà chargé ou si c'est un nouvel user
