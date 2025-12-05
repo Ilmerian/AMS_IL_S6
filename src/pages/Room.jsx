@@ -331,16 +331,15 @@ export default function Room() {
         }, [roomId, user, getMemberRole, t, isProduction]);
 
     const isModerator = useMemo(() => {
-        const result = userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
-        console.log('Calculating isModerator:', { 
-            userRole, 
-            result,
-            isOwner: userRole === ROLES.OWNER,
-            isManager: userRole === ROLES.MANAGER
-        });
+        const isOwnerDirect = room?.ownerId === user?.id;
+        const result = userRole === ROLES.OWNER || 
+                    userRole === ROLES.MANAGER || 
+                    isOwnerDirect ||
+                    members.some(m => m.userId === user?.id && (m.isOwner || m.is_manager));
+        
         return result;
-    }, [userRole]);
-
+    }, [userRole, room?.ownerId, user?.id, members]);
+    
     console.log('=== ROOM DEBUG INFO ===');
     console.log('isProduction:', isProduction);
     console.log('userRole:', userRole);
