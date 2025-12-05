@@ -66,19 +66,30 @@ export function useRoomData(roomId, user) {
       setRoom(finalRoom)
       setIsBanned(isBannedResult)
 
-      if (isBannedResult) {
-        cacheService.setMemory(cacheKey, {
-          timestamp: Date.now(),
-          data: {
-            roomData: finalRoom,
-            membersData: [],
-            userRoleData: null,
-            bannedData: true
-          }
-        }, CACHE_DURATION)
-        setLoading(false)
-        loadingRef.current = false
-        return
+      if (user && finalRoom) {
+            if (finalRoom.ownerId === user.id) {
+                userRoleData = 'owner';
+            }
+        }      
+      if (!isBannedResult) {
+          let membersData = [];
+          try {
+              membersData = await cacheService.withDebounce(
+                  `members_${roomId}`,
+                  () => RoleService.listMembers(roomId),
+                  100
+              );
+                
+              if (!userRoleData && user) {
+                  const currentUserMember = membersData.find(m => m.userId === user.id);
+                  userRoleData = getMemberRole(currentUserMember);
+              }
+           } catch (memberError) {
+              console.warn('[useRoomData] Failed to load members:', memberError);
+           }
+
+          setMembers(membersData);
+          setUserRole(userRoleData);
       }
 
       let membersData = []

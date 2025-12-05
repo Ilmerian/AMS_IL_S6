@@ -45,23 +45,29 @@ export const RoleRepository = {
 
       if (roleResult.error) throw roleResult.error;
       if (roomResult.error) throw roomResult.error;
-
-      const roleRows = roleResult.data || [];
+      
       const ownerId = roomResult.data?.owner_id;
+      const roleRows = roleResult.data || [];
+      roleRows.forEach(row => {
+        if (row.user_id === ownerId) {
+          row.__isOwner = true;
+          row.is_manager = true;
+        }
+      });
       const membersMap = new Map();
 
       // 3. Mapper les rôles/membres existants
       roleRows.forEach(row => {
-        const userId = row.user_id;
-        const userProfile = row.users;
-        const isOwner = userId === ownerId;
+          const userId = row.user_id;
+          const userProfile = row.users;
+          const isOwner = userId === ownerId || row.__isOwner;
 
-        membersMap.set(userId, {
-          userId: userId,
-          name: userProfile?.username || userProfile?.email || userId.slice(0, 8),
-          is_manager: row.is_manager,
-          isOwner: isOwner,
-        });
+          membersMap.set(userId, {
+              userId: userId,
+              name: userProfile?.username || userProfile?.email || userId.slice(0, 8),
+              is_manager: row.is_manager,
+              isOwner: isOwner,
+          });
       });
 
       // 4. Assurer que l'Owner est inclus
@@ -74,12 +80,13 @@ export const RoleRepository = {
             .single();
 
           if (!ownerError && ownerProfile) {
-            membersMap.set(ownerId, {
-              userId: ownerId,
-              name: ownerProfile.username || ownerProfile.email || ownerId.slice(0, 8),
-              is_manager: true,
-              isOwner: true,
-            });
+              membersMap.set(ownerId, {
+                  userId: ownerId,
+                  name: ownerProfile.username || ownerProfile.email || ownerId.slice(0, 8),
+                  is_manager: true,
+                  isOwner: true,
+                  __isOwner: true,
+              });
           }
         } catch (ownerError) {
           console.warn('Failed to fetch owner profile:', ownerError);
@@ -88,24 +95,25 @@ export const RoleRepository = {
 
       // 5. Assurer que l'utilisateur ACTUEL est inclus s'il n'est pas déjà là.
       if (currentUserId && !membersMap.has(currentUserId)) {
-        try {
-          const { data: currentUserProfile, error: currentUserError } = await supabase
-            .from('users')
-            .select('username, email')
-            .eq('user_id', currentUserId)
-            .single();
+          try {
+              const { data: currentUserProfile, error: currentUserError } = await supabase
+                  .from('users')
+                  .select('username, email')
+                  .eq('user_id', currentUserId)
+                  .single();
 
-          if (!currentUserError && currentUserProfile) {
-            membersMap.set(currentUserId, {
-              userId: currentUserId,
-              name: currentUserProfile.username || currentUserProfile.email || currentUserId.slice(0, 8),
-              is_manager: false,
-              isOwner: false,
-            });
+              if (!currentUserError && currentUserProfile) {
+                  const isCurrentUserOwner = currentUserId === ownerId;
+                  membersMap.set(currentUserId, {
+                      userId: currentUserId,
+                      name: currentUserProfile.username || currentUserProfile.email || currentUserId.slice(0, 8),
+                      is_manager: isCurrentUserOwner,
+                      isOwner: isCurrentUserOwner,
+                  });
+              }
+          } catch (currentUserError) {
+              console.warn('Failed to fetch current user profile:', currentUserError);
           }
-        } catch (currentUserError) {
-          console.warn('Failed to fetch current user profile:', currentUserError);
-        }
       }
 
       const result = Array.from(membersMap.values());
