@@ -1,6 +1,7 @@
 // src/services/AuthService.js
 import { supabase } from '../lib/supabaseClient'
 import { UserRepository } from '../repositories/UserRepository'
+import { cacheService } from './CacheService';
 
 export const AuthService = {
   async signIn(email, opts = {}) {
@@ -69,9 +70,28 @@ export const AuthService = {
   },
 
   async getUser() {
-    const { data, error } = await supabase.auth.getUser()
-    if (error) throw error
-    return data?.user ?? null
+    const cacheKey = 'auth_current_user';
+    const cached = cacheService.getMemory(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < 30000) {
+      console.log('[AuthService] User cache HIT');
+      return cached.data;
+    }
+    
+    console.log('[AuthService] User cache MISS, fetching...');
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    
+    const user = data?.user ?? null;
+    
+    if (user) {
+      cacheService.setMemory(cacheKey, {
+        data: user,
+        timestamp: Date.now()
+      }, 30000);
+    }
+    
+    return user;
   },
 
   async getAccessToken() {

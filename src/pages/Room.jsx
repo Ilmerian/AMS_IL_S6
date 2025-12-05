@@ -1,5 +1,5 @@
 // src/pages/Room.jsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/auth';
@@ -149,6 +149,10 @@ export default function Room() {
     const { roomId } = useParams();
     const { user } = useAuth();
 
+    const isProduction = typeof window !== 'undefined' && 
+                        window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1';
+
     // UI States
     const [activeTab, setActiveTab] = useState('playlist');
     const [pw, setPw] = useState('');
@@ -247,11 +251,12 @@ export default function Room() {
         }
         
         const cacheKey = `room_data_${roomId}_${user.id}`;
+        const cacheTTL = isProduction ? 600000 : 30000;
         
         try {
             const cached = cacheService.getMemory(cacheKey);
-            if (cached && Date.now() - cached.timestamp < 30000) {
-            console.log(`[Room] Cache HIT (30s) for room ${roomId}`);
+            if (cached && Date.now() - cached.timestamp < cacheTTL) {
+            console.log(`[Room] Cache HIT (${isProduction ? '10min' : '30s'}) for room ${roomId}`);
             const { bannedStatus, initialMembers, currentUserRole } = cached.data;
             setIsBanned(bannedStatus);
             if (!bannedStatus) {
@@ -259,93 +264,130 @@ export default function Room() {
                 setUserRole(currentUserRole);
             }
             return;
-        }
-
-        // Parallel requests
-        const [bannedStatus, initialMembers] = await Promise.all([
-            BanRepository.isUserBanned(roomId, user.id),
-            RoleService.listMembers(roomId)
-        ]);
-
-        setIsBanned(bannedStatus);
-        if (bannedStatus) {
-        // Save to cache even if banned
-        cacheService.setMemory(cacheKey, {
-            timestamp: Date.now(),
-            data: {
-            bannedStatus: true,
-            initialMembers: [],
-            currentUserRole: null
             }
-        }, 30000);
-        return;
+
+            console.log(`[Room] Cache MISS for room ${roomId}, fetching...`);
+            
+            if (isProduction) {
+            const [bannedStatus, initialMembers] = await Promise.all([
+                BanRepository.isUserBanned(roomId, user.id),
+                RoleService.listMembers(roomId)
+            ]);
+            
+            setIsBanned(bannedStatus);
+            if (bannedStatus) return;
+            
+            setMembers(initialMembers);
+            
+            const currentUserMember = initialMembers.find(m => m.userId === user.id);
+            const role = currentUserMember ? 
+                (currentUserMember.isOwner ? 'owner' : 
+                currentUserMember.is_manager ? 'manager' : 'member') : null;
+            
+            setUserRole(role);
+            
+            cacheService.setMemory(cacheKey, {
+                timestamp: Date.now(),
+                data: {
+                bannedStatus,
+                initialMembers,
+                currentUserRole: role
+                }
+            }, cacheTTL);
+            
+            } else {
+            const [bannedStatus, initialMembers] = await Promise.all([
+                BanRepository.isUserBanned(roomId, user.id),
+                RoleService.listMembers(roomId)
+            ]);
+
+            setIsBanned(bannedStatus);
+            if (bannedStatus) return;
+
+            setMembers(initialMembers);
+
+            const currentUserMember = initialMembers.find(m => m.userId === user.id);
+            const currentUserRole = getMemberRole(currentUserMember);
+            setUserRole(currentUserRole);
+
+            cacheService.setMemory(cacheKey, {
+                timestamp: Date.now(),
+                data: {
+                bannedStatus,
+                initialMembers,
+                currentUserRole
+                }
+            }, cacheTTL);
+            }
+
+        } catch (error) {
+            console.error('Error loading room data:', error);
+            setSnackbar({ 
+            open: true, 
+            message: error.message || t('auth.error', 'Error'), 
+            severity: 'error' 
+            });
         }
+        }, [roomId, user, getMemberRole, t, isProduction]);
 
-        setMembers(initialMembers);
+    const isModerator = useMemo(() => {
+        const result = userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
+        console.log('Calculating isModerator:', { 
+            userRole, 
+            result,
+            isOwner: userRole === ROLES.OWNER,
+            isManager: userRole === ROLES.MANAGER
+        });
+        return result;
+    }, [userRole]);
 
-        const currentUserMember = initialMembers.find(m => m.userId === user.id);
-        const currentUserRole = getMemberRole(currentUserMember);
-        setUserRole(currentUserRole);
-
-        // СSave in cache
-        cacheService.setMemory(cacheKey, {
-        timestamp: Date.now(),
-        data: {
-            bannedStatus: false,
-            initialMembers,
-            currentUserRole
-        }
-        }, 30000);
-
-    } catch (error) {
-        console.error('Error loading room data:', error);
-        setSnackbar({ open: true, message: error.message || t('auth.error', 'Error'), severity: 'error' });
-    }
-    }, [roomId, user, getMemberRole, t]);
+    console.log('=== ROOM DEBUG INFO ===');
+    console.log('isProduction:', isProduction);
+    console.log('userRole:', userRole);
+    console.log('isModerator:', isModerator);
+    console.log('user:', user?.id);
+    console.log('room ownerId:', room?.ownerId);
+    console.log('members count:', members.length);
+    console.log('current user in members:', members.find(m => m.userId === user?.id));
+    console.log('========================');    
 
     // useEffect to clear the cache when unmounting:
     useEffect(() => {
     return () => {
         // Clear the room cache when unmounting
         if (roomId && user) {
-        cacheService.invalidate(`room_data_${roomId}_`);
+        cacheService.invalidate(`room_data_${roomId}_${user.id}`);
         }
     };
     }, [roomId, user]);
 
-    useEffect(() => {
-            // Condition de garde stricte : doit avoir un utilisateur, un ID de salle, la salle chargée (room), 
-            // et ne pas être en attente de mot de passe (needPw)
-            if (!user || !roomId || roomLoading || !room || needPw) return; 
+    useEffect(() => {        
+        if (!user || !roomId || roomLoading || !room || needPw) return;    
+        if (isProduction) {
+            console.log('[Room] Realtime subscriptions DISABLED in production');
+            return;
+        }            
+        let banUnsub;
+            
+        loadRoomData(); // Lancer le chargement des membres/bans
 
-            const isProduction = window.location.hostname !== 'localhost' && 
-                                window.location.hostname !== '127.0.0.1';
+        try {
+            // Abonnement aux bans
+            banUnsub = BanRepository.onBanChange(roomId, (payload) => {
+                if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
+                    setIsBanned(payload.eventType === 'INSERT');
+                }
+                // Recharger la liste des membres si un ban/unban a lieu pour un utilisateur quelconque
+                if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+                    loadRoomData();
+                }
+            });
+        } catch (e) {
+            console.warn('Realtime subscription failed:', e.message);
+        }
             
-            if (isProduction) {
-                console.log('[Room] Realtime subscriptions DISABLED in production');
-                return;
-            }            
-            let banUnsub;
-            
-            loadRoomData(); // Lancer le chargement des membres/bans
-
-            try {
-                // Abonnement aux bans
-                banUnsub = BanRepository.onBanChange(roomId, (payload) => {
-                    if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
-                        setIsBanned(payload.eventType === 'INSERT');
-                    }
-                    // Recharger la liste des membres si un ban/unban a lieu pour un utilisateur quelconque
-                    if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-                        loadRoomData();
-                    }
-                });
-            } catch (e) {
-                console.warn('Realtime subscription failed:', e.message);
-            }
-            
-            return () => { banUnsub?.(); };
-        }, [roomId, user, room, roomLoading, needPw, loadRoomData]);
+        return () => { banUnsub?.(); };
+    }, [roomId, user, room, roomLoading, needPw, loadRoomData, isProduction]);
 
     const handleAction = async (action, targetMember) => {
         setAnchorEl(null);
@@ -432,8 +474,6 @@ export default function Room() {
             </Box>
         );
     }
-
-    const isModerator = userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
 
     return (
         <Section>
@@ -575,6 +615,7 @@ export default function Room() {
                                     variant="fullWidth"
                                     textColor="primary"
                                     indicatorColor="primary"
+                                    key={`tabs-${roomId}-${user?.id}`}
                                 >
                                     <Tab label="Playlist" value="playlist" />
                                     <Tab label="Chat" value="chat" />

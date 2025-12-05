@@ -14,17 +14,27 @@ export default function AuthProvider({ children }) {
   // Charge le profil utilisateur depuis la DB
   const fetchProfile = useCallback(async (uid) => {
     if (!uid) {
-      setProfile(null)
-      return
+      setProfile(null);
+      return;
     }
+    
+    const cacheKey = `user_profile_${uid}`;
+    const cached = cacheService.getMemory(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < 60000) {
+      console.log(`[AuthProvider] Profile cache HIT for ${uid}`);
+      setProfile(cached.data);
+      return;
+    }
+    
     try {
-      // On charge toujours la donnée fraîche pour éviter les désynchronisations
-      const p = await UserRepository.getById(uid)
-      setProfile(p)
+      console.log(`[AuthProvider] Profile cache MISS for ${uid}, fetching...`);
+      const p = await UserRepository.getById(uid);
+      setProfile(p);
     } catch (e) {
-      console.warn('[AuthProvider] fetchProfile failed:', e)
+      console.warn('[AuthProvider] fetchProfile failed:', e);
     }
-  }, [])
+  }, []);
 
   // Fonction pour rafraîchir la session quand l'utilisateur revient sur l'onglet
   const refreshSession = useCallback(async () => {
