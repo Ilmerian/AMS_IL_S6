@@ -11,6 +11,21 @@
     "login": "Connexion",
     "logout": "Déconnexion"
   },
+  "role": {
+    "promoted": "promoted ",
+    "demoted": "demoted ",
+    "kicked":" kicked",
+    "banned": "banni ",
+    "unbanned":"non banni "
+  },
+  "confirm": {
+    "kick": "refusé ",
+    "ban": "banni",
+    "unban": "non banni "
+  },
+  "error": {
+    "permission_denied": "permission refusée "
+  },
   "user": {
     "default": "Utilisateur"
   },
@@ -25,6 +40,9 @@
   },
   "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
   "chat": {
+    "banned_message": "Vous avez été banni de cette salle.",
+    "delete": "Supprimer",
+    "load_more": "Afficher plus",
     "guest": "invité",
     "sending": "envoi…",
     "failed": "échec",
@@ -74,7 +92,7 @@
     "reset_sent": "Consultez votre e-mail pour réinitialiser votre mot de passe.",
     "error": "Erreur"    
   },
-  "password": {
+  "password": {    
     "strength": {
       "veryWeak": "Très faible",
       "weak": "Faible",
@@ -89,6 +107,9 @@
     }    
   },
   "playlist": {
+    "noPreview": "Aperçu",
+    "playlist.reorderFailed": "Impossible de réorganiser les vidéos.",
+    "permissionDenied": "Permission refusée pour modifier la playlist.",
     "urlLabel": "URL YouTube",
     "urlPlaceholder": "https://youtu.be/...",
     "add": "Ajouter",
@@ -109,6 +130,19 @@
     "backHome": "Retour à l’accueil"
   },
   "room": {
+    "loading" : "Chargement de la salle...",
+    "error_generic": "Impossible de charger cette salle.",
+    "reload": "Recharger",
+    "not_found": "Salle introuvable ou inaccessible.",
+    "banned_title": "Accès Refusé",
+    "banned_message": "Vous avez été banni de cette salle. Il est impossible de ré-entrer.",
+    "take_control": "Contrôler",
+    "moderation_panel": "Panneau de Modération",
+    "someone_controlling": "Quelqu'un d'autre contrôle la lecture",
+    "request_control": "Demande de contrôle pour gérer la lecture",
+    "release_control": "Contrôle de libération",
+    "room.you_are_leader": "Vous contrôlez la lecture",
+    "room.you_can_control":"Vous pouvez contrôler la lecture",    
     "private": "Salon privé",
     "public": "Salon public",
     "enterPassword": "Entrez le mot de passe du salon pour rejoindre :",
@@ -164,5 +198,12 @@
     "removeAvatar": "Supprimer l’avatar",
     "error": "Erreur",
     "confirmNewEmail": "Consultez votre e-mail pour confirmer la nouvelle adresse."
+  },
+  "action":{
+    "promote": "Promouvoir Manager",
+    "demote": "Rétrograder Membre",
+    "kick": "Exclure (Kick)",
+    ".ban": "Bannir (Ban)"
+
   }  
 }

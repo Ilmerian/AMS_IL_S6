@@ -180,7 +180,7 @@ export default function LoginDialog({ open, onClose, onSwitchToRegister }) {
 
           <Box sx={{ textAlign: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
-              {t('auth.no_account', "Pas encore de compte ?")}
+              {t('auth.no_account')}
             </Typography>
             <Button variant="outlined" size="small" onClick={onSwitchToRegister}>
               {t('auth.create_account')}

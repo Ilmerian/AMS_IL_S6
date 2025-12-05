@@ -141,7 +141,7 @@ export default function ChatBox({ roomId, isBanned }) {
                 startIcon={<ExpandLessIcon />}
                 onClick={handleLoadMore}
               >
-                {t('chat.load_more', 'Afficher plus')}
+                {t('chat.load_more')}
               </Button>
             </Box>
           )}
@@ -177,7 +177,7 @@ export default function ChatBox({ roomId, isBanned }) {
                     size="small"
                     color="inherit"
                     onClick={() => remove(m.id)}
-                    aria-label={t('chat.delete', 'Supprimer')}
+                    aria-label={t('chat.delete')}
                   >
                     <DeleteOutlineIcon fontSize="small" />
                   </IconButton>
@@ -228,7 +228,7 @@ export default function ChatBox({ roomId, isBanned }) {
           ) : (
             <Box sx={{ p: 2, textAlign: 'center', opacity: 0.8 }}>
               <Typography color="error">
-                {t('chat.banned_message', 'Vous avez été banni de cette salle.')}
+                {t('chat.banned_message')}
               </Typography>
             </Box>
           )

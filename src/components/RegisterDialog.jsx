@@ -93,7 +93,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
         {success ? (
           <Box sx={{ textAlign: 'center', py: 3 }}>
             <Typography variant="h6" color="success.light" gutterBottom>
-              {t('settings.saved', 'Succès !')}
+              {t('settings.saved')}
             </Typography>
             <Typography sx={{ mb: 2 }}>{msg}</Typography>
             <Button variant="outlined" onClick={handleClose}>

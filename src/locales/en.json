@@ -11,6 +11,21 @@
     "login": "Login",
     "logout": "Logout"
   },
+  "role": {
+    "promoted": "promoted ",
+    "demoted": "demoted ",
+    "kicked":" kicked",
+    "banned": "banned ",
+    "unbanned":" unbanned"
+  },
+  "confirm": {
+    "kick": "kick ",
+    "ban": "ban ",
+    "unban": "unban"
+  },
+  "error": {
+    "permission_denied": "permission denied "
+  },
   "user": {
     "default": "User"
   },
@@ -25,6 +40,9 @@
   },
   "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
   "chat": {
+    "banned_message": "You have been banned from this room.",
+    "delete": "Delete",
+    "load_more":"Load more",
     "guest": "guest",
     "sending": "sending…",
     "failed": "failed",
@@ -89,6 +107,9 @@
     }    
   },
   "playlist": {
+    "noPreview": "Preview",
+    "playlist.reorderFailed": "Failed to reorder videos",
+    "permissionDenied": "Permission denied to modify the playlist.",
     "urlLabel": "YouTube URL",
     "urlPlaceholder": "https://youtu.be/...",
     "add": "Add",
@@ -109,6 +130,19 @@
     "backHome": "Back to home"
   },
   "room": {
+    "loading": "Loading the room",
+    "reload" : "reload ",
+    "error_generic" :"Unable to load this room. ",
+    "not_found" :"room not found",
+    "take_control": "Take Control",
+    "banned_title": "Access denied",
+    "banned_message": "You have been banned from this room. It is impossible to re-enter.",
+    "moderation_panel": "Moderation Panel",
+    "someone_controlling": "Someone else is controlling playback",
+    "request_control": "Request control to manage playback",
+    "release_control": "Release Control",
+    "room.you_are_leader": "You are controlling playback",
+    "room.you_can_control":"You can control playback",
     "private": "Private room",
     "public": "Public room",
     "enterPassword": "Enter room password to join:",
@@ -164,5 +198,11 @@
     "removeAvatar": "Remove avatar",
     "error": "Error",
     "confirmNewEmail": "Check your email to confirm the new address."
+  },
+  "action":{
+    "promote": "Promote Manager",
+    "demote": "demoter Member",
+    "kick": "Kick",
+    ".ban": "Ban"
   }  
 }

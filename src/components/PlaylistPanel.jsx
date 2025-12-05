@@ -74,7 +74,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
     
     // VÉRIFICATION ACL
     if (!canEdit) {
-        setMsg(t('playlist.permissionDenied', 'Permission refusée pour modifier la playlist.'));
+        setMsg(t('playlist.permissionDenied'));
         return;
     }
 
@@ -95,7 +95,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
   const handleDelete = async (videoId) => {
 // VÉRIFICATION ACL
     if (!canEdit) {
-        setMsg(t('playlist.permissionDenied', 'Permission refusée pour modifier la playlist.'));
+        setMsg(t('playlist.permissionDenied'));
         return;
     }
 
@@ -136,7 +136,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
       });
       
     } catch (error) {
-      setMsg(error?.message || t('playlist.reorderFailed', 'Failed to reorder videos'));
+      setMsg(error?.message || t('playlist.reorderFailed'));
       // Annuler les modifications en cas d'erreur
       await load();
     } finally {
@@ -149,7 +149,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
   const handleAddResult = async (item) => {
     // VÉRIFICATION ACL
     if (!canEdit) {
-        setMsg(t('playlist.permissionDenied', 'Permission refusée pour modifier la playlist.'));
+        setMsg(t('playlist.permissionDenied'));
         return;
     }
 
@@ -277,7 +277,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
                             opacity: 0.7,
                           }}
                         >
-                          {t('playlist.noPreview', 'Preview')}
+                          {t('playlist.noPreview')}
                         </Box>
                       )}
 
