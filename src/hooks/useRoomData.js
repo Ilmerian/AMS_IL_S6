@@ -1,4 +1,3 @@
-// src/hooks/useRoomData.js
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { RoomService } from '../services/RoomService'
 import { RoleService } from '../services/RoleService'
@@ -66,52 +65,32 @@ export function useRoomData(roomId, user) {
       setRoom(finalRoom)
       setIsBanned(isBannedResult)
 
-      if (user && finalRoom) {
-            if (finalRoom.ownerId === user.id) {
-                userRoleData = 'owner';
-            }
-        }      
-      if (!isBannedResult) {
-          let membersData = [];
-          try {
-              membersData = await cacheService.withDebounce(
-                  `members_${roomId}`,
-                  () => RoleService.listMembers(roomId),
-                  100
-              );
-                
-              if (!userRoleData && user) {
-                  const currentUserMember = membersData.find(m => m.userId === user.id);
-                  userRoleData = getMemberRole(currentUserMember);
-              }
-           } catch (memberError) {
-              console.warn('[useRoomData] Failed to load members:', memberError);
-           }
-
-          setMembers(membersData);
-          setUserRole(userRoleData);
-      }
-
       let membersData = []
       let userRoleData = null
-      
-      try {
-        membersData = await cacheService.withDebounce(
-          `members_${roomId}`,
-          () => RoleService.listMembers(roomId),
-          100
-        )
-        
-        if (user) {
-          const currentUserMember = membersData.find(m => m.userId === user.id)
-          userRoleData = getMemberRole(currentUserMember)
-        }
-      } catch (memberError) {
-        console.warn('[useRoomData] Failed to load members:', memberError)
-      }
 
-      setMembers(membersData)
-      setUserRole(userRoleData)
+      if (!isBannedResult) {
+        try {
+          membersData = await cacheService.withDebounce(
+            `members_${roomId}`,
+            () => RoleService.listMembers(roomId),
+            100
+          )
+          
+          if (user) {
+            const currentUserMember = membersData.find(m => m.userId === user.id)
+            userRoleData = getMemberRole(currentUserMember)
+            
+            if (!userRoleData && finalRoom && finalRoom.ownerId === user.id) {
+              userRoleData = 'owner';
+            }
+          }
+        } catch (memberError) {
+          console.warn('[useRoomData] Failed to load members:', memberError)
+        }
+
+        setMembers(membersData)
+        setUserRole(userRoleData)
+      }
 
       cacheService.cache.set(cacheKey, {
         timestamp: Date.now(),
