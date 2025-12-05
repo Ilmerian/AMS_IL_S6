@@ -82,7 +82,7 @@ function ControlStatus({ controlInfo, user }) {
             onClick={controlInfo.releaseLeadership}
             sx={{ ml: 1 }}
           >
-            {t('room.release_control', 'Release Control')}
+            {t('room.release_control')}
           </Button>
         )}
       </Box>
@@ -104,7 +104,7 @@ function ControlStatus({ controlInfo, user }) {
         onClick={controlInfo.takeLeadership}
         sx={{ ml: 1 }}
       >
-        {t('room.take_control', 'Take Control')}
+        {t('room.take_control')}
       </Button>
     </Box>
   );
@@ -333,7 +333,7 @@ export default function Room() {
         return (
             <Section>
                 <Typography sx={{ opacity: 0.8 }}>
-                    {t('room.loading', 'Chargement de la salle...')}
+                    {t('room.loading')}
                 </Typography>
             </Section>
         );
@@ -343,11 +343,11 @@ export default function Room() {
         return (
             <Section>
                 <Typography color="error" sx={{ mb: 1 }}>
-                    {t('room.error_generic', 'Impossible de charger cette salle.')}
+                    {t('room.error_generic')}
                 </Typography>
                 <Typography sx={{ opacity: 0.8, mb: 2 }}>{err}</Typography>
                 <Button variant="outlined" onClick={() => refresh()}>
-                    {t('room.reload', 'Recharger')}
+                    {t('room.reload')}
                 </Button>
             </Section>
         );
@@ -357,7 +357,7 @@ export default function Room() {
         return (
             <Section>
                 <Typography sx={{ opacity: 0.8 }}>
-                    {t('room.not_found', 'Salle introuvable ou inaccessible.')}
+                    {t('room.not_found')}
                 </Typography>
             </Section>
         );
@@ -367,9 +367,9 @@ export default function Room() {
         return (
             <Box component={Section} sx={{ p: 4, textAlign: 'center' }}>
                 <Typography variant="h5" color="error">
-                    {t('room.banned_title', 'Accès Refusé')}
+                    {t('room.banned_title')}
                 </Typography>
-                <Typography>{t('room.banned_message', 'Vous avez été banni de cette salle. Il est impossible de ré-entrer.')}</Typography>
+                <Typography>{t('room.banned_message')}</Typography>
             </Box>
         );
     }
@@ -551,7 +551,7 @@ export default function Room() {
                                         <Box sx={{ height: '100%', overflowY: 'auto' }}>
                                             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1, mt: 1 }}>
                                                 <GavelIcon fontSize="small" sx={{ mr: 1 }} />
-                                                {t('room.moderation_panel', 'Panneau de Modération')}
+                                                {t('room.moderation_panel')}
                                             </Typography>
                                             <List dense>
                                                 {members.map((member) => {
@@ -606,23 +606,23 @@ export default function Room() {
                         {/* PROMOTE */}
                         {(selectedMember.role === ROLES.MEMBER || selectedMember.role === ROLES.MANAGER) && userRole === ROLES.OWNER && (
                             <MenuItem onClick={() => handleAction('promote', selectedMember)}>
-                                {t('action.promote', 'Promouvoir Manager')}
+                                {t('action.promote')}
                             </MenuItem>
                         )}
 
                         {/* DEMOTE */}
                         {selectedMember.role === ROLES.MANAGER && userRole === ROLES.OWNER && (
                             <MenuItem onClick={() => handleAction('demote', selectedMember)}>
-                                {t('action.demote', 'Rétrograder Membre')}
+                                {t('action.demote')}
                             </MenuItem>
                         )}
 
                         {/* KICK/BAN */}
                         <MenuItem onClick={() => handleAction('kick', selectedMember)}>
-                            {t('action.kick', 'Exclure (Kick)')}
+                            {t('action.kick')}
                         </MenuItem>
                         <MenuItem onClick={() => handleAction('ban', selectedMember)} sx={{ color: 'error.main' }}>
-                            {t('action.ban', 'Bannir (Ban)')}
+                            {t('action.ban')}
                         </MenuItem>
                     </Box>
                 )}
