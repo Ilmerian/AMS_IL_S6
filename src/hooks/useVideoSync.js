@@ -69,7 +69,7 @@ export function useVideoSync({ roomId, user }) {
     };
 
     const setupPolling = () => {
-      const interval = 2000;
+      const interval = 5000;
       
       syncRoomState();
       syncIntervalRef.current = setInterval(syncRoomState, interval);

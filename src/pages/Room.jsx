@@ -9,6 +9,7 @@ import { RoleService } from '../services/RoleService';
 import { BanRepository } from '../repositories/BanRepository';
 import { RealtimeService } from '../services/RealtimeService';
 import { UserRepository } from "../repositories/UserRepository";
+import { cacheService } from '../services/CacheService';
 
 // Components & Utils
 import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
@@ -244,28 +245,86 @@ export default function Room() {
         if (!user || !roomId) {
             return;
         }
+        
+        const cacheKey = `room_data_${roomId}_${user.id}`;
+        
         try {
-            const bannedStatus = await BanRepository.isUserBanned(roomId, user.id);
+            const cached = cacheService.getMemory(cacheKey);
+            if (cached && Date.now() - cached.timestamp < 30000) {
+            console.log(`[Room] Cache HIT (30s) for room ${roomId}`);
+            const { bannedStatus, initialMembers, currentUserRole } = cached.data;
             setIsBanned(bannedStatus);
-            if (bannedStatus) return;
-
-            const initialMembers = await RoleService.listMembers(roomId);
-            setMembers(initialMembers);
-
-            const currentUserMember = initialMembers.find(m => m.userId === user.id);
-            const currentUserRole = getMemberRole(currentUserMember);
-            setUserRole(currentUserRole);
-        } catch (error) {
-            console.error('Error loading room data:', error);
-            setSnackbar({ open: true, message: error.message || t('auth.error', 'Error'), severity: 'error' });
+            if (!bannedStatus) {
+                setMembers(initialMembers);
+                setUserRole(currentUserRole);
+            }
+            return;
         }
+
+        // Parallel requests
+        const [bannedStatus, initialMembers] = await Promise.all([
+            BanRepository.isUserBanned(roomId, user.id),
+            RoleService.listMembers(roomId)
+        ]);
+
+        setIsBanned(bannedStatus);
+        if (bannedStatus) {
+        // Save to cache even if banned
+        cacheService.setMemory(cacheKey, {
+            timestamp: Date.now(),
+            data: {
+            bannedStatus: true,
+            initialMembers: [],
+            currentUserRole: null
+            }
+        }, 30000);
+        return;
+        }
+
+        setMembers(initialMembers);
+
+        const currentUserMember = initialMembers.find(m => m.userId === user.id);
+        const currentUserRole = getMemberRole(currentUserMember);
+        setUserRole(currentUserRole);
+
+        // СSave in cache
+        cacheService.setMemory(cacheKey, {
+        timestamp: Date.now(),
+        data: {
+            bannedStatus: false,
+            initialMembers,
+            currentUserRole
+        }
+        }, 30000);
+
+    } catch (error) {
+        console.error('Error loading room data:', error);
+        setSnackbar({ open: true, message: error.message || t('auth.error', 'Error'), severity: 'error' });
+    }
     }, [roomId, user, getMemberRole, t]);
+
+    // useEffect to clear the cache when unmounting:
+    useEffect(() => {
+    return () => {
+        // Clear the room cache when unmounting
+        if (roomId && user) {
+        cacheService.invalidate(`room_data_${roomId}_`);
+        }
+    };
+    }, [roomId, user]);
 
     useEffect(() => {
             // Condition de garde stricte : doit avoir un utilisateur, un ID de salle, la salle chargée (room), 
             // et ne pas être en attente de mot de passe (needPw)
             if (!user || !roomId || roomLoading || !room || needPw) return; 
 
+            const isProduction = window.location.hostname !== 'localhost' && 
+                                window.location.hostname !== '127.0.0.1';
+            
+            if (isProduction) {
+                console.log('[Room] Realtime subscriptions DISABLED in production');
+                return;
+            }            
             let banUnsub;
             
             loadRoomData(); // Lancer le chargement des membres/bans

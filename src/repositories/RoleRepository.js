@@ -2,6 +2,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import { Role } from '../models/Role';
+import { cacheService } from '../services/CacheService';
 
 export const RoleRepository = {
   async listForRoom(roomId) {
@@ -17,89 +18,109 @@ export const RoleRepository = {
    * NOUVEAU: Récupère la liste complète des membres avec leurs rôles et profils.
    */
   async listMembers(roomId) {
-      try {
-          const currentUserId = (await supabase.auth.getUser()).data?.user?.id;
-          const numRoomId = Number(roomId);
-          
-          // 1. Charger les rôles et les profils utilisateur
-          const { data: roleRows, error: roleError } = await supabase
-              .from('roles')
-              .select(`
-                  user_id,
-                  is_manager,
-                  users (username, email)
-              `)
-              .eq('room_id', numRoomId);
-          if (roleError) throw roleError;
-
-          // 2. Charger le propriétaire de la salle
-          const { data: roomData, error: roomError } = await supabase
-              .from('rooms')
-              .select('owner_id')
-              .eq('room_id', numRoomId)
-              .maybeSingle();
-          if (roomError) throw roomError;
-          
-          const ownerId = roomData?.owner_id;
-          const membersMap = new Map();
-
-          // 3. Mapper les rôles/membres existants
-          (roleRows || []).forEach(row => {
-              const userId = row.user_id;
-              const userProfile = row.users;
-              const isOwner = userId === ownerId;
-
-              membersMap.set(userId, {
-                  userId: userId,
-                  name: userProfile?.username || userProfile?.email || userId.slice(0, 8),
-                  is_manager: row.is_manager,
-                  isOwner: isOwner,
-              });
-          });
-
-          // 4. Assurer que l'Owner est inclus
-          if (ownerId && !membersMap.has(ownerId)) {
-               const { data: ownerProfile, error: ownerError } = await supabase
-                  .from('users')
-                  .select('username, email')
-                  .eq('user_id', ownerId)
-                  .single();
-
-              if (!ownerError && ownerProfile) {
-                  membersMap.set(ownerId, {
-                      userId: ownerId,
-                      name: ownerProfile.username || ownerProfile.email || ownerId.slice(0, 8),
-                      is_manager: true, 
-                      isOwner: true,
-                  });
-              }
-          }
-          
-          // 5. Assurer que l'utilisateur ACTUEL est inclus s'il n'est pas déjà là.
-          if (currentUserId && !membersMap.has(currentUserId)) {
-               const { data: currentUserProfile, error: currentUserError } = await supabase
-                  .from('users')
-                  .select('username, email')
-                  .eq('user_id', currentUserId)
-                  .single();
-
-              if (!currentUserError && currentUserProfile) {
-                   membersMap.set(currentUserId, {
-                      userId: currentUserId,
-                      name: currentUserProfile.username || currentUserProfile.email || currentUserId.slice(0, 8),
-                      is_manager: false, 
-                      isOwner: false,
-                   });
-              }
-          }
-
-
-          return Array.from(membersMap.values());
-      } catch (e) {
-          // Log de l'erreur réseau et retour d'un tableau vide pour permettre à l'UI de continuer
-          console.error('listMembers failed due to network or upstream error:', e);
-          return [];
+    const cacheKey = `room_members_${roomId}`;
+    
+    try {
+      // Try to get from cache
+      const cached = cacheService.getMemory(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 15000) {
+        return cached.data;
       }
+
+      const currentUserId = (await supabase.auth.getUser()).data?.user?.id;
+      const numRoomId = Number(roomId);
+      
+      // Requêtes parallèles au lieu de requêtes consécutives
+      const [roleResult, roomResult] = await Promise.all([
+        supabase
+          .from('roles')
+          .select(`user_id, is_manager, users (username, email)`)
+          .eq('room_id', numRoomId),
+        supabase
+          .from('rooms')
+          .select('owner_id')
+          .eq('room_id', numRoomId)
+          .maybeSingle()
+      ]);
+
+      if (roleResult.error) throw roleResult.error;
+      if (roomResult.error) throw roomResult.error;
+
+      const roleRows = roleResult.data || [];
+      const ownerId = roomResult.data?.owner_id;
+      const membersMap = new Map();
+
+      // 3. Mapper les rôles/membres existants
+      roleRows.forEach(row => {
+        const userId = row.user_id;
+        const userProfile = row.users;
+        const isOwner = userId === ownerId;
+
+        membersMap.set(userId, {
+          userId: userId,
+          name: userProfile?.username || userProfile?.email || userId.slice(0, 8),
+          is_manager: row.is_manager,
+          isOwner: isOwner,
+        });
+      });
+
+      // 4. Assurer que l'Owner est inclus
+      if (ownerId && !membersMap.has(ownerId)) {
+        try {
+          const { data: ownerProfile, error: ownerError } = await supabase
+            .from('users')
+            .select('username, email')
+            .eq('user_id', ownerId)
+            .single();
+
+          if (!ownerError && ownerProfile) {
+            membersMap.set(ownerId, {
+              userId: ownerId,
+              name: ownerProfile.username || ownerProfile.email || ownerId.slice(0, 8),
+              is_manager: true,
+              isOwner: true,
+            });
+          }
+        } catch (ownerError) {
+          console.warn('Failed to fetch owner profile:', ownerError);
+        }
+      }
+
+      // 5. Assurer que l'utilisateur ACTUEL est inclus s'il n'est pas déjà là.
+      if (currentUserId && !membersMap.has(currentUserId)) {
+        try {
+          const { data: currentUserProfile, error: currentUserError } = await supabase
+            .from('users')
+            .select('username, email')
+            .eq('user_id', currentUserId)
+            .single();
+
+          if (!currentUserError && currentUserProfile) {
+            membersMap.set(currentUserId, {
+              userId: currentUserId,
+              name: currentUserProfile.username || currentUserProfile.email || currentUserId.slice(0, 8),
+              is_manager: false,
+              isOwner: false,
+            });
+          }
+        } catch (currentUserError) {
+          console.warn('Failed to fetch current user profile:', currentUserError);
+        }
+      }
+
+      const result = Array.from(membersMap.values());
+
+      // Save to cache
+      cacheService.setMemory(cacheKey, {
+        timestamp: Date.now(),
+        data: result
+      }, 15000);
+
+      return result;
+    } catch (e) {
+      console.error('listMembers failed due to network or upstream error:', e);
+      return [];
+    }
   },
 
   async addMember({ roomId, userId, isManager = false }) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Header from './components/Header.jsx'
@@ -20,6 +20,7 @@ import Room from './pages/Room.jsx'
 import RoomCreate from './pages/RoomCreate.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import UpdatePassword from './pages/UpdatePassword.jsx'
+import { cacheService } from './services/CacheService';
 
 function Protected({ children }) {
   const { user, loading } = useAuth()
@@ -39,6 +40,19 @@ function Providers({ children }) {
 export default function App() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      cacheService.cleanup();
+    }, 300000);
+
+    return () => {
+      clearInterval(intervalId);
+      if (cacheService && typeof cacheService.clear === 'function') {
+        cacheService.clear();
+      }
+    };
+  }, []);
 
   const openLogin = () => { setRegisterOpen(false); setLoginOpen(true) }
   const openRegister = () => { setLoginOpen(false); setRegisterOpen(true) }

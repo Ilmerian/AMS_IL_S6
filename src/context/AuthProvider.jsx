@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { AuthContext } from './auth'
 import { AuthService } from '../services/AuthService'
 import { UserRepository } from '../repositories/UserRepository'
+import { cacheService } from '../services/CacheService'
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -81,6 +82,10 @@ export default function AuthProvider({ children }) {
         setUser(null)
         setProfile(null)
         setLoading(false)
+        if (cacheService) {
+          cacheService.invalidate(`room_data_`);
+          cacheService.invalidate(`rooms_list_public_`);
+        }
       } else if (session?.user) {
         setUser(session.user)
         // On ne recharge le profil que s'il n'est pas déjà chargé ou si c'est un nouvel user
