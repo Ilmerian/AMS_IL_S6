@@ -43,7 +43,6 @@ export const RoomService = {
   archive: (id) => RoomRepository.archive(id),
   setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),
   pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
-  updatePlaybackState: (roomId, payload) => RoomRepository.updatePlaybackState(roomId, payload), // Assurez-vous que cette ligne existe ou adaptez selon votre code précédent
 
   // ... (Assurez-vous de garder le reste de vos fonctions comme create, join, etc.)
   async create({ name, password }) {

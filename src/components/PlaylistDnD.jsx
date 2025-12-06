@@ -132,7 +132,11 @@ function SortablePlaylistItem({ item, onDelete, onPlay, busy, canEdit, currentVi
         <IconButton
           edge="end"
           aria-label={t('playlist.play')}
-          onClick={() => onPlay(item.url)}
+          onClick={() => {
+            if (onPlay) {
+              onPlay(item.url);
+            }
+          }}
           sx={{ mr: 1 }}
           disabled={busy}
         >

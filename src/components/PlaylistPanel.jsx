@@ -172,16 +172,16 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
   }
 
   const handlePlayResult = (item) => {
-    const youtubeId = extractYoutubeId(item)
+    const youtubeId = extractYoutubeId(item);
+    
     if (youtubeId) {
+      const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+      
       if (onVideoSelect) {
-        const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`
-        onVideoSelect(watchUrl)
-      } else {
-        onPlay?.(youtubeId)
+        onVideoSelect(watchUrl);
       }
     }
-  }
+  };
 
   const handlePlay = (videoUrl) => {
     const id = getYouTubeId(videoUrl)

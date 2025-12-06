@@ -43,31 +43,90 @@ export const RoomRepository = {
   },
 
   async listPublic() {
-    let queryBuilder = supabase
+    console.log('[RoomRepository] Loading public rooms...');
+    
+    const { data, error } = await supabase
       .from('rooms')
-      .select('*, users!fk_rooms_owner(username, avatar_url)')
+      .select('room_id, name, owner_id, password, is_private')
       .eq('is_private', false)
       .order('created_at', { ascending: false });
-
-    const { data, error } = await queryBuilder;
-    if (error) throw error;
     
+    if (error) {
+      console.error('[RoomRepository] Error loading rooms:', error);
+      throw error;
+    }
+    
+    console.log('[RoomRepository] Found rooms:', data?.length || 0);
     const roomsData = data || [];
 
-    return roomsData.map(r => {
-      return {
-          id: r.room_id,
-          name: r.name,
-          ownerId: r.owner_id,
-          ownerName: r.users?.username || null,
-          ownerAvatar: r.users?.avatar_url || null,
-          hasPassword: !!r.password,
-          password: null,
-          videoHistory: [],
-      };
-    }).map(r => new Room(r)); 
-  },
+  const ownerIds = [...new Set(roomsData.map(r => r.owner_id).filter(Boolean))];
+  console.log('[RoomRepository] Owner IDs to load:', ownerIds);
 
+  let ownerProfiles = {};
+
+  if (ownerIds.length > 0) {
+      try {
+          console.log('[RoomRepository] Starting profiles query...');
+          
+          const { data: profiles, error: profileError } = await supabase
+              .rpc('get_users_by_ids', { user_ids: ownerIds });
+          
+          console.log('[RoomRepository] Profiles query completed:', {
+              success: !profileError,
+              error: profileError,
+              profilesCount: profiles?.length || 0
+          });
+          
+          if (profileError) {
+              console.error('[RoomRepository] RPC error:', profileError);
+              
+              console.log('[RoomRepository] Trying fallback: loading profiles one by one');
+              const fallbackProfiles = await this.loadProfilesOneByOne(ownerIds);
+              ownerProfiles = fallbackProfiles;
+          } else {
+              console.log('[RoomRepository] Loaded profiles via RPC:', profiles);
+              
+              if (profiles) {
+                  profiles.forEach(p => {
+                      ownerProfiles[p.user_id] = {
+                          username: p.username,
+                          avatar_url: p.avatar_url
+                      };
+                  });
+              }
+              
+              console.log('[RoomRepository] Owner profiles map:', ownerProfiles);
+          }
+      } catch (e) {
+          console.warn('[RoomRepository] Failed to load owner profiles:', e);
+      }
+  } else {
+      console.log('[RoomRepository] No owner IDs to load');
+  }
+
+    const result = roomsData.map(r => {
+      const ownerInfo = ownerProfiles[r.owner_id];
+      console.log(`[RoomRepository] Processing room ${r.room_id}, owner ${r.owner_id}:`, ownerInfo);
+      
+      const roomObj = new Room({
+        id: r.room_id,
+        name: r.name,
+        ownerId: r.owner_id,
+        ownerName: ownerInfo?.username || r.owner_id?.slice(0, 8) || "Creator unknown",
+        ownerAvatar: ownerInfo?.avatar_url || null,
+        hasPassword: !!r.password,
+        password: null,
+        videoHistory: [],
+        isPrivate: r.is_private || false
+      });
+      
+      return roomObj;
+    });
+    
+    console.log('[RoomRepository] Returning rooms:', result.length);
+    console.log('[RoomRepository] Sample room:', result[0]);
+    return result;
+  },
   async getById(roomId) {
     const { data, error } = await supabase
       .rpc('get_room_public', { p_room_id: Number(roomId) })
@@ -195,5 +254,32 @@ export const RoomRepository = {
       .filter(Boolean);
 
     return ordered;
+  },
+
+  async loadProfilesOneByOne(ownerIds) {
+    const profilesMap = {};
+    
+    const limitedIds = ownerIds.slice(0, 5);
+    
+    for (const ownerId of limitedIds) {
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('user_id, username, avatar_url')
+                .eq('user_id', ownerId)
+                .maybeSingle();
+            
+            if (!error && data) {
+                profilesMap[data.user_id] = {
+                    username: data.username,
+                    avatar_url: data.avatar_url
+                };
+            }
+        } catch (e) {
+            console.warn(`[RoomRepository] Failed to load profile for ${ownerId}:`, e);
+        }
+    }
+    
+    return profilesMap;
   }
 };

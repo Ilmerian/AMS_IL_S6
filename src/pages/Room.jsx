@@ -10,6 +10,7 @@ import { BanRepository } from '../repositories/BanRepository';
 import { RealtimeService } from '../services/RealtimeService';
 import { UserRepository } from "../repositories/UserRepository";
 import { cacheService } from '../services/CacheService';
+import { getYouTubeId } from '../utils/youtube';
 
 // Components & Utils
 import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
@@ -20,7 +21,6 @@ import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import PlaylistPanel from '../components/PlaylistPanel';
-import { toWatchUrl } from '../utils/youtube';
 
 // IMPORT DU NOUVEAU HOOK
 import { useVideoSync } from '../hooks/useVideoSync';
@@ -185,7 +185,6 @@ export default function Room() {
         currentVideoId,
         playlistItems,
         addVideoByRawUrl,
-        playVideoById,
         playNextVideo,
         playPrevVideo,
         handleVideoError
@@ -349,6 +348,13 @@ export default function Room() {
     console.log('members count:', members.length);
     console.log('current user in members:', members.find(m => m.userId === user?.id));
     console.log('========================');    
+    
+    const handleVideoSelect = useCallback(async (url) => {
+        const videoId = getYouTubeId(url);
+        if (videoId && canControlVideo) {
+            changeVideo(`https://www.youtube.com/watch?v=${videoId}`);
+        }
+    }, [canControlVideo, changeVideo])
 
     // useEffect to clear the cache when unmounting:
     useEffect(() => {
@@ -557,9 +563,12 @@ export default function Room() {
                             }}
                         >
                             <VideoPlayerShell 
-                                url={embedUrl || (syncVideoId ? toWatchUrl(syncVideoId) : null)}
+                                url={
+                                    syncVideoId 
+                                    ? `https://www.youtube.com/watch?v=${syncVideoId}`
+                                    : embedUrl || null
+                                }
                                 playing={syncIsPlaying}
-                                // AJOUT DE LA PROP D'AUTORISATION
                                 canControl={canControlVideo} 
                                 onPlay={triggerPlay}
                                 onPause={triggerPause}
@@ -629,14 +638,9 @@ export default function Room() {
                                             playlistId={playlistId}
                                             canEdit={canControlVideo} 
                                             onAdd={handleAddVideo}
-                                            onPlay={changeVideo}
+                                            onPlay={handleVideoSelect}
                                             currentVideoId={currentVideoId}
-                                            onVideoSelect={async (url) => {
-                                            const video = playlistItems.find(v => v.url === url)
-                                              if (video && canControlVideo) {
-                                                await playVideoById(video.id)
-                                              }
-                                            }}
+                                            onVideoSelect={handleVideoSelect}
                                         />
                                     )}
 
