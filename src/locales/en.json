@@ -60,6 +60,7 @@
     "magic_link_sent": "Magic link sent. Check your inbox.",
     "magic_link_failed": "Failed to send magic link.",
     "loginTitle": "Login",
+    "remember_me": "Remember me",
     "mode": {
       "magic": "Magic link",
       "password": "Email & Password"

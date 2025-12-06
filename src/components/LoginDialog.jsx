@@ -13,6 +13,8 @@ import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Checkbox from '@mui/material/Checkbox'
 
 import InputAdornment from '@mui/material/InputAdornment'
 import Visibility from '@mui/icons-material/Visibility'
@@ -28,6 +30,7 @@ export default function LoginDialog({ open, onClose, onSwitchToRegister }) {
 
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleClose = () => {
     setMsg('')
@@ -56,7 +59,11 @@ export default function LoginDialog({ open, onClose, onSwitchToRegister }) {
     setLoading(true)
     setMsg('')
     try {
-      await AuthService.signInWithPassword({ email, password: pw })
+      await AuthService.signInWithPassword({ 
+        email, 
+        password: pw,
+        remember: rememberMe
+      })
       handleClose()
     } catch (err) {
       setMsg(err?.message || t('auth.signin_error'))
@@ -163,8 +170,24 @@ export default function LoginDialog({ open, onClose, onSwitchToRegister }) {
                       </InputAdornment>
                     )
                   }}
-                />
-                
+                />           
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        size="small"
+                        sx={{ color: 'rgba(255,255,255,0.7)' }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        {t('auth.remember_me') || 'Remember me'}
+                      </Typography>
+                    }
+                  />
+                </Box>                
                 <Button type="submit" disabled={loading} variant="contained">
                   {loading ? t('auth.signing') : t('auth.sign_in')}
                 </Button>

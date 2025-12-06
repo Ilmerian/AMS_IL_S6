@@ -60,6 +60,7 @@
     "magic_link_sent": "Lien magique envoyé. Vérifiez votre boîte de réception.",
     "magic_link_failed": "Échec de l’envoi du lien magique.",
     "loginTitle": "Connexion",
+    "remember_me": "Se souvenir de moi",
     "mode": {
       "magic": "Lien magique",
       "password": "E-mail et mot de passe"

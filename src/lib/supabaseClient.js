@@ -13,6 +13,9 @@ export const supabase = createClient(url, key, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storageKey: 'watchwithme-auth-token',
+    storage: window.localStorage,
+    flowType: 'pkce'    
   },
   realtime: {
     timeout: 30000,

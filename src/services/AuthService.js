@@ -36,9 +36,17 @@ export const AuthService = {
     return data
   },
 
-  async signInWithPassword(payload) {
-    const { email, password } = payload || {}
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  async signInWithPassword({ email, password, remember = false }) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: {
+        persistSession: remember,
+        ...(remember && { 
+          data: { persistent_session: true }
+        })
+      }
+    })
     if (error) throw error
     return data
   },
@@ -194,12 +202,15 @@ export const AuthService = {
   async signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-    return true
+    localStorage.removeItem('supabase.auth.token')
+    localStorage.removeItem('watchwithme-auth-token')
   },
 
   async signOutAll() {
     const { error } = await supabase.auth.signOut({ scope: 'global' })
     if (error) throw error
-    return true
+    
+    localStorage.removeItem('supabase.auth.token')
+    localStorage.removeItem('watchwithme-auth-token')
   },
 }

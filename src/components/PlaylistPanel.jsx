@@ -147,29 +147,30 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
   const extractYoutubeId = (item) => item.videoId || item.id?.videoId || item.id
 
   const handleAddResult = async (item) => {
-    // VÉRIFICATION ACL
     if (!canEdit) {
-        setMsg(t('playlist.permissionDenied'));
-        return;
+      setMsg(t('playlist.permissionDenied'));
+      return;
     }
 
-    if (!playlistId) return
-    setBusy(true)
-    setMsg('')
+    if (!playlistId) return;
+    setBusy(true);
+    setMsg('');
     try {
-      const youtubeId = extractYoutubeId(item)
+      const youtubeId = item.id?.videoId || item.videoId || item.id;
       if (!youtubeId) {
-        throw new Error('Invalid YouTube search result')
+        throw new Error('Invalid YouTube search result');
       }
-      const pickedUrl = `https://www.youtube.com/watch?v=${youtubeId}`
-      await onAdd?.(pickedUrl)
-      await load()
+      
+      const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+      const title = item.snippet?.title || item.title || 'YouTube video';
+      await onAdd?.(watchUrl, title);
+      await load();
     } catch (e) {
-      setMsg(e?.message || t('playlist.failedAdd'))
+      setMsg(e?.message || t('playlist.failedAdd'));
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const handlePlayResult = (item) => {
     const youtubeId = extractYoutubeId(item);
@@ -223,20 +224,14 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
               }}
             >
               {searchResults.map((item) => {
-                const youtubeId = extractYoutubeId(item)
-                const title =
-                  item.title ||
-                  item.snippet?.title ||
-                  youtubeId ||
-                  'YouTube video'
-                const channelTitle =
-                  item.channelTitle || item.snippet?.channelTitle || ''
-                // On essaie de récupérer la miniature via l'objet, sinon on la construit via l'ID
-                const thumbnail =
-                item.thumbnail ||
-                item.snippet?.thumbnails?.medium?.url ||
-                item.snippet?.thumbnails?.default?.url ||
-                (youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/mqdefault.jpg` : null)
+                const youtubeId = item.id?.videoId || item.videoId || item.id;
+                const title = item.snippet?.title || item.title || 'YouTube video';
+                const channelTitle = item.snippet?.channelTitle || '';
+                const thumbnail = 
+                  item.snippet?.thumbnails?.high?.url ||
+                  item.snippet?.thumbnails?.medium?.url ||
+                  item.snippet?.thumbnails?.default?.url ||
+                  (youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/mqdefault.jpg` : null);
 
                 return (
                   <ListItem
@@ -254,18 +249,25 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
                           src={thumbnail}
                           alt={title}
                           sx={{
-                            width: 96,
-                            height: 54,
+                            width: 120,
+                            height: 68,
                             borderRadius: 1,
                             objectFit: 'cover',
                             flexShrink: 0,
+                          }}
+                          onError={(e) => {
+                            if (youtubeId) {
+                              e.target.src = `https://i.ytimg.com/vi/${youtubeId}/mqdefault.jpg`;
+                            } else {
+                              e.target.style.display = 'none';
+                            }
                           }}
                         />
                       ) : (
                         <Box
                           sx={{
-                            width: 96,
-                            height: 54,
+                            width: 120,
+                            height: 68,
                             borderRadius: 1,
                             bgcolor: 'rgba(255,255,255,0.08)',
                             display: 'grid',
@@ -314,7 +316,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
                       </Stack>
                     </Stack>
                   </ListItem>
-                )
+                );
               })}
             </List>
           )}
