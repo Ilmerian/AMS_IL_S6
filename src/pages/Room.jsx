@@ -62,86 +62,86 @@ const getRoleBadge = (role) => {
 };
 
 function ControlStatus({ controlInfo, user }) {
-  const { t } = useTranslation();
-  
-  if (!user) return null;
-  
-  if (controlInfo.canControl) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'success.dark', borderRadius: 1 }}>
-        <CheckCircleIcon fontSize="small" />
-        <Typography variant="body2">
-          {controlInfo.isLeader 
-            ? t('room.you_are_leader', 'You are controlling playback')
-            : t('room.you_can_control', 'You can control playback')
-          }
-        </Typography>
-        {controlInfo.isLeader && (
-          <Button 
-            size="small" 
-            variant="outlined" 
-            onClick={controlInfo.releaseLeadership}
-            sx={{ ml: 1 }}
-          >
-            {t('room.release_control')}
-          </Button>
-        )}
-      </Box>
-    );
-  }
+    const { t } = useTranslation();
 
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'warning.dark', borderRadius: 1 }}>
-      <WarningIcon fontSize="small" />
-      <Typography variant="body2">
-        {controlInfo.currentLeader 
-          ? t('room.someone_controlling', 'Someone else is controlling playback')
-          : t('room.request_control', 'Request control to manage playback')
-        }
-      </Typography>
-      <Button 
-        size="small" 
-        variant="contained" 
-        onClick={controlInfo.takeLeadership}
-        sx={{ ml: 1 }}
-      >
-        {t('room.take_control')}
-      </Button>
-    </Box>
-  );
+    if (!user) return null;
+
+    if (controlInfo.canControl) {
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'success.dark', borderRadius: 1 }}>
+                <CheckCircleIcon fontSize="small" />
+                <Typography variant="body2">
+                    {controlInfo.isLeader
+                        ? t('room.you_are_leader', 'You are controlling playback')
+                        : t('room.you_can_control', 'You can control playback')
+                    }
+                </Typography>
+                {controlInfo.isLeader && (
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={controlInfo.releaseLeadership}
+                        sx={{ ml: 1 }}
+                    >
+                        {t('room.release_control')}
+                    </Button>
+                )}
+            </Box>
+        );
+    }
+
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'warning.dark', borderRadius: 1 }}>
+            <WarningIcon fontSize="small" />
+            <Typography variant="body2">
+                {controlInfo.currentLeader
+                    ? t('room.someone_controlling', 'Someone else is controlling playback')
+                    : t('room.request_control', 'Request control to manage playback')
+                }
+            </Typography>
+            <Button
+                size="small"
+                variant="contained"
+                onClick={controlInfo.takeLeadership}
+                sx={{ ml: 1 }}
+            >
+                {t('room.take_control')}
+            </Button>
+        </Box>
+    );
 }
 
 function ConnectionStatus({ connectionStatus }) {
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case 'connected':
-        return { text: '🟢 Synchronisation en temps réel', color: 'success.main' };
-      case 'polling':
-        return { text: '🟡 Synchronisation active', color: 'warning.main' };
-      case 'error':
-        return { text: '🔴 Problème de connexion', color: 'error.main' };
-      default:
-        return { text: '⚪ Connexion...', color: 'grey.500' };
-    }
-  };
+    const getStatusInfo = (status) => {
+        switch (status) {
+            case 'connected':
+                return { text: '🟢 Synchronisation en temps réel', color: 'success.main' };
+            case 'polling':
+                return { text: '🟡 Synchronisation active', color: 'warning.main' };
+            case 'error':
+                return { text: '🔴 Problème de connexion', color: 'error.main' };
+            default:
+                return { text: '⚪ Connexion...', color: 'grey.500' };
+        }
+    };
 
-  const statusInfo = getStatusInfo(connectionStatus);
+    const statusInfo = getStatusInfo(connectionStatus);
 
-  return (
-    <Box sx={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: 1,
-      p: 1, 
-      borderRadius: 1,
-      backgroundColor: statusInfo.color,
-      opacity: 0.9
-    }}>
-      <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
-        {statusInfo.text}
-      </Typography>
-    </Box>
-  );
+    return (
+        <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            p: 1,
+            borderRadius: 1,
+            backgroundColor: statusInfo.color,
+            opacity: 0.9
+        }}>
+            <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+                {statusInfo.text}
+            </Typography>
+        </Box>
+    );
 }
 
 export default function Room() {
@@ -149,14 +149,14 @@ export default function Room() {
     const { roomId } = useParams();
     const { user } = useAuth();
 
-    const isProduction = typeof window !== 'undefined' && 
-                        window.location.hostname !== 'localhost' && 
-                        window.location.hostname !== '127.0.0.1';
+    const isProduction = typeof window !== 'undefined' &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1';
 
     // UI States
     const [activeTab, setActiveTab] = useState('playlist');
     const [pw, setPw] = useState('');
-    
+
     // Room Data Hooks
     const {
         room,
@@ -215,7 +215,7 @@ export default function Room() {
         changeVideo,
         updateLocalProgress,
         connectionStatus,
-        controlInfo = {} 
+        controlInfo = {}
     } = useVideoSync({
         roomId,
         user,
@@ -248,97 +248,97 @@ export default function Room() {
         if (!user || !roomId) {
             return;
         }
-        
+
         const cacheKey = `room_data_${roomId}_${user.id}`;
         const cacheTTL = isProduction ? 600000 : 30000;
-        
+
         try {
             const cached = cacheService.getMemory(cacheKey);
             if (cached && Date.now() - cached.timestamp < cacheTTL) {
-            console.log(`[Room] Cache HIT (${isProduction ? '10min' : '30s'}) for room ${roomId}`);
-            const { bannedStatus, initialMembers, currentUserRole } = cached.data;
-            setIsBanned(bannedStatus);
-            if (!bannedStatus) {
-                setMembers(initialMembers);
-                setUserRole(currentUserRole);
-            }
-            return;
+                console.log(`[Room] Cache HIT (${isProduction ? '10min' : '30s'}) for room ${roomId}`);
+                const { bannedStatus, initialMembers, currentUserRole } = cached.data;
+                setIsBanned(bannedStatus);
+                if (!bannedStatus) {
+                    setMembers(initialMembers);
+                    setUserRole(currentUserRole);
+                }
+                return;
             }
 
             console.log(`[Room] Cache MISS for room ${roomId}, fetching...`);
-            
+
             if (isProduction) {
-            const [bannedStatus, initialMembers] = await Promise.all([
-                BanRepository.isUserBanned(roomId, user.id),
-                RoleService.listMembers(roomId)
-            ]);
-            
-            setIsBanned(bannedStatus);
-            if (bannedStatus) return;
-            
-            setMembers(initialMembers);
-            
-            const currentUserMember = initialMembers.find(m => m.userId === user.id);
-            const role = currentUserMember ? 
-                (currentUserMember.isOwner ? 'owner' : 
-                currentUserMember.is_manager ? 'manager' : 'member') : null;
-            
-            setUserRole(role);
-            
-            cacheService.setMemory(cacheKey, {
-                timestamp: Date.now(),
-                data: {
-                bannedStatus,
-                initialMembers,
-                currentUserRole: role
-                }
-            }, cacheTTL);
-            
+                const [bannedStatus, initialMembers] = await Promise.all([
+                    BanRepository.isUserBanned(roomId, user.id),
+                    RoleService.listMembers(roomId)
+                ]);
+
+                setIsBanned(bannedStatus);
+                if (bannedStatus) return;
+
+                setMembers(initialMembers);
+
+                const currentUserMember = initialMembers.find(m => m.userId === user.id);
+                const role = currentUserMember ?
+                    (currentUserMember.isOwner ? 'owner' :
+                        currentUserMember.is_manager ? 'manager' : 'member') : null;
+
+                setUserRole(role);
+
+                cacheService.setMemory(cacheKey, {
+                    timestamp: Date.now(),
+                    data: {
+                        bannedStatus,
+                        initialMembers,
+                        currentUserRole: role
+                    }
+                }, cacheTTL);
+
             } else {
-            const [bannedStatus, initialMembers] = await Promise.all([
-                BanRepository.isUserBanned(roomId, user.id),
-                RoleService.listMembers(roomId)
-            ]);
+                const [bannedStatus, initialMembers] = await Promise.all([
+                    BanRepository.isUserBanned(roomId, user.id),
+                    RoleService.listMembers(roomId)
+                ]);
 
-            setIsBanned(bannedStatus);
-            if (bannedStatus) return;
+                setIsBanned(bannedStatus);
+                if (bannedStatus) return;
 
-            setMembers(initialMembers);
+                setMembers(initialMembers);
 
-            const currentUserMember = initialMembers.find(m => m.userId === user.id);
-            const currentUserRole = getMemberRole(currentUserMember);
-            setUserRole(currentUserRole);
+                const currentUserMember = initialMembers.find(m => m.userId === user.id);
+                const currentUserRole = getMemberRole(currentUserMember);
+                setUserRole(currentUserRole);
 
-            cacheService.setMemory(cacheKey, {
-                timestamp: Date.now(),
-                data: {
-                bannedStatus,
-                initialMembers,
-                currentUserRole
-                }
-            }, cacheTTL);
+                cacheService.setMemory(cacheKey, {
+                    timestamp: Date.now(),
+                    data: {
+                        bannedStatus,
+                        initialMembers,
+                        currentUserRole
+                    }
+                }, cacheTTL);
             }
 
         } catch (error) {
             console.error('Error loading room data:', error);
-            setSnackbar({ 
-            open: true, 
-            message: error.message || t('auth.error', 'Error'), 
-            severity: 'error' 
+            setSnackbar({
+                open: true,
+                message: error.message || t('auth.error', 'Error'),
+                severity: 'error'
             });
         }
-        }, [roomId, user, getMemberRole, t, isProduction]);
+    }, [roomId, user, getMemberRole, t, isProduction]);
 
     const isModerator = useMemo(() => {
         const isOwnerDirect = room?.ownerId === user?.id;
-        const result = userRole === ROLES.OWNER || 
-                    userRole === ROLES.MANAGER || 
-                    isOwnerDirect ||
-                    members.some(m => m.userId === user?.id && (m.isOwner || m.is_manager));
-        
+        const result = userRole === ROLES.OWNER ||
+            userRole === ROLES.MANAGER ||
+            isOwnerDirect ||
+            members.some(m => m.userId === user?.id && (m.isOwner || m.is_manager));
+
         return result;
     }, [userRole, room?.ownerId, user?.id, members]);
-    
+
     console.log('=== ROOM DEBUG INFO ===');
     console.log('isProduction:', isProduction);
     console.log('userRole:', userRole);
@@ -347,8 +347,8 @@ export default function Room() {
     console.log('room ownerId:', room?.ownerId);
     console.log('members count:', members.length);
     console.log('current user in members:', members.find(m => m.userId === user?.id));
-    console.log('========================');    
-    
+    console.log('========================');
+
     const handleVideoSelect = useCallback(async (url) => {
         const videoId = getYouTubeId(url);
         if (videoId && canControlVideo) {
@@ -358,22 +358,22 @@ export default function Room() {
 
     // useEffect to clear the cache when unmounting:
     useEffect(() => {
-    return () => {
-        // Clear the room cache when unmounting
-        if (roomId && user) {
-        cacheService.invalidate(`room_data_${roomId}_${user.id}`);
-        }
-    };
+        return () => {
+            // Clear the room cache when unmounting
+            if (roomId && user) {
+                cacheService.invalidate(`room_data_${roomId}_${user.id}`);
+            }
+        };
     }, [roomId, user]);
 
-    useEffect(() => {        
-        if (!user || !roomId || roomLoading || !room || needPw) return;    
+    useEffect(() => {
+        if (!user || !roomId || roomLoading || !room || needPw) return;
         if (isProduction) {
             console.log('[Room] Realtime subscriptions DISABLED in production');
             return;
-        }            
+        }
         let banUnsub;
-            
+
         loadRoomData(); // Lancer le chargement des membres/bans
 
         try {
@@ -390,7 +390,7 @@ export default function Room() {
         } catch (e) {
             console.warn('Realtime subscription failed:', e.message);
         }
-            
+
         return () => { banUnsub?.(); };
     }, [roomId, user, room, roomLoading, needPw, loadRoomData, isProduction]);
 
@@ -430,6 +430,40 @@ export default function Room() {
             setSnackbar({ open: true, message: err.message || t('error.permission_denied'), severity: 'error' });
         }
     };
+
+    // TRANSFERT AUTOMATIQUE DE L'HOTE 
+    useEffect(() => {
+        if (!room || !room.ownerId || !user) return;
+
+        const unsubscribe = RealtimeService.subscribePresence(roomId, async ({ users }) => {
+
+            // Vérifier si le OWNER est encore présent
+            const ownerStillHere = users.some(u => u.user_id === room.ownerId);
+
+            if (!ownerStillHere) {
+                console.log("[OWNER LEFT] L'owner a quitté la room");
+
+                // Charger les membres
+                const list = await RoleService.listMembers(roomId);
+
+                const managers = list.filter(m => m.is_manager);
+                const members = list.filter(m => !m.is_manager && !m.isOwner);
+
+                const newOwner = managers[0] || members[0] || null;
+                if (!newOwner) return;
+
+                console.log("[NEW OWNER] ", newOwner.userId);
+
+                await RoleService.promote(roomId, newOwner.userId);
+
+                // Recharger les données locales
+                await loadRoomData();
+            }
+        });
+
+        return () => unsubscribe?.();
+    }, [room, roomId, user]);
+
 
     // ------------------------------------------
     // RENDER
@@ -487,30 +521,30 @@ export default function Room() {
                     <GuestUpgradeBanner />
                 </Box>
             )}
-            
+
             {user && controlInfo && (
                 <Box sx={{ mb: 2 }}>
                     <ControlStatus controlInfo={controlInfo} user={user} />
                 </Box>
             )}
             {user && (
-            <Box sx={{ mb: 1 }}>
-                <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                p: 1, 
-                borderRadius: 1,
-                backgroundColor: connectionStatus === 'polling' ? 'success.main' : 
-                                connectionStatus === 'error' ? 'error.main' : 'warning.main',
-                opacity: 0.9
-                }}>
-                <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
-                    {connectionStatus === 'polling' ? '🟢 Synchronisé' :
-                    connectionStatus === 'error' ? '🔴 Problème de connexion' : '🟡 Connexion...'}
-                </Typography>
+                <Box sx={{ mb: 1 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        p: 1,
+                        borderRadius: 1,
+                        backgroundColor: connectionStatus === 'polling' ? 'success.main' :
+                            connectionStatus === 'error' ? 'error.main' : 'warning.main',
+                        opacity: 0.9
+                    }}>
+                        <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+                            {connectionStatus === 'polling' ? '🟢 Synchronisé' :
+                                connectionStatus === 'error' ? '🔴 Problème de connexion' : '🟡 Connexion...'}
+                        </Typography>
+                    </Box>
                 </Box>
-            </Box>
             )}
             {/* HEADER */}
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
@@ -562,14 +596,14 @@ export default function Room() {
                                 minWidth: 0
                             }}
                         >
-                            <VideoPlayerShell 
+                            <VideoPlayerShell
                                 url={
-                                    syncVideoId 
-                                    ? `https://www.youtube.com/watch?v=${syncVideoId}`
-                                    : embedUrl || null
+                                    syncVideoId
+                                        ? `https://www.youtube.com/watch?v=${syncVideoId}`
+                                        : embedUrl || null
                                 }
                                 playing={syncIsPlaying}
-                                canControl={canControlVideo} 
+                                canControl={canControlVideo}
                                 onPlay={triggerPlay}
                                 onPause={triggerPause}
                                 onSeek={triggerSeek}
@@ -580,22 +614,22 @@ export default function Room() {
                             />
                             {/* NAVIGATION BUTTONS */}
                             {canControlVideo && playlistItems.length > 1 && (
-                            <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
-                                <Button 
-                                variant="outlined" 
-                                onClick={playPrevVideo}
-                                disabled={!currentVideoId}
-                                >
-                                Previous
-                                </Button>
-                                <Button 
-                                variant="outlined" 
-                                onClick={playNextVideo}
-                                disabled={!currentVideoId}
-                                >
-                                Next
-                                </Button>
-                            </Box>
+                                <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={playPrevVideo}
+                                        disabled={!currentVideoId}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={playNextVideo}
+                                        disabled={!currentVideoId}
+                                    >
+                                        Next
+                                    </Button>
+                                </Box>
                             )}
                         </Box>
 
@@ -636,7 +670,7 @@ export default function Room() {
                                     {activeTab === 'playlist' && (
                                         <PlaylistPanel
                                             playlistId={playlistId}
-                                            canEdit={canControlVideo} 
+                                            canEdit={canControlVideo}
                                             onAdd={handleAddVideo}
                                             onPlay={handleVideoSelect}
                                             currentVideoId={currentVideoId}
