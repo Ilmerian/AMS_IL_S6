@@ -96,9 +96,9 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
     <AppBar position="sticky" elevation={6}
       sx={{
         top: 0, zIndex: (t) => t.zIndex.appBar + 1,
-        background: 'linear-gradient(90deg, rgba(0,0,0,.7), rgba(0,0,0,.5))',
-        backdropFilter: 'saturate(160%) blur(10px)',
-        borderBottom: '1px solid rgba(255,255,255,0.2)',
+        background: 'rgba(0,0,0,0.35)',  // transparent
+        backdropFilter: 'blur(12px)',    // glass effect
+        borderBottom: '1px solid rgba(255,255,255,0.15)',
       }}
     >
       <Toolbar sx={{ px: { xs: 1.5, md: 3 }, py: 1.25, gap: 2 }}>
