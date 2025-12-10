@@ -528,23 +528,23 @@ export default function Room() {
                 </Box>
             )}
             {user && (
-                <Box sx={{ mb: 1 }}>
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        p: 1,
-                        borderRadius: 1,
-                        backgroundColor: connectionStatus === 'polling' ? 'success.main' :
-                            connectionStatus === 'error' ? 'error.main' : 'warning.main',
-                        opacity: 0.9
-                    }}>
-                        <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
-                            {connectionStatus === 'polling' ? '🟢 Synchronisé' :
-                                connectionStatus === 'error' ? '🔴 Problème de connexion' : '🟡 Connexion...'}
-                        </Typography>
-                    </Box>
+            <Box sx={{ mb: 1 }}>
+                <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                p: 1, 
+                borderRadius: 1,
+                backgroundColor: connectionStatus === 'polling' ? 'success.main' : 
+                                connectionStatus === 'error' ? 'error.main' : 'warning.main',
+                opacity: 0.9
+                }}>
+                <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+                    {connectionStatus === 'polling' ? t('room.succes_sync') :
+                    connectionStatus === 'error' ? t('room.deny_sync') : t('room.wait_sync')}
+                </Typography>
                 </Box>
+            </Box>
             )}
             {/* HEADER */}
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
@@ -659,9 +659,9 @@ export default function Room() {
                                     indicatorColor="primary"
                                     key={`tabs-${roomId}-${user?.id}`}
                                 >
-                                    <Tab label="Playlist" value="playlist" />
-                                    <Tab label="Chat" value="chat" />
-                                    {isModerator && <Tab label="Modération" value="moderation" />}
+                                    <Tab label={t('room.playlist')} value="playlist" />
+                                    <Tab label={t('room.chat')} value="chat" />
+                                    {isModerator && <Tab label={t('room.moderation')} value="moderation" />}
                                 </Tabs>
                             </Box>
 

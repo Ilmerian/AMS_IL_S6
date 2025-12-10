@@ -132,7 +132,13 @@
   },
   "room": {
     "loading": "Loading the room",
+    "playlist":"playlist",
+    "chat": "tchat",
+    "moderation":"moderation",
     "reload" : "reload ",
+    "succes_sync": "🟢 Synchronized",
+    "wait_sync": "🟡 Connection...",
+    "deny_sync": "🔴 Connection problem",
     "error_generic" :"Unable to load this room. ",
     "not_found" :"room not found",
     "take_control": "Take Control",
