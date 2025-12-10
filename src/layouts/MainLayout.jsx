@@ -2,10 +2,11 @@
 import Container from '@mui/material/Container'
 import { Outlet } from 'react-router-dom'
 
-export default function MainLayout() {
+// On récupère la prop onOpenLogin
+export default function MainLayout({ onOpenLogin }) {
   return (
     <Container maxWidth="false">
-      <Outlet />
+      <Outlet context={{ openLogin: onOpenLogin }} />
     </Container>
   )
 }

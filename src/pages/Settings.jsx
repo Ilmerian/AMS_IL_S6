@@ -13,6 +13,7 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Avatar from '@mui/material/Avatar'
+import Card from '../ui/Card'
 
 export default function Settings() {
   const { t } = useTranslation()
@@ -156,84 +157,127 @@ export default function Settings() {
   }
 
   return (
-    <Box className="fullbleed" sx={{ py: 6, maxWidth: 960, mx: 'auto' }}>
-      <Typography variant="h4" mb={3}>
-        {t('nav.settings')}
-      </Typography>
-
-      <Stack spacing={3}>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          alignItems="center"
-        >
-          <Avatar
-            alt={username || email}
-            src={avatar || undefined}
-            sx={{ width: 72, height: 72 }}
-          />
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button component="label" variant="outlined" disabled={busyAvatar}>
-              {busyAvatar
-                ? t('common.sending') || 'Sending…'
-                : t('settings.changeAvatar') || 'Change avatar'}
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onClick={(e) => {
-                  e.currentTarget.value = ''
-                }}
-                onChange={onPickAvatar}
-              />
-            </Button>
-            <Button
-              variant="text"
-              color="error"
-              disabled={!avatar || busyAvatar}
-              onClick={onRemoveAvatar}
-            >
-              {t('settings.removeAvatar') || 'Remove'}
-            </Button>
-          </Stack>
-          <Typography sx={{ opacity: 0.8 }}>{email}</Typography>
-        </Stack>
-
-        <TextField
-          label={t('settings.username')}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          fullWidth
-        />
-
-        <Stack direction="row" spacing={1}>
-          <Button
-            onClick={saveProfile}
-            disabled={loading}
-            variant="contained"
-            color="primary"
-          >
-            {t('settings.saveProfile')}
-          </Button>
-          <Button
-            onClick={changeEmail}
-            disabled={loading}
-            variant="outlined"
-          >
-            {t('settings.changeEmail')}
-          </Button>
-        </Stack>
-
-        {msg && (
-          <Typography
-            role="status"
-            color="text.secondary"
-            sx={{ opacity: 0.9 }}
-          >
-            {msg}
+    <Box className="fullbleed" sx={{ 
+      py: 4, 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', // Centrage Vertical
+      minHeight: '85vh'     // Hauteur minimale de la zone
+    }}>
+      
+      <Box sx={{ width: { xs: '95%', md: '70%' }, maxWidth: 1000 }}>
+        
+        {/* CARTE AGGRANDIE */}
+        <Card sx={{ 
+            p: { xs: 3, md: 5 }, // Padding interne plus grand
+            minHeight: '65vh',   // <-- HAUTEUR MINIMALE AUGMENTÉE
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center', // Centre le contenu verticalement
+            
+            // Ré-application du style D.A. (Glassmorphism)
+            backdropFilter: 'saturate(140%) blur(8px)', 
+            border: '1px solid', 
+            borderColor: 'rgba(255,255,255,0.2)'
+        }}> 
+          
+          <Typography variant="h4" mb={5} sx={{ textAlign: 'center', fontWeight: 800 , color: '#9b5cff', textTransform: 'uppercase'}}>
+            {t('nav.settings')}
           </Typography>
-        )}
-      </Stack>
+
+          <Stack spacing={5}> {/* Espacement vertical augmenté entre les éléments */}
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={4}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Avatar
+                alt={username || email}
+                src={avatar || undefined}
+                sx={{ width: 120, height: 120, border: '3px solid rgba(255,255,255,0.1)' }}
+              />
+              <Stack spacing={1.5} alignItems={{ xs: 'center', sm: 'flex-start' }}>
+                <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                  {email}
+                </Typography>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Button component="label" variant="outlined" size="small" disabled={busyAvatar}>
+                    {busyAvatar
+                      ? t('common.sending') || 'Envoi…'
+                      : t('settings.changeAvatar') || 'Changer'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onClick={(e) => {
+                        e.currentTarget.value = ''
+                      }}
+                      onChange={onPickAvatar}
+                    />
+                  </Button>
+                  <Button
+                    variant="text"
+                    color="error"
+                    size="small"
+                    disabled={!avatar || busyAvatar}
+                    onClick={onRemoveAvatar}
+                  >
+                    {t('settings.removeAvatar') || 'Supprimer'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </Stack>
+
+            <TextField
+              label={t('settings.username')}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              fullWidth
+              variant="outlined"
+              sx={{ '& .MuiOutlinedInput-root': { fontSize: '1.1rem' } }}
+            />
+
+            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ pt: 2 }}>
+              <Button
+                onClick={changeEmail}
+                disabled={loading}
+                variant="outlined"
+                color="info"
+                size="large"
+              >
+                {t('settings.changeEmail')}
+              </Button>
+              <Button
+                onClick={saveProfile}
+                disabled={loading}
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{ px: 4 }}
+              >
+                {t('settings.saveProfile')}
+              </Button>
+            </Stack>
+
+            {msg && (
+              <Typography
+                role="status"
+                color="text.secondary"
+                sx={{ 
+                  opacity: 0.9, 
+                  textAlign: 'center', 
+                  p: 1.5, 
+                  bgcolor: 'rgba(255,255,255,0.05)', 
+                  borderRadius: 2 
+                }}
+              >
+                {msg}
+              </Typography>
+            )}
+          </Stack>
+        </Card>
+      </Box>
     </Box>
   )
 }

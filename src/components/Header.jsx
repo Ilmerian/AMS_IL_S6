@@ -104,11 +104,33 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
       <Toolbar sx={{ px: { xs: 1.5, md: 3 }, py: 1.25, gap: 2 }}>
         <Box sx={{ display: { xs: 'inline-flex', md: 'none' }, width: 24, height: 2, bgcolor: 'common.white', borderRadius: 1 }} />
 
-        {/* Brand */}
-        <Typography component={RouterLink} to="/" variant="h6"
-          sx={{ flex: 1, fontWeight: 800, letterSpacing: .2, color: 'primary.light', '&:hover': { color: 'primary.main' } }}>
-          {t('app.title')}
-        </Typography>
+        {/* Brand (Logo + Titre) */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+          component={RouterLink}
+          to="/"
+          sx={{
+            flex: 1,
+            textDecoration: 'none',
+            color: 'primary.light',
+            '&:hover': { color: 'primary.main' }
+          }}
+        >
+          {/* LOGO */}
+          <Box
+            component="img"
+            src="/WatchWithMe.png" // Utilise l'icône de l'onglet (fichier dans /public)
+            alt="Logo"
+            sx={{ width: 42, height: 42 }}
+          />
+          
+          {/* TITRE */}
+          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: .2, paddingLeft:2.5}}>
+            {t('app.title')}
+          </Typography>
+        </Stack>
 
         {/* Desktop Nav */}
         <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', md: 'flex' } }}>

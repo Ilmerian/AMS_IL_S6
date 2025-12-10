@@ -1,8 +1,8 @@
 // src/pages/Room.jsx
-import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/auth';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'; // Ajoutez useRef
+import { useParams, useOutletContext } from 'react-router-dom'; // Ajoutez useOutletContext
 
 // Repositories et Services
 import { RoleService } from '../services/RoleService';
@@ -46,6 +46,8 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import InviteDialog from '../components/InviteDialog'; 
 
 const ROLES = {
     OWNER: 'owner',
@@ -147,7 +149,22 @@ function ConnectionStatus({ connectionStatus }) {
 export default function Room() {
     const { t } = useTranslation();
     const { roomId } = useParams();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth(); 
+
+    const { openLogin } = useOutletContext() || {};
+    
+    const hasAutoOpenedRef = useRef(false);
+
+    useEffect(() => {
+        if (!authLoading && !user && !hasAutoOpenedRef.current) {
+            if (openLogin) {
+                setTimeout(() => {
+                    openLogin();
+                }, 500);
+                hasAutoOpenedRef.current = true;
+            }
+        }
+    }, [user, authLoading, openLogin]);
 
     const isProduction = typeof window !== 'undefined' &&
         window.location.hostname !== 'localhost' &&
@@ -156,6 +173,7 @@ export default function Room() {
     // UI States
     const [activeTab, setActiveTab] = useState('playlist');
     const [pw, setPw] = useState('');
+    const [inviteOpen, setInviteOpen] = useState(false);
 
     // Room Data Hooks
     const {
@@ -555,9 +573,24 @@ export default function Room() {
                     {room.name}
                 </Typography>
             </Box>
-            <Typography sx={{ opacity: 0.8 }}>
-                {room.password ? t('room.private') : t('room.public')}
-            </Typography>
+
+            {/* STATUT + BOUTON INVITER ALIGNÉS */}
+            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Typography sx={{ opacity: 0.8 }}>
+                    {room.password ? t('room.private') : t('room.public')}
+                </Typography>
+
+                <Button 
+                    variant="contained" 
+                    color="secondary"
+                    size="small"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => setInviteOpen(true)}
+                    sx={{ borderRadius: 20, px: 2 }}
+                >
+                    Inviter
+                </Button>
+            </Stack>
 
             {/* PASSWORD FORM */}
             {needPw && !checked ? (
@@ -765,6 +798,12 @@ export default function Room() {
                 )}
             </Menu>
 
+            {/* DIALOGUE D'INVITATION */}
+            <InviteDialog 
+                open={inviteOpen} 
+                onClose={() => setInviteOpen(false)} 
+                roomId={roomId} 
+            />
             {/* SNACKBAR */}
             <Snackbar
                 open={snackbar.open}

@@ -133,7 +133,7 @@
   "room": {
     "loading": "Loading the room",
     "playlist":"playlist",
-    "chat": "tchat",
+    "chat": "chat",
     "moderation":"moderation",
     "reload" : "reload ",
     "succes_sync": "🟢 Synchronized",

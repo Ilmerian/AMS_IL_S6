@@ -65,7 +65,7 @@ export default function App() {
           
           <main className="content" role="main" aria-label="Main content">
             <Routes>
-              <Route element={<MainLayout />}>
+              <Route element={<MainLayout onOpenLogin={openLogin} />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/rooms" element={<Rooms />} />
                 <Route path="/update-password" element={<UpdatePassword />} />
