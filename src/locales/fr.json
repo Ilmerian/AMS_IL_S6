@@ -109,6 +109,8 @@
   },
   "playlist": {
     "noPreview": "Aperçu",
+    "search": "Recherche",
+    "search_on_youTube": "Rechercher sur YouTube",
     "playlist.reorderFailed": "Impossible de réorganiser les vidéos.",
     "permissionDenied": "Permission refusée pour modifier la playlist.",
     "urlLabel": "URL YouTube",
@@ -173,6 +175,8 @@
   },
   "rooms": {
     "titleMy": "Mes salons",
+    "open": "OUVRIR",
+    "live": "🔴 DIRECT",
     "titlePublic": "Salons publics",
     "newRoom": "Nouveau salon",
     "emptyMy": "Aucun salon pour l’instant.",

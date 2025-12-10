@@ -109,6 +109,8 @@
   },
   "playlist": {
     "noPreview": "предварительный просмотр",
+    "search": "Поиск",
+    "search_on_youTube": "Поиск на YouTube",
     "playlist.reorderFailed":"Невозможно изменить порядок видео",
     "permissionDenied": "В разрешении отказано в изменении списка воспроизведения.",
     "urlLabel": "Ссылка YouTube",
@@ -173,6 +175,9 @@
   },
   "rooms": {
     "titleMy": "Мои комнаты",
+    "open": "ОТКРЫТЬ",
+    "live": "🔴 ПРЯМОЙ",
+    "searchRoom": "Поиск гостиных...",
     "titlePublic": "Публичные комнаты",
     "newRoom": "Новая комната",
     "emptyMy": "Пока нет комнат.",

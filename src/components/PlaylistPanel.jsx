@@ -195,7 +195,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
         <Stack spacing={1}>
           <Stack direction="row" spacing={1}>
             <TextField
-              label="Search on YouTube"
+              label= {t('playlist.search_on_youTube')}
               placeholder="lofi, trailer, tutorial..."
               variant="outlined"
               size="small"
@@ -208,7 +208,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
               onClick={runSearch}
               disabled={busy || !playlistId || !canEdit}
             >
-              Search
+              {t('playlist:search')}
             </Button>
           </Stack>
 

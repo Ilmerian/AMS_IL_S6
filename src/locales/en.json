@@ -109,6 +109,8 @@
   },
   "playlist": {
     "noPreview": "Preview",
+    "search": "Search",
+    "search_on_youTube": "Search on YouTube",
     "playlist.reorderFailed": "Failed to reorder videos",
     "permissionDenied": "Permission denied to modify the playlist.",
     "urlLabel": "YouTube URL",
@@ -173,6 +175,9 @@
   },
   "rooms": {
     "titleMy": "My Rooms",
+    "open": "OPEN",
+    "live": "🔴 LIVE",
+    "searchRoom": "search room...",
     "titlePublic": "Public Rooms",
     "newRoom": "New room",
     "emptyMy": "No rooms yet.",

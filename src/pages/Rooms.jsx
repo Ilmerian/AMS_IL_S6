@@ -281,7 +281,7 @@ export default function Rooms() {
       <Box sx={{ maxWidth: 400, mb: 3 }}>
         <TextField
           fullWidth
-          placeholder="Rechercher des salons..."
+          placeholder={t('rooms.searchRoom')}
           value={searchQuery}
           onChange={(e) => {
             const value = e.target.value
@@ -351,7 +351,7 @@ export default function Rooms() {
                   whiteSpace: "nowrap",
                 }}
               >
-                Open
+                {t('rooms.open')}
               </Button>
             </Box>
           ) : (
@@ -453,7 +453,7 @@ export default function Rooms() {
                       }}
                     >
                       <span style={{ fontSize: 12, color: "#ff6b6b", fontWeight: 700 }}>
-                        🔴 LIVE
+                        {t('rooms.live')}
                       </span>
 
                       <span
@@ -484,7 +484,7 @@ export default function Rooms() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    Open
+                    {t('rooms.open')}
                   </Button>
                 </Box>
               </Box>
@@ -671,7 +671,7 @@ export default function Rooms() {
                       }}
                     >
                       <span style={{ fontSize: 12, color: "#ff6b6b", fontWeight: 700 }}>
-                        🔴 LIVE
+                        {t('rooms.live')}
                       </span>
 
                       {/* COMPTEUR ONLINE */}
