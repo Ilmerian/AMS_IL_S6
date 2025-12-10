@@ -156,7 +156,8 @@
     "public": "Salon public",
     "enterPassword": "Entrez le mot de passe du salon pour rejoindre :",
     "password_placeholder": "••••",
-    "join": "Rejoindre"
+    "join": "Rejoindre",
+    "you": "Vous"
   },
   "roomCreate": {
     "title": "Créer un salon",

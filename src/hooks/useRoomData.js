@@ -1,10 +1,12 @@
+// src/hooks/useRoomData.js
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { RoomService } from '../services/RoomService'
 import { RoleService } from '../services/RoleService'
 import { BanRepository } from '../repositories/BanRepository'
 import { cacheService } from '../services/CacheService'
 
-const CACHE_DURATION = 30000
+const CACHE_DURATION = 30000 
+const DEBOUNCE_DELAY = 500
 
 export function useRoomData(roomId, user) {
   const [room, setRoom] = useState(null)
@@ -15,87 +17,91 @@ export function useRoomData(roomId, user) {
   const [error, setError] = useState('')
   
   const loadingRef = useRef(false)
-
-  const getMemberRole = useCallback((member) => {
-    if (!member) return null;
-    if (member.isOwner) return 'owner';
-    if (member.is_manager) return 'manager';
-    if (member.userId) return 'member';
-    return null;
-  }, []);
+  const requestTimeoutRef = useRef(null)
 
   const loadAll = useCallback(async () => {
     if (!roomId || loadingRef.current) return;
 
     const cacheKey = `room_data_${roomId}_${user?.id || 'guest'}`;
     
-    const cached = cacheService.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 30000) {
-      const { roomData, membersData, userRoleData, bannedData } = cached.data;
-      setRoom(roomData);
-      setMembers(membersData || []);
-      setUserRole(userRoleData);
-      setIsBanned(bannedData || false);
-      setLoading(false);
-      return;
-    }
-
-    loadingRef.current = true;
-    setLoading(true);
-    setError('');
-
     try {
-      const [roomData, bannedStatus] = await Promise.allSettled([
-        RoomService.get(roomId),
-        user ? BanRepository.isUserBanned(roomId, user.id) : Promise.resolve(false)
-      ]);
-
-      let finalRoom = null
-      if (roomData.status === 'fulfilled') {
-        finalRoom = roomData.value
-      } else {
-        console.error('[useRoomData] Room fetch failed:', roomData.reason)
-        throw roomData.reason || new Error('Failed to load room')
+      const cached = cacheService.getMemory(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        const { roomData, membersData, userRoleData, bannedData } = cached.data;
+        setRoom(roomData);
+        setMembers(membersData || []);
+        setUserRole(userRoleData);
+        setIsBanned(bannedData || false);
+        setLoading(false);
+        return;
       }
 
-      const isBannedResult = bannedStatus.status === 'fulfilled' 
-        ? bannedStatus.value 
-        : false
+      loadingRef.current = true;
+      setLoading(true);
+      setError('');
 
-      setRoom(finalRoom)
-      setIsBanned(isBannedResult)
+      const roomData = await RoomService.get(roomId);
+      setRoom(roomData);
 
-      let membersData = []
-      let userRoleData = null
+      let isBannedResult = false;
+      if (user) {
+        isBannedResult = await cacheService.withDebounce(
+          `ban_check_${roomId}_${user.id}`,
+          () => BanRepository.isUserBanned(roomId, user.id),
+          DEBOUNCE_DELAY
+        );
+      }
+      setIsBanned(isBannedResult);
 
-      if (!isBannedResult) {
-        try {
-          membersData = await cacheService.withDebounce(
-            `members_${roomId}`,
-            () => RoleService.listMembers(roomId),
-            100
-          )
-          
-          if (user) {
-            const currentUserMember = membersData.find(m => m.userId === user.id)
-            userRoleData = getMemberRole(currentUserMember)
-            
-            if (!userRoleData && finalRoom && finalRoom.ownerId === user.id) {
-              userRoleData = 'owner';
+      if (isBannedResult) {
+        cacheService.setMemory(cacheKey, {
+          timestamp: Date.now(),
+          data: {
+            roomData,
+            membersData: [],
+            userRoleData: null,
+            bannedData: true
+          }
+        });
+        return;
+      }
+
+      let membersData = [];
+      let userRoleData = null;
+
+      try {
+        membersData = await cacheService.withDebounce(
+          `members_${roomId}`,
+          () => RoleService.listMembers(roomId),
+          DEBOUNCE_DELAY
+        );
+        
+        if (user) {
+          if (roomData.ownerId === user.id) {
+            userRoleData = 'owner';
+          } 
+          else {
+            const currentUserMember = membersData.find(m => m.userId === user.id);
+            if (currentUserMember) {
+              userRoleData = currentUserMember.isOwner ? 'owner' : 
+                            currentUserMember.is_manager ? 'manager' : 'member';
+            }
+            else {
+              userRoleData = null;
             }
           }
-        } catch (memberError) {
-          console.warn('[useRoomData] Failed to load members:', memberError)
         }
-
-        setMembers(membersData)
-        setUserRole(userRoleData)
+      } catch (memberError) {
+        console.warn('[useRoomData] Failed to load members:', memberError);
       }
 
-      cacheService.cache.set(cacheKey, {
+      setMembers(membersData);
+      setUserRole(userRoleData);
+
+      cacheService.setMemory(cacheKey, {
         timestamp: Date.now(),
         data: {
-          roomData: finalRoom,
+          roomData,
           membersData,
           userRoleData,
           bannedData: isBannedResult
@@ -109,56 +115,96 @@ export function useRoomData(roomId, user) {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [roomId, user, getMemberRole]);
+  }, [roomId, user]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    if (requestTimeoutRef.current) {
+      clearTimeout(requestTimeoutRef.current);
+    }
+
+    requestTimeoutRef.current = setTimeout(() => {
+      loadAll();
+    }, 100); 
+
+    return () => {
+      if (requestTimeoutRef.current) {
+        clearTimeout(requestTimeoutRef.current);
+      }
+    };
+  }, [loadAll, roomId]);
 
   const refresh = useCallback(() => {
     const cacheKey = `room_data_${roomId}_${user?.id || 'guest'}`
-    cacheService.memoryCache.delete(cacheKey)
-    loadAll()
+    cacheService.invalidate(cacheKey)
+    
+    if (requestTimeoutRef.current) {
+      clearTimeout(requestTimeoutRef.current);
+    }
+    
+    requestTimeoutRef.current = setTimeout(() => {
+      loadAll();
+    }, 100);
   }, [roomId, user, loadAll])
 
   useEffect(() => {
     if (!roomId || !user || isBanned) return
 
     let unsubFunctions = []
+    let mounted = true
 
-    try {
-      const banUnsub = BanRepository.onBanChange(roomId, (payload) => {
-        if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
-          const newBanned = payload.eventType === 'INSERT'
-          setIsBanned(newBanned)
+    const setupSubscriptions = () => {
+      try {
+        const banUnsub = BanRepository.onBanChange(roomId, (payload) => {
+          if (!mounted) return;
           
-          const cacheKey = `room_data_${roomId}_${user.id}`
-          cacheService.memoryCache.delete(cacheKey)
-          
-          if (newBanned) {
-            setMembers([])
-            setUserRole(null)
-          } else {
-            refresh()
+          if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
+            const newBanned = payload.eventType === 'INSERT'
+            setIsBanned(newBanned)
+            
+            const cacheKey = `room_data_${roomId}_${user.id}`
+            cacheService.invalidate(cacheKey)
+            
+            if (newBanned) {
+              setMembers([])
+              setUserRole(null)
+            } else {
+              if (requestTimeoutRef.current) {
+                clearTimeout(requestTimeoutRef.current);
+              }
+              requestTimeoutRef.current = setTimeout(() => {
+                refresh()
+              }, 500);
+            }
           }
-        }
-      })
-      unsubFunctions.push(banUnsub)
-    } catch (e) {
-      console.warn('Realtime subscription setup failed:', e)
+        })
+        unsubFunctions.push(banUnsub)
+      } catch (e) {
+        console.warn('Realtime subscription setup failed:', e)
+      }
     }
 
+    const subscriptionTimeout = setTimeout(setupSubscriptions, 1000);
+
     return () => {
+      mounted = false
+      clearTimeout(subscriptionTimeout)
       unsubFunctions.forEach(unsub => unsub?.())
+      if (requestTimeoutRef.current) {
+        clearTimeout(requestTimeoutRef.current)
+      }
     }
   }, [roomId, user, isBanned, refresh])
 
   useEffect(() => {
-    loadAll()
-
     return () => {
       const cacheKey = `room_data_${roomId}_${user?.id || 'guest'}`
       setTimeout(() => {
-        cacheService.memoryCache.delete(cacheKey)
+        cacheService.invalidate(cacheKey)
       }, CACHE_DURATION + 1000)
     }
-  }, [loadAll, roomId, user])
+  }, [roomId, user])
 
   return {
     room,

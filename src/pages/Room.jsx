@@ -1,7 +1,7 @@
 // src/pages/Room.jsx
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/auth';
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'; // Ajoutez useRef
+import { useEffect, useState, useCallback, useRef } from 'react'; // Ajoutez useRef
 import { useParams, useOutletContext } from 'react-router-dom'; // Ajoutez useOutletContext
 
 // Repositories et Services
@@ -165,6 +165,8 @@ export default function Room() {
             }
         }
     }, [user, authLoading, openLogin]);
+    const [membersLoading, setMembersLoading] = useState(false);
+    const [isModerator, setIsModerator] = useState(false);
 
     const isProduction = typeof window !== 'undefined' &&
         window.location.hostname !== 'localhost' &&
@@ -264,9 +266,16 @@ export default function Room() {
 
     const loadRoomData = useCallback(async () => {
         if (!user || !roomId) {
+            setMembersLoading(false);
             return;
         }
-
+        
+        if (userRole === 'owner' && room?.ownerId === user.id) {
+            console.log('[Room] userRole already set to owner, skipping reset');
+            setMembersLoading(false);
+            return;
+        }        
+        setMembersLoading(true);
         const cacheKey = `room_data_${roomId}_${user.id}`;
         const cacheTTL = isProduction ? 600000 : 30000;
 
@@ -280,62 +289,60 @@ export default function Room() {
                     setMembers(initialMembers);
                     setUserRole(currentUserRole);
                 }
+                setMembersLoading(false);
                 return;
             }
 
             console.log(`[Room] Cache MISS for room ${roomId}, fetching...`);
 
-            if (isProduction) {
-                const [bannedStatus, initialMembers] = await Promise.all([
-                    BanRepository.isUserBanned(roomId, user.id),
-                    RoleService.listMembers(roomId)
-                ]);
+            // Charger le statut de bannissement et les membres
+            const [bannedStatus, initialMembers] = await Promise.all([
+                BanRepository.isUserBanned(roomId, user.id),
+                RoleService.listMembers(roomId)
+            ]);
 
-                setIsBanned(bannedStatus);
-                if (bannedStatus) return;
-
-                setMembers(initialMembers);
-
-                const currentUserMember = initialMembers.find(m => m.userId === user.id);
-                const role = currentUserMember ?
-                    (currentUserMember.isOwner ? 'owner' :
-                        currentUserMember.is_manager ? 'manager' : 'member') : null;
-
-                setUserRole(role);
-
+            setIsBanned(bannedStatus);
+            if (bannedStatus) {
                 cacheService.setMemory(cacheKey, {
                     timestamp: Date.now(),
                     data: {
-                        bannedStatus,
-                        initialMembers,
-                        currentUserRole: role
+                        bannedStatus: true,
+                        initialMembers: [],
+                        currentUserRole: null
                     }
                 }, cacheTTL);
-
-            } else {
-                const [bannedStatus, initialMembers] = await Promise.all([
-                    BanRepository.isUserBanned(roomId, user.id),
-                    RoleService.listMembers(roomId)
-                ]);
-
-                setIsBanned(bannedStatus);
-                if (bannedStatus) return;
-
-                setMembers(initialMembers);
-
-                const currentUserMember = initialMembers.find(m => m.userId === user.id);
-                const currentUserRole = getMemberRole(currentUserMember);
-                setUserRole(currentUserRole);
-
-                cacheService.setMemory(cacheKey, {
-                    timestamp: Date.now(),
-                    data: {
-                        bannedStatus,
-                        initialMembers,
-                        currentUserRole
-                    }
-                }, cacheTTL);
+                setMembersLoading(false);
+                return;
             }
+
+            setMembers(initialMembers);
+
+            // Déterminer le rôle de l'utilisateur
+            let role = null;
+            
+            // 1. Vérifier si l'utilisateur est propriétaire de la salle
+            if (room?.ownerId === user.id) {
+                role = 'owner';
+            } 
+            // 2. Chercher l'utilisateur dans la liste des membres
+            else if (initialMembers.length > 0) {
+                const currentUserMember = initialMembers.find(m => m.userId === user.id);
+                if (currentUserMember) {
+                    role = currentUserMember.isOwner ? 'owner' : 
+                        currentUserMember.is_manager ? 'manager' : 'member';
+                }
+            }
+
+            setUserRole(role);
+
+            cacheService.setMemory(cacheKey, {
+                timestamp: Date.now(),
+                data: {
+                    bannedStatus: false,
+                    initialMembers,
+                    currentUserRole: role
+                }
+            }, cacheTTL);
 
         } catch (error) {
             console.error('Error loading room data:', error);
@@ -344,18 +351,33 @@ export default function Room() {
                 message: error.message || t('auth.error', 'Error'),
                 severity: 'error'
             });
+        } finally {
+            setMembersLoading(false);
         }
-    }, [roomId, user, getMemberRole, t, isProduction]);
-
-    const isModerator = useMemo(() => {
-        const isOwnerDirect = room?.ownerId === user?.id;
-        const result = userRole === ROLES.OWNER ||
-            userRole === ROLES.MANAGER ||
-            isOwnerDirect ||
-            members.some(m => m.userId === user?.id && (m.isOwner || m.is_manager));
-
-        return result;
-    }, [userRole, room?.ownerId, user?.id, members]);
+    }, [roomId, user, room?.ownerId, t, isProduction, userRole]);
+    
+    useEffect(() => {
+        if (!user || !room || membersLoading) {
+            setIsModerator(false);
+            return;
+        }
+        
+        // 1. Si user est owner de la room
+        if (room.ownerId === user.id) {
+            setIsModerator(true);
+            return;
+        }
+        
+        // 2. Si userRole est owner ou manager
+        if (userRole === 'owner' || userRole === 'manager') {
+            setIsModerator(true);
+            return;
+        }
+        
+        // 3. Vérifier dans les membres
+        const userMember = members.find(m => m.userId === user.id);
+        setIsModerator(userMember?.isOwner || userMember?.is_manager || false);
+    }, [user, room, userRole, members, membersLoading]);
 
     console.log('=== ROOM DEBUG INFO ===');
     console.log('isProduction:', isProduction);
@@ -384,33 +406,23 @@ export default function Room() {
         };
     }, [roomId, user]);
 
+    // useEffect с loadRoomData
     useEffect(() => {
         if (!user || !roomId || roomLoading || !room || needPw) return;
-        if (isProduction) {
-            console.log('[Room] Realtime subscriptions DISABLED in production');
-            return;
-        }
-        let banUnsub;
 
-        loadRoomData(); // Lancer le chargement des membres/bans
+        // Réinitialiser les états avant de charger
+        setMembers([]);
+        
+        // Créer un timeout pour le chargement retardé
+        const loadTimeout = setTimeout(() => {
+            loadRoomData();
+        }, 500); // Augmenter le délai pour être sûr que tout est prêt
 
-        try {
-            // Abonnement aux bans
-            banUnsub = BanRepository.onBanChange(roomId, (payload) => {
-                if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
-                    setIsBanned(payload.eventType === 'INSERT');
-                }
-                // Recharger la liste des membres si un ban/unban a lieu pour un utilisateur quelconque
-                if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-                    loadRoomData();
-                }
-            });
-        } catch (e) {
-            console.warn('Realtime subscription failed:', e.message);
-        }
-
-        return () => { banUnsub?.(); };
-    }, [roomId, user, room, roomLoading, needPw, loadRoomData, isProduction]);
+        // Nettoyer le timeout si le composant est démonté
+        return () => {
+            clearTimeout(loadTimeout);
+        };
+    }, [roomId, user, room, roomLoading, needPw, loadRoomData]);
 
     const handleAction = async (action, targetMember) => {
         setAnchorEl(null);
@@ -453,34 +465,76 @@ export default function Room() {
     useEffect(() => {
         if (!room || !room.ownerId || !user) return;
 
-        const unsubscribe = RealtimeService.subscribePresence(roomId, async ({ users }) => {
+        let mounted = true;
+        let unsubscribe = null;
 
-            // Vérifier si le OWNER est encore présent
-            const ownerStillHere = users.some(u => u.user_id === room.ownerId);
+        const checkOwnerPresence = async () => {
+            if (!mounted) return;
 
-            if (!ownerStillHere) {
+            try {
+            // Get presence data
+            const presenceData = await RealtimeService.getPresence(roomId);
+            
+            if (!presenceData || !mounted) return;
+
+            // Check if owner is still present
+            const ownerStillHere = presenceData.some(u => 
+                u.user_id === room.ownerId && 
+                Date.now() - (u.last_seen || 0) < 30000 
+            );
+            
+            if (!ownerStillHere && user.id !== room.ownerId) {
                 console.log("[OWNER LEFT] L'owner a quitté la room");
-
-                // Charger les membres
+                
                 const list = await RoleService.listMembers(roomId);
-
-                const managers = list.filter(m => m.is_manager);
-                const members = list.filter(m => !m.is_manager && !m.isOwner);
+                const managers = list.filter(m => m.is_manager && m.userId !== room.ownerId);
+                const members = list.filter(m => !m.is_manager && !m.isOwner && m.userId !== room.ownerId);
 
                 const newOwner = managers[0] || members[0] || null;
                 if (!newOwner) return;
 
-                console.log("[NEW OWNER] ", newOwner.userId);
-
+                console.log("[NEW OWNER]", newOwner.userId);
+                
+                if (userRole === 'owner' || userRole === 'manager') {
                 await RoleService.promote(roomId, newOwner.userId);
-
-                // Recharger les données locales
                 await loadRoomData();
+                }
             }
-        });
+            } catch (error) {
+            console.error('Error checking owner presence:', error);
+            }
+        };
 
-        return () => unsubscribe?.();
-    }, [room, roomId, user]);
+        const setupPresenceSubscription = () => {
+            if (!mounted) return;
+            
+            unsubscribe = RealtimeService.subscribePresence(roomId, async ({ users }) => {
+            if (!mounted || !users) return;
+            
+            clearTimeout(presenceCheckTimeout);
+            presenceCheckTimeout = setTimeout(() => {
+                checkOwnerPresence();
+            }, 3000);
+            });
+        };
+
+        let presenceCheckTimeout;
+        
+        const initialTimeout = setTimeout(() => {
+            setupPresenceSubscription();
+            checkOwnerPresence();
+        }, 5000);
+
+        return () => {
+            mounted = false;
+            clearTimeout(initialTimeout);
+            clearTimeout(presenceCheckTimeout);
+            if (unsubscribe) {
+            unsubscribe();
+            }
+        };
+    }, [room, roomId, user, userRole, loadRoomData]);
+
 
 
     // ------------------------------------------
@@ -748,7 +802,7 @@ export default function Room() {
                                                             }
                                                         >
                                                             <ListItemText
-                                                                primary={isCurrentUser ? `${member.name} (${t('room.you')})` : member.name}
+                                                                primary={isCurrentUser ? `${member.name} (You)` : member.name}
                                                                 secondary={getRoleBadge(memberRole)}
                                                                 secondaryTypographyProps={{ component: 'span' }}
                                                             />

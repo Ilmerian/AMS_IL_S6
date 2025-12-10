@@ -156,7 +156,8 @@
     "public": "Public room",
     "enterPassword": "Enter room password to join:",
     "password_placeholder": "••••",
-    "join": "Join"
+    "join": "Join",
+    "you": "You"
   },
   "roomCreate": {
     "title": "Create a room",

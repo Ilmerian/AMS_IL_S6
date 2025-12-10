@@ -19,96 +19,107 @@ export const RoleRepository = {
    */
   async listMembers(roomId) {
     const cacheKey = `room_members_${roomId}`;
+    const CACHE_TTL = 30000;
     
     try {
       const cached = cacheService.getMemory(cacheKey);
-      if (cached && Date.now() - cached.timestamp < 15000) {
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return cached.data;
       }
 
       const currentUserId = (await supabase.auth.getUser()).data?.user?.id;
       const numRoomId = Number(roomId);
       
-      const [roleResult, roomResult] = await Promise.all([
-        supabase
-          .from('roles')
-          .select(`user_id, is_manager, users (username, email)`)
-          .eq('room_id', numRoomId),
-        supabase
-          .from('rooms')
-          .select('owner_id')
-          .eq('room_id', numRoomId)
-          .maybeSingle()
-      ]);
+      const { data: roomData, error: roomError } = await supabase
+        .from('rooms')
+        .select('room_id, owner_id')
+        .eq('room_id', numRoomId)
+        .single();
+      
+      if (roomError) throw roomError;
 
-      if (roleResult.error) throw roleResult.error;
-      if (roomResult.error) throw roomResult.error;
-
-      const ownerId = roomResult.data?.owner_id;
-      const roleRows = roleResult.data || [];
-
-      roleRows.forEach(row => {
-        if (ownerId && row.user_id === ownerId) {
-          row.__isOwner = true;
-          row.is_manager = true;
-        }
-      });
-
+      const ownerId = roomData.owner_id;
       const membersMap = new Map();
 
-      roleRows.forEach(row => {
-        const userId = row.user_id;
-        const userProfile = row.users;
-        const isOwner = (ownerId && userId === ownerId) || row.__isOwner;
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('roles')
+        .select(`
+          user_id,
+          is_manager,
+          users!inner(username, email, avatar_url)
+        `)
+        .eq('room_id', numRoomId);
+      
+      if (rolesError && rolesError.code !== 'PGRST116') {
+        console.warn('Roles query error:', rolesError);
+      }
 
-        membersMap.set(userId, {
-          userId: userId,
-          name: userProfile?.username || userProfile?.email || userId.slice(0, 8),
-          is_manager: row.is_manager,
-          isOwner: isOwner,
+      if (rolesData && Array.isArray(rolesData)) {
+        rolesData.forEach(role => {
+          const userId = role.user_id;
+          const isOwner = userId === ownerId;
+          const isCurrentUser = userId === currentUserId;
+          
+          membersMap.set(userId, {
+            userId,
+            name: role.users?.username || role.users?.email || userId.slice(0, 8),
+            email: role.users?.email,
+            avatar_url: role.users?.avatar_url,
+            is_manager: role.is_manager || isOwner,
+            isOwner,
+            isCurrentUser
+          });
         });
-      });
+      }
 
       if (ownerId && !membersMap.has(ownerId)) {
         try {
-          const { data: ownerProfile, error: ownerError } = await supabase
+          const { data: ownerProfile } = await supabase
             .from('users')
-            .select('username, email')
+            .select('username, email, avatar_url')
             .eq('user_id', ownerId)
             .single();
 
-          if (!ownerError && ownerProfile) {
+          if (ownerProfile) {
+            const isCurrentUser = ownerId === currentUserId;
             membersMap.set(ownerId, {
               userId: ownerId,
               name: ownerProfile.username || ownerProfile.email || ownerId.slice(0, 8),
+              email: ownerProfile.email,
+              avatar_url: ownerProfile.avatar_url,
               is_manager: true,
               isOwner: true,
+              isCurrentUser
             });
           }
-        } catch (ownerError) {
-          console.warn('Failed to fetch owner profile:', ownerError);
+        } catch (err) {
+          console.warn('Failed to fetch owner profile:', err);
         }
       }
 
       if (currentUserId && !membersMap.has(currentUserId)) {
         try {
-          const { data: currentUserProfile, error: currentUserError } = await supabase
+          const { data: currentUserProfile } = await supabase
             .from('users')
-            .select('username, email')
+            .select('username, email, avatar_url')
             .eq('user_id', currentUserId)
-            .single();
+            .single()
+            .catch(() => null);
 
-          if (!currentUserError && currentUserProfile) {
-            const isCurrentUserOwner = ownerId && currentUserId === ownerId;
+          if (currentUserProfile) {
+            const isOwner = currentUserId === ownerId;
             membersMap.set(currentUserId, {
               userId: currentUserId,
               name: currentUserProfile.username || currentUserProfile.email || currentUserId.slice(0, 8),
-              is_manager: isCurrentUserOwner,
-              isOwner: isCurrentUserOwner,
+              email: currentUserProfile.email,
+              avatar_url: currentUserProfile.avatar_url,
+              is_manager: isOwner,
+              isOwner,
+              isCurrentUser: true
             });
           }
-        } catch (currentUserError) {
-          console.warn('Failed to fetch current user profile:', currentUserError);
+        } catch (err) {
+          console.warn('Failed to fetch current user profile:', err);
         }
       }
 
@@ -117,12 +128,13 @@ export const RoleRepository = {
       cacheService.setMemory(cacheKey, {
         timestamp: Date.now(),
         data: result
-      }, 15000);
+      }, CACHE_TTL);
 
       return result;
     } catch (e) {
       console.error('listMembers failed:', e);
-      return [];
+      const cached = cacheService.getMemory(cacheKey);
+      return cached?.data || [];
     }
   },
 

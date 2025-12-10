@@ -112,6 +112,17 @@ export const RealtimeService = {
     this._presenceChannels[roomId] = channel;
   },
 
+  getPresence: async (roomId) => {
+    try {
+      const channel = supabase.channel(`room:${roomId}:presence`);
+      const state = channel.presenceState();
+      const users = Object.values(state).flat();
+      return users;
+    } catch (error) {
+      console.error('Error getting presence:', error);
+      return [];
+    }
+  },
   async leavePresence(roomId) {
     const channel = this._presenceChannels[roomId];
     if (channel) {
