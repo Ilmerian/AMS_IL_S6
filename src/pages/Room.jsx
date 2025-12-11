@@ -199,29 +199,6 @@ export default function Room() {
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     // --- PLAYLIST ---
-    const {
-        playlistId,
-        embedUrl,
-        currentVideoId,
-        playlistItems,
-        addVideoByRawUrl,
-        playNextVideo,
-        playPrevVideo,
-        handleVideoError
-    } = usePlaylistForRoom({ room, roomId, accessGranted: !needPw || checked })
-
-    const handleAddVideo = addVideoByRawUrl;
-    const handleVideoEnded = useCallback(() => {
-        console.log('Video ended, playing next...')
-        playNextVideo()
-    }, [playNextVideo])
-
-    const verify = async (e) => {
-        e.preventDefault();
-        const ok = await verifyPassword(pw);
-        if (ok) setPw('');
-    };
-
     // ------------------------------------------
     // INTEGRATION DU HOOK DE SYNCHRONISATION
     // ------------------------------------------
@@ -244,6 +221,36 @@ export default function Room() {
         initialPlaying: room?.is_playing
     });
     const canControlVideo = controlInfo.canControl || userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
+        
+    const {
+        playlistId,
+        embedUrl,
+        currentVideoId,
+        playlistItems,
+        addVideoByRawUrl,
+        playNextVideo,
+        getNextVideo,
+        getPrevVideo,
+        handleVideoError
+    } = usePlaylistForRoom({ 
+        room, 
+        roomId, 
+        accessGranted: !needPw || checked,
+        syncVideoId: syncVideoId
+    })
+
+    const handleAddVideo = addVideoByRawUrl;
+    const handleVideoEnded = useCallback(() => {
+        console.log('Video ended, playing next...')
+        playNextVideo()
+    }, [playNextVideo])
+
+    const verify = async (e) => {
+        e.preventDefault();
+        const ok = await verifyPassword(pw);
+        if (ok) setPw('');
+    };
+
     // ------------------------------------------
     // ------------------------------------------
     // MODERATION & DATA LOADING
@@ -704,15 +711,27 @@ export default function Room() {
                                 <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
                                     <Button
                                         variant="outlined"
-                                        onClick={playPrevVideo}
-                                        disabled={!currentVideoId}
+                                        onClick={() => {
+                                            const videoIdToUse = syncVideoId || currentVideoId;
+                                            const prevVideo = getPrevVideo(videoIdToUse);
+                                            if (prevVideo?.url) {
+                                                changeVideo(prevVideo.url);
+                                            }
+                                        }}
+                                        disabled={!currentVideoId && !syncVideoId}
                                     >
                                         Previous
                                     </Button>
                                     <Button
                                         variant="outlined"
-                                        onClick={playNextVideo}
-                                        disabled={!currentVideoId}
+                                        onClick={() => {
+                                            const videoIdToUse = syncVideoId || currentVideoId;
+                                            const nextVideo = getNextVideo(videoIdToUse);
+                                            if (nextVideo?.url) {
+                                                changeVideo(nextVideo.url);
+                                            }
+                                        }}
+                                        disabled={!currentVideoId && !syncVideoId}
                                     >
                                         Next
                                     </Button>
@@ -760,7 +779,7 @@ export default function Room() {
                                             canEdit={canControlVideo}
                                             onAdd={handleAddVideo}
                                             onPlay={handleVideoSelect}
-                                            currentVideoId={currentVideoId}
+                                            currentVideoId={syncVideoId || currentVideoId}
                                             onVideoSelect={handleVideoSelect}
                                         />
                                     )}

@@ -3,8 +3,16 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { YOUTUBE_ERROR_CODES, isFatalError, isTransientError, getErrorMessage } from '../utils/youtubeErrors';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import Card from '../ui/Card';
 import { getYouTubeId, toEmbedUrl } from '../utils/youtube';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import CircularProgress from '@mui/material/CircularProgress';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 
 export default function VideoPlayerShell({ 
   url, 
@@ -17,12 +25,17 @@ export default function VideoPlayerShell({
   onEnded,
   onError
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  
   const iframeRef = useRef(null);
   const [isIframeReady, setIsIframeReady] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState(null);
   const [pendingCommands, setPendingCommands] = useState([]);
   const commandTimeoutRef = useRef(null);
   const [errorState, setErrorState] = useState(null);
+  const [touchMode, setTouchMode] = useState(false);
 
   const videoId = getYouTubeId(url || '');
   const embedUrl = videoId ? toEmbedUrl(videoId) : null;
@@ -197,30 +210,80 @@ export default function VideoPlayerShell({
     };
   }, []);
 
+  // Touch controls handler
+  const handleTouchControls = () => {
+    if (!canControl) return;
+    
+    if (playing) {
+      sendCommand('pauseVideo');
+      if (onPause) onPause();
+    } else {
+      sendCommand('playVideo');
+      if (onPlay) onPlay();
+    }
+  };
+
+  // Responsive dimensions
+  const getResponsiveHeight = () => {
+    if (isMobile) return '40vh';
+    if (isTablet) return '45vh';
+    return '55vh';
+  };
+
+  const getMinHeight = () => {
+    if (isMobile) return 240;
+    if (isTablet) return 320;
+    return 360;
+  };
+
+  const getLoadingFontSize = () => {
+    if (isMobile) return '0.875rem';
+    if (isTablet) return '1rem';
+    return '1.125rem';
+  };
+
   if (!embedUrl) {
     return (
-      <Card sx={{ p: 0, overflow: 'hidden', minHeight: { xs: 360, sm: 420, md: 480, lg: 540 } }}>
+      <Card sx={{ 
+        p: 0, 
+        overflow: 'hidden', 
+        minHeight: getMinHeight(),
+        borderRadius: isMobile ? 0 : 1
+      }}>
         <Box sx={{ 
           position: 'relative', 
           width: '100%', 
-          height: { xs: 320, sm: 420, md: '55vh', lg: '65vh' }, 
+          height: getResponsiveHeight(), 
           bgcolor: 'black', 
           display: 'grid', 
           placeItems: 'center',
           color: 'white'
         }}>
-          <Typography>Select a video to play</Typography>
+          <Typography sx={{ 
+            fontSize: getLoadingFontSize(),
+            opacity: 0.8,
+            px: 2,
+            textAlign: 'center'
+          }}>
+            Select a video to play
+          </Typography>
         </Box>
       </Card>
     );
   }
 
   return (
-    <Card sx={{ p: 0, overflow: 'hidden', minHeight: { xs: 360, sm: 420, md: 480, lg: 540 } }}>
+    <Card sx={{ 
+      p: 0, 
+      overflow: 'hidden', 
+      minHeight: getMinHeight(),
+      borderRadius: isMobile ? 0 : 1,
+      position: 'relative'
+    }}>
       <Box sx={{ 
         position: 'relative', 
         width: '100%', 
-        height: { xs: 320, sm: 420, md: '55vh', lg: '65vh' }, 
+        height: getResponsiveHeight(), 
         bgcolor: 'black'
       }}>
         {errorState && (
@@ -234,24 +297,55 @@ export default function VideoPlayerShell({
             placeItems: 'center',
             color: 'white',
             zIndex: 2,
-            backgroundColor: 'rgba(0,0,0,0.9)',
-            p: 2
+            backgroundColor: 'rgba(0,0,0,0.95)',
+            p: isMobile ? 2 : 3
           }}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h6" color="error" gutterBottom>
-                Playback error
+            <Box sx={{ 
+              textAlign: 'center',
+              maxWidth: isMobile ? '90%' : '80%'
+            }}>
+              <Typography 
+                variant={isMobile ? "h6" : "h5"} 
+                color="error" 
+                gutterBottom
+                sx={{ 
+                  mb: 2,
+                  fontSize: isMobile ? '1rem' : '1.25rem'
+                }}
+              >
+                Playback Error
               </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 3,
+                  opacity: 0.9,
+                  fontSize: isMobile ? '0.875rem' : '1rem'
+                }}
+              >
                 {errorState.message}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 2, 
+                justifyContent: 'center',
+                flexDirection: isMobile ? 'column' : 'row'
+              }}>
                 {errorState.isTransient && (
                   <Button 
                     variant="contained" 
-                    size="small"
+                    size={isMobile ? "medium" : "large"}
                     onClick={() => {
                       setErrorState(null);
                       if (onPlay) onPlay();
+                    }}
+                    startIcon={<RefreshIcon />}
+                    fullWidth={isMobile}
+                    sx={{
+                      bgcolor: '#9b5cff',
+                      ':hover': { bgcolor: '#7c3aed' },
+                      fontWeight: 600,
+                      py: isMobile ? 1.5 : 2
                     }}
                   >
                     Retry
@@ -259,15 +353,26 @@ export default function VideoPlayerShell({
                 )}
                 <Button 
                   variant="outlined" 
-                  size="small"
+                  size={isMobile ? "medium" : "large"}
                   onClick={() => {
                     setErrorState(null);
                     if (onError && errorState.isFatal) {
                       onError({ ...errorState, action: 'skip' });
                     }
                   }}
+                  startIcon={errorState.isFatal ? <SkipNextIcon /> : undefined}
+                  fullWidth={isMobile}
+                  sx={{
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    color: 'white',
+                    ':hover': {
+                      borderColor: 'white',
+                      bgcolor: 'rgba(255,255,255,0.1)'
+                    },
+                    py: isMobile ? 1.5 : 2
+                  }}
                 >
-                  {errorState.isFatal ? 'Skip' : 'Cloese'}
+                  {errorState.isFatal ? 'Skip Video' : 'Close'}
                 </Button>
               </Box>
             </Box>
@@ -285,29 +390,176 @@ export default function VideoPlayerShell({
             placeItems: 'center',
             color: 'white',
             zIndex: 1,
-            backgroundColor: 'rgba(0,0,0,0.8)'
+            backgroundColor: 'rgba(0,0,0,0.9)'
           }}>
-            <Typography>Loading video...</Typography>
+            <Box sx={{ textAlign: 'center' }}>
+              <CircularProgress 
+                size={isMobile ? 32 : 40} 
+                sx={{ 
+                  color: '#9b5cff',
+                  mb: 2
+                }} 
+              />
+              <Typography sx={{ 
+                fontSize: getLoadingFontSize(),
+                opacity: 0.9
+              }}>
+                Loading video...
+              </Typography>
+            </Box>
+          </Box>
+        )}
+        
+        {/* Touch overlay for mobile controls */}
+        {isMobile && canControl && !errorState && (
+          <Box
+            onClick={handleTouchControls}
+            onTouchStart={() => setTouchMode(true)}
+            onTouchEnd={() => setTimeout(() => setTouchMode(false), 100)}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: touchMode ? 0.7 : 0,
+              transition: 'opacity 0.2s',
+              '&:active': {
+                opacity: 0.7
+              }
+            }}
+          >
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                bgcolor: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white'
+              }}
+            >
+              {playing ? (
+                <PauseIcon sx={{ fontSize: 32 }} />
+              ) : (
+                <PlayArrowIcon sx={{ fontSize: 32 }} />
+              )}
+            </Box>
           </Box>
         )}
         
         <iframe
           ref={iframeRef}
-          src={`${embedUrl}&enablejsapi=1&widgetid=1`}
+          src={`${embedUrl}&enablejsapi=1&widgetid=1${isMobile ? '&playsinline=1' : ''}`}
           width="100%"
           height="100%"
           frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onLoad={handleLoad}
           onError={() => handlePlayerError(2)}
           style={{
-            display: 'block'
+            display: 'block',
+            border: 'none',
+            pointerEvents: isMobile && canControl ? 'auto' : 'auto'
           }}
           data-id="1"
           title="YouTube video player"
+          // Mobile optimizations
+          playsInline={isMobile}
+          webkit-playsinline={isMobile ? "true" : undefined}
+          // Better mobile performance
+          loading="lazy"
         />
+        
+        {/* Mobile control indicator */}
+        {isMobile && canControl && !errorState && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              bgcolor: 'rgba(0,0,0,0.6)',
+              color: 'white',
+              borderRadius: 1,
+              px: 1,
+              py: 0.5,
+              fontSize: '0.7rem',
+              opacity: 0.8,
+              zIndex: 1
+            }}
+          >
+            Tap to {playing ? 'pause' : 'play'}
+          </Box>
+        )}
+        
+        {/* Loading overlay for poor connections */}
+        {!isIframeReady && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              bgcolor: 'rgba(0,0,0,0.8)',
+              color: 'white',
+              p: 1,
+              fontSize: '0.75rem',
+              textAlign: 'center',
+              zIndex: 1
+            }}
+          >
+            Initializing YouTube Player...
+          </Box>
+        )}
       </Box>
+      
+      {/* Video info for mobile */}
+      {isMobile && embedUrl && (
+        <Box
+          sx={{
+            p: 1.5,
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            bgcolor: 'rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              opacity: 0.7,
+              fontSize: '0.75rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1
+            }}
+          >
+            YouTube • {videoId}
+          </Typography>
+          
+          {canControl && (
+            <Typography
+              variant="caption"
+              sx={{
+                opacity: 0.5,
+                fontSize: '0.7rem',
+                ml: 1
+              }}
+            >
+              {playing ? '▶️ Playing' : '⏸️ Paused'}
+            </Typography>
+          )}
+        </Box>
+      )}
     </Card>
   );
 }

@@ -199,16 +199,16 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
     }
   }, [playlistId, playlistItems, roomId])
 
-  const getNextVideo = useCallback(() => {
+  const getNextVideo = useCallback((targetVideoId = currentVideoId) => {
     if (!playlistItems.length) return null
-    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === currentVideoId)
+    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === targetVideoId)
     const nextIndex = (currentIndex + 1) % playlistItems.length
     return playlistItems[nextIndex]
   }, [playlistItems, currentVideoId])
 
-  const getPrevVideo = () => {
+  const getPrevVideo = (targetVideoId = currentVideoId) => {
     if (!playlistItems.length) return null
-    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === currentVideoId)
+    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === targetVideoId)
     const prevIndex = (currentIndex - 1 + playlistItems.length) % playlistItems.length
     return playlistItems[prevIndex]
   }

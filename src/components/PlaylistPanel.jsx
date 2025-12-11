@@ -130,7 +130,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
       setItems(newItems);
 
       // Garder le nouvel ordre
-      await PlaylistService.updateOrder({
+      await PlaylistService.reorderVideos({
         playlistId,
         videoIds: newItems.map(item => item.id)
       });

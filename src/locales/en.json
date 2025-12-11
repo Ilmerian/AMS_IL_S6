@@ -9,7 +9,8 @@
     "myRooms": "My rooms",
     "register": "Register",
     "login": "Login",
-    "logout": "Logout"
+    "logout": "Logout",
+    "language": "Language"
   },
   "role": {
     "promoted": "promoted ",
@@ -27,7 +28,8 @@
     "permission_denied": "permission denied "
   },
   "user": {
-    "default": "User"
+    "default": "User",
+    "logged_in": "Logged in"
   },
   "hero": {
     "heading": "Watch together. Chat together.",
@@ -36,7 +38,11 @@
   },
   "footer": {
     "tagline": "WatchWithMe — student project starter",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "legal": "Legal Notice",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "menu": "Legal & Privacy"
   },
   "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
   "chat": {
@@ -51,7 +57,35 @@
     "send": "Send"
   },
   "common": {
-    "sending": "Sending…"
+    "sending": "Sending…",
+    "close": "Close"
+  },
+  "homepage": {
+    "homepage": "Come Watch With Me!",
+    "description": "Create a private or public room and share moments together.",
+    "create_room": "Create a Room",
+    "join_room": "Join a Room",
+    "quation": "How does it work?",
+    "step1_title": "Create a Room",
+    "step1_desc": "Public or private",
+    "step2_title": "Add Videos",
+    "step2_desc": "YouTube to the playlist",
+    "step3_title": "Watch Together",
+    "step3_desc": "and chat live",
+    "step4_title": "Collaborative playlist",
+    "step4_desc": "edit videos together",
+    "join_code": "Join with Code",
+    "enter_code": "Enter Room Code",
+    "enter_code_desc": "Type the code shared with you to join.",
+    "access": "Instant Access",
+    "access_desc": "Join immediately if the code is valid.",
+    "mode": "Guest or User Mode",
+    "mode_desc": "Guests watch, users can fully interact.",
+    "contact_us": "Contact Us",
+    "mobile_friendly": "Mobile Friendly",
+    "mobile_friendly_desc": "WatchWithMe works perfectly on your phone. Create rooms, watch videos, and chat with friends on the go!",
+    "new_question": "Ready to start watching together?",
+    "get_started": "Get Started Now"
   },
   "auth": {
     "email_label": "Your email",
@@ -91,7 +125,9 @@
     "email_address": "Email address",
     "send_reset": "Send reset email",
     "reset_sent": "Check your email to reset your password.",
-    "error": "Error"
+    "error": "Error",
+    "or" : "or",
+    "magic_description": "Enter your email, and we’ll send you a link to sign in instantly."
   },
   "password": {
     "strength": {
@@ -105,7 +141,12 @@
       "minLength": "At least 8 characters",
       "mixedCase": "Both lower and upper case",
       "digitOrSymbol": "Contains a digit or a symbol"
-    }    
+    },
+    "strength.title": "Password Strength",
+    "level.0": "Level 0",
+    "level.1": "Level 1",
+    "level.2": "Level 2",
+    "level.3": "Level 3"
   },
   "playlist": {
     "noPreview": "Preview",
@@ -137,9 +178,9 @@
     "playlist":"playlist",
     "chat": "chat",
     "moderation":"moderation",
-    "reload" : "reload ",
+    "reload": "Reload",
     "succes_sync": "🟢 Synchronized",
-    "wait_sync": "🟡 Connection...",
+    "wait_sync": "🟡 Connecting...",
     "deny_sync": "🔴 Connection problem",
     "error_generic" :"Unable to load this room. ",
     "not_found" :"room not found",
@@ -172,7 +213,11 @@
     "cancel": "Cancel",
     "error_name_required": "Room name is required",
     "error_password_short": "Password must be at least 3 characters",
-    "error_creating": "Error while creating room"
+    "error_creating": "Error while creating room",
+    "name_helper": "Choose a descriptive name so others can find your room.",
+    "public_description": "Rooms without a password are open to everyone and appear in the public list.",
+    "privacy_description": "Private rooms require a password to join and are not listed publicly.",
+    "password_helper": "Password must be at least 3 characters."
   },
   "rooms": {
     "titleMy": "My Rooms",
@@ -210,12 +255,36 @@
     "changeAvatar": "Change avatar",
     "removeAvatar": "Remove avatar",
     "error": "Error",
-    "confirmNewEmail": "Check your email to confirm the new address."
+    "confirmNewEmail": "Check your email to confirm the new address.",
+    "username_helper": "This name will be displayed in chat and rooms.",
+    "email_section": "Change email",
+    "email": "Email Address",
+    "email_helper": "Your email address is used for account-related notifications."
   },
   "action":{
     "promote": "Promote Manager",
     "demote": "demoter Member",
     "kick": "Kick",
-    ".ban": "Ban"
-  }  
+    "ban": "Ban"
+  },
+  "invite": {
+    "title": "Join Room",
+    "desc": "Join the room « {{roomName}} » to watch videos together!",
+    "cta": "Join Room",
+    "link": "Link",
+    "sendlink": "Share link",
+    "email": "Email",
+    "sendmail": "Send by email",
+    "linkdescription": "Share this link directly with your friends so they can join.",
+    "link.copy": "Copy link",
+    "link.copied": "Copied",
+    "link.share": "Share link",
+    "link.tapToSelect": "Tap to select",
+    "email.description": "Enter your friend's email. They will receive an invitation.",
+    "email.recipient": "Recipient email",
+    "email.send": "Send invitation",
+    "email.sending": "Sending...",
+    "email.success": "Invitation sent successfully!",
+    "quickActions": "Quick Actions"
+  }
 }

@@ -5,11 +5,13 @@
     "dashboard": "Tableau de bord", 
     "rooms": "Salons",
     "new": "Nouveau",
+    "searchRoom": "Rechercher un salon...",
     "settings": "Paramètres",
     "myRooms": "Mes salons",
     "register": "Inscription",
     "login": "Connexion",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "language": "Langue"
   },
   "role": {
     "promoted": "promoted ",
@@ -27,7 +29,8 @@
     "permission_denied": "permission refusée "
   },
   "user": {
-    "default": "Utilisateur"
+    "default": "Utilisateur",
+    "logged_in": "Connexion en cours..."
   },
   "hero": {
     "heading": "Regarder ensemble. Discuter ensemble.",
@@ -36,7 +39,31 @@
   },
   "footer": {
     "tagline": "WatchWithMe — projet étudiant de démarrage",
-    "rights": "Tous droits réservés."
+    "rights": "Tous droits réservés.",
+    "legal": "Mentions légales",
+    "terms": "Conditions d’utilisation",
+    "privacy": "Politique de confidentialité",
+    "menu": "Mentions légales & Confidentialité"
+  },
+  "invite": {
+    "title": "Rejoindre le salon",
+    "desc": "Rejoignez le salon « {{roomName}} » pour regarder des vidéos ensemble !",
+    "cta": "Rejoindre le salon",
+    "link": "Lien",
+    "sendlink": "Partager le lien",
+    "email": "Email",
+    "sendmail": "Envoyer par email",
+    "linkdescription": "Partagez ce lien directement avec vos amis pour qu'ils rejoignent le salon.",
+    "link.copy": "Copier le lien",
+    "link.copied": "Copié",
+    "link.share": "Partager le lien",
+    "link.tapToSelect": "Appuyez pour sélectionner",
+    "email.description": "Entrez l'email de votre ami. Il recevra une invitation dans sa boîte mail.",
+    "email.recipient": "Email du destinataire",
+    "email.send": "Envoyer l'invitation",
+    "email.sending": "Envoi en cours...",
+    "email.success": "Invitation envoyée avec succès !",
+    "quickActions": "Actions rapides"
   },
   "lang": { "en": "EN", "fr": "FR", "ru": "RU" },
   "chat": {
@@ -51,7 +78,35 @@
     "send": "Envoyer"
   },
   "common": {
-    "sending": "Envoi…"
+    "sending": "Envoi…",
+    "close": "Fermer"
+  },
+  "homepage": {
+    "homepage": "Venez Watch With Me !",
+    "description": "Créez un salon privé ou public et partagez des moments ensemble.",
+    "create_room": "Créer un salon",
+    "join_room": "Rejoindre un salon",
+    "quation": "Comment ça marche ?",
+    "step1_title": "Créer un salon",
+    "step1_desc": "Public ou privé",
+    "step2_title": "Ajouter des vidéos",
+    "step2_desc": "YouTube à la playlist",
+    "step3_title": "Watch Together",
+    "step3_desc": "et discuter en direct",
+    "step4_title": "Collaborative playlist",
+    "step4_desc": "éditer des vidéos ensemble",
+    "join_code": "Rejoindre avec le code",
+    "enter_code": "Entrer le code du salon",
+    "enter_code_desc": "Tapez le code partagé avec vous pour rejoindre.",
+    "access": "Instant Access",
+    "access_desc": "Rejoignez immédiatement si le code est valide.",
+    "mode": "Mode invité ou utilisateur",
+    "mode_desc": "Les invités regardent, les utilisateurs peuvent interagir pleinement.",
+    "contact_us": "Contactez-nous",
+    "mobile_friendly": "Adapté aux mobiles",
+    "mobile_friendly_desc": "WatchWithMe fonctionne parfaitement sur votre téléphone. Créez des salles, regardez des vidéos et discutez avec des amis en déplacement!",
+    "new_question": "Prêt à commencer à regarder ensemble ?",
+    "get_started": "Commencer maintenant"
   },
   "auth": {
     "email_label": "Votre e-mail",
@@ -91,7 +146,9 @@
     "email_address": "Adresse e-mail",
     "send_reset": "Envoyer l’e-mail de réinitialisation",
     "reset_sent": "Consultez votre e-mail pour réinitialiser votre mot de passe.",
-    "error": "Erreur"    
+    "error": "Erreur",
+    "or" : "ou",
+    "magic_description": "Entrez votre e-mail, et nous vous enverrons un lien pour vous connecter instantanément."
   },
   "password": {    
     "strength": {
@@ -105,7 +162,12 @@
       "minLength": "Au moins 8 caractères",
       "mixedCase": "Minuscules et majuscules",
       "digitOrSymbol": "Contient un chiffre ou un symbole"
-    }    
+    },
+    "strength.title": "Force du mot de passe",
+    "level.0": "Niveau 0",
+    "level.1": "Niveau 1",
+    "level.2": "Niveau 2",
+    "level.3": "Niveau 3"
   },
   "playlist": {
     "noPreview": "Aperçu",
@@ -172,7 +234,11 @@
     "cancel": "Annuler",
     "error_name_required": "Le nom du salon est obligatoire",
     "error_password_short": "Le mot de passe doit contenir au moins 3 caractères",
-    "error_creating": "Erreur lors de la création du salon"
+    "error_creating": "Erreur lors de la création du salon",
+    "name_helper": "Choisissez un nom descriptif afin que les autres puissent trouver votre salon.",
+    "public_description": "Les salons sans mot de passe sont ouverts à tous et apparaissent dans la liste publique.",
+    "privacy_description": "Les salons privés nécessitent un mot de passe pour rejoindre et ne sont pas répertoriés publiquement.",
+    "password_helper": "Le mot de passe doit contenir au moins 3 caractères."
   },
   "rooms": {
     "titleMy": "Mes salons",
@@ -209,13 +275,17 @@
     "changeAvatar": "Changer d’avatar",
     "removeAvatar": "Supprimer l’avatar",
     "error": "Erreur",
-    "confirmNewEmail": "Consultez votre e-mail pour confirmer la nouvelle adresse."
+    "confirmNewEmail": "Consultez votre e-mail pour confirmer la nouvelle adresse.",
+    "username_helper": "Ce nom sera affiché dans le chat et les salons.",
+    "email_section": "Changer d’e-mail",
+    "email": "Adresse e-mail",
+    "email_helper": "Votre adresse e-mail est utilisée pour les notifications liées au compte."
   },
   "action":{
     "promote": "Promouvoir Manager",
     "demote": "Rétrograder Membre",
     "kick": "Exclure (Kick)",
-    ".ban": "Bannir (Ban)"
+    "ban": "Bannir (Ban)"
 
   }  
 }
