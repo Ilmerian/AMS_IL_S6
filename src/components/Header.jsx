@@ -3,7 +3,6 @@ import { useMemo, useCallback, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/auth'
 import { AuthService } from '../services/AuthService'
-
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Box from '@mui/material/Box'
@@ -297,7 +296,7 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             {/* LOGO */}
             <Box
               component="img"
-              src="/public/WatchWithMe.png"
+              src="/WatchWithMe.png"
               alt="Logo"
               sx={{ 
                 width: { xs: 32, sm: 36, md: 42 }, 
