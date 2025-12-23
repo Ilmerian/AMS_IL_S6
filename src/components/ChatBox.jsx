@@ -34,6 +34,8 @@ export default function ChatBox({ roomId, isBanned }) {
   const { messages, send, remove, loadMore, hasMore } = chatData
 
   const [text, setText] = useState('')
+  const [reactions, setReactions] = useState({});
+
   const listRef = useRef(null)
 
   const [isAtBottom, setIsAtBottom] = useState(true)
@@ -125,6 +127,31 @@ export default function ChatBox({ roomId, isBanned }) {
     setText(prev => prev + emojiData.emoji);
   };
 
+  // Réaction chat
+  const reactionEmojis = ["👍", "❤️", "😂", "🔥", "😮"];
+
+  const toggleReaction = (messageId, emoji) => {
+    setReactions(prev => {
+      const msgReacts = prev[messageId] || {};
+
+      // Si l’emoji existe déjà → toggle off
+      if (msgReacts[emoji]) {
+        const updated = { ...msgReacts };
+        delete updated[emoji];
+        return { ...prev, [messageId]: updated };
+      }
+
+      // Sinon, ajouter l’emoji
+      return {
+        ...prev,
+        [messageId]: {
+          ...msgReacts,
+          [emoji]: 1
+        }
+      };
+    });
+  };
+
   return (
     <Box sx={{ height: '100%', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1, p: 2, boxSizing: 'border-box' }}>
       <Stack spacing={1.5} sx={{ height: '100%' }}>
@@ -168,8 +195,14 @@ export default function ChatBox({ roomId, isBanned }) {
                 direction="row"
                 spacing={1}
                 alignItems="flex-start"
-                sx={{ py: 0.75, opacity: m.__error ? 0.6 : 1 }}
+                sx={{
+                  py: 0.75,
+                  opacity: m.__error ? 0.6 : 1,
+                  position: "relative",
+                  "&:hover .reaction-panel": { opacity: 1, pointerEvents: "all" }
+                }}
               >
+
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
                     <b style={{ color: userColor }}>{displayName}</b> ·{' '}
@@ -180,6 +213,56 @@ export default function ChatBox({ roomId, isBanned }) {
                     {m.__error ? ` · ${t('chat.failed')}` : ''}
                   </Typography>
                   <div style={{ wordBreak: 'break-word' }}>{m.content}</div>
+                  {/* Réactions existantes */}
+                  <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
+                    {reactions[m.id] && Object.entries(reactions[m.id]).map(([emoji, count]) => (
+                      <Box
+                        key={emoji}
+                        sx={{
+                          px: 1,
+                          py: "2px",
+                          bgcolor: "rgba(255,255,255,0.1)",
+                          borderRadius: 2,
+                          fontSize: "0.8rem",
+                          cursor: "pointer",
+                          "&:hover": { bgcolor: "rgba(255,255,255,0.2)" }
+                        }}
+                        onClick={() => toggleReaction(m.id, emoji)}
+                      >
+                        {emoji} {count}
+                      </Box>
+                    ))}
+                  </Box>
+
+                  {/* Panel des réactions au survol */}
+                  <Box
+                    className="reaction-panel"
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      opacity: 0,
+                      pointerEvents: "none",
+                      transition: "0.2s",
+                      mt: 0.5,
+                      position: "absolute",
+                      right: "10px",
+                      top: "5px",
+                    }}
+                  >
+                    {reactionEmojis.map((emoji) => (
+                      <Box
+                        key={emoji}
+                        sx={{
+                          cursor: "pointer",
+                          fontSize: "1.2rem",
+                          "&:hover": { transform: "scale(1.3)" }
+                        }}
+                        onClick={() => toggleReaction(m.id, emoji)}
+                      >
+                        {emoji}
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
                 {m.userId === user?.id && !m.__optimistic && (
                   <IconButton
