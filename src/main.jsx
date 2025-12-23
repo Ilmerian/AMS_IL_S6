@@ -1,11 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider, CssBaseline, GlobalStyles } from '@mui/material'
-import theme from './ui/theme'
 import './index.css'
 import './i18n/i18n.js'
 import App from './App.jsx'
 import { supabase } from "./lib/supabaseClient";
+import { CustomThemeProvider } from './ui/ThemeContext'
 window.supabase = supabase;
 
 let reconnectTimeout;
@@ -53,12 +53,13 @@ if (supabase.realtime) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider theme={theme}>
+    <CustomThemeProvider>
       <CssBaseline />
       <GlobalStyles styles={{
         'html, body, #root': { height: '100%', minHeight: '100dvh' },
         'main.content': {
-          backgroundColor: '#12091E',
+          backgroundColor: 'transparent',
+          // Mode sombre : 12091E
           // Mode clair : '#b9c1ff'
           minHeight: '100%',
           paddingBlock: 'clamp(16px, 4vh, 48px)',
@@ -66,6 +67,6 @@ createRoot(document.getElementById('root')).render(
         ':root': { '--page-pad': 'clamp(12px, 2.5vw, 28px)' },
       }} />
       <App />
-    </ThemeProvider>
+    </CustomThemeProvider>
   </StrictMode>
 )

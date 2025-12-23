@@ -33,7 +33,7 @@ export default function Settings() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const { profile: ctxProfile } = useAuth()
-  
+
   const [profile, setProfile] = useState(null)
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
@@ -59,16 +59,16 @@ export default function Settings() {
 
   const saveProfile = async () => {
     if (!profile?.id) return
-    
+
     const trimmedUsername = username.trim()
     if (!trimmedUsername) {
       showMessage(t('settings.username_required') || 'Username is required', 'error')
       return
     }
-    
+
     setLoading(true)
     showMessage('')
-    
+
     try {
       await UserService.upsertProfile({
         user_id: profile.id,
@@ -156,7 +156,7 @@ export default function Settings() {
   const onRemoveAvatar = async () => {
     setConfirmDialogOpen(false)
     if (!avatar) return
-    
+
     setMsg('')
     setBusyAvatar(true)
 
@@ -198,7 +198,7 @@ export default function Settings() {
       showMessage(t('settings.email_required') || 'Email is required', 'error')
       return
     }
-    
+
     setLoading(true)
     setMsg('')
     try {
@@ -212,29 +212,29 @@ export default function Settings() {
   }
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       minHeight: '100vh',
       pb: { xs: 8, sm: 4 }
     }}>
-      <Box sx={{ 
-        py: { xs: 2, sm: 4 }, 
+      <Box sx={{
+        py: { xs: 2, sm: 4 },
         px: { xs: 1.5, sm: 2, md: 3 }
       }}>
-        
-        <Card sx={{ 
+
+        <Card sx={{
           p: { xs: 2.5, sm: 3, md: 4 },
-          backdropFilter: 'saturate(140%) blur(8px)', 
-          border: '1px solid', 
-          borderColor: 'rgba(255,255,255,0.2)'
-        }}> 
-          
-          <Typography 
-            variant={isMobile ? "h5" : "h4"} 
+          backdropFilter: 'saturate(140%) blur(8px)',
+          border: '1px solid',
+          borderColor: theme.palette.divider
+        }}>
+
+          <Typography
+            variant={isMobile ? "h5" : "h4"}
             mb={{ xs: 3, sm: 4 }}
-            sx={{ 
-              textAlign: 'center', 
-              fontWeight: 800, 
-              color: '#9b5cff',
+            sx={{
+              textAlign: 'center',
+              fontWeight: 800,
+              color: theme.palette.primary.main,
               fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' }
             }}
           >
@@ -243,30 +243,30 @@ export default function Settings() {
 
           <Stack spacing={{ xs: 3, sm: 4 }}>
             {/* Avatar Section */}
-            <Box sx={{ 
-              display: 'flex', 
+            <Box sx={{
+              display: 'flex',
               flexDirection: { xs: 'column', sm: 'row' },
               alignItems: 'center',
               gap: { xs: 3, sm: 4 },
               p: { xs: 2, sm: 3 },
               borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.05)'
+              bgcolor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`
             }}>
               <Box sx={{ position: 'relative' }}>
                 <Avatar
                   alt={username || email}
                   src={avatar || undefined}
-                  sx={{ 
-                    width: { xs: 100, sm: 120, md: 140 }, 
-                    height: { xs: 100, sm: 120, md: 140 }, 
-                    border: '3px solid rgba(255,255,255,0.1)',
+                  sx={{
+                    width: { xs: 100, sm: 120, md: 140 },
+                    height: { xs: 100, sm: 120, md: 140 },
+                    border: `3px solid ${theme.palette.divider}`,
                     fontSize: { xs: '2rem', sm: '2.5rem' }
                   }}
                 >
                   {!avatar && (username || email)?.charAt(0)?.toUpperCase()}
                 </Avatar>
-                
+
                 <IconButton
                   component="label"
                   disabled={busyAvatar}
@@ -294,10 +294,10 @@ export default function Settings() {
               </Box>
 
               <Stack spacing={1.5} sx={{ flex: 1, width: '100%' }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    opacity: 0.9, 
+                <Typography
+                  variant="h6"
+                  sx={{
+                    opacity: 0.9,
                     fontWeight: 500,
                     fontSize: { xs: '1rem', sm: '1.1rem' },
                     textAlign: { xs: 'center', sm: 'left' }
@@ -305,18 +305,18 @@ export default function Settings() {
                 >
                   {email}
                 </Typography>
-                
-                <Stack 
-                  direction="row" 
-                  spacing={1.5} 
+
+                <Stack
+                  direction="row"
+                  spacing={1.5}
                   alignItems="center"
                   justifyContent={{ xs: 'center', sm: 'flex-start' }}
                   flexWrap="wrap"
                   gap={1}
                 >
-                  <Button 
-                    component="label" 
-                    variant="outlined" 
+                  <Button
+                    component="label"
+                    variant="outlined"
                     size={isMobile ? "small" : "medium"}
                     disabled={busyAvatar}
                     startIcon={<PhotoCamera />}
@@ -333,7 +333,7 @@ export default function Settings() {
                       disabled={busyAvatar}
                     />
                   </Button>
-                  
+
                   <Button
                     variant="outlined"
                     color="error"
@@ -346,7 +346,7 @@ export default function Settings() {
                     {t('settings.removeAvatar') || 'Remove'}
                   </Button>
                 </Stack>
-                
+
                 {busyAvatar && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CircularProgress size={16} />
@@ -358,7 +358,8 @@ export default function Settings() {
               </Stack>
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+            <Divider sx={{ borderColor: theme.palette.divider }} />
+
 
             {/* Username Field */}
             <TextField
@@ -385,9 +386,9 @@ export default function Settings() {
 
             {/* Email Section */}
             <Box>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
+              <Typography
+                variant="subtitle1"
+                sx={{
                   mb: 2,
                   fontWeight: 600,
                   fontSize: { xs: '0.95rem', sm: '1rem' }
@@ -395,7 +396,7 @@ export default function Settings() {
               >
                 {t('settings.email_section') || 'Email Address'}
               </Typography>
-              
+
               <TextField
                 type="email"
                 label={t('settings.email')}
@@ -420,10 +421,10 @@ export default function Settings() {
 
             {/* Message Display */}
             {msg && (
-              <Alert 
-                severity={msgType} 
+              <Alert
+                severity={msgType}
                 onClose={() => setMsg('')}
-                sx={{ 
+                sx={{
                   '& .MuiAlert-message': {
                     fontSize: { xs: '0.85rem', sm: '0.9rem' }
                   }
@@ -434,9 +435,9 @@ export default function Settings() {
             )}
 
             {/* Action Buttons */}
-            <Stack 
-              direction={{ xs: 'column', sm: 'row' }} 
-              spacing={2} 
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
               justifyContent="space-between"
               sx={{ pt: 2 }}
             >
@@ -451,7 +452,7 @@ export default function Settings() {
               >
                 {t('settings.changeEmail')}
               </Button>
-              
+
               <Button
                 onClick={saveProfile}
                 disabled={loading}
@@ -459,14 +460,14 @@ export default function Settings() {
                 color="primary"
                 size={isMobile ? "medium" : "large"}
                 fullWidth={isMobile}
-                sx={{ 
+                sx={{
                   px: { xs: 2, sm: 4 },
                   fontWeight: 600
                 }}
                 startIcon={loading && <CircularProgress size={20} color="inherit" />}
               >
-                {loading 
-                  ? t('common.saving') || 'Saving...' 
+                {loading
+                  ? t('common.saving') || 'Saving...'
                   : t('settings.saveProfile') || 'Save Profile'
                 }
               </Button>
@@ -474,16 +475,16 @@ export default function Settings() {
 
             {/* Mobile Tips */}
             {isMobile && (
-              <Box sx={{ 
-                mt: 2, 
-                p: 2, 
-                borderRadius: 2, 
-                bgcolor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.05)'
+              <Box sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: 2,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.divider}`
               }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
+                <Typography
+                  variant="caption"
+                  sx={{
                     opacity: 0.7,
                     fontSize: '0.75rem',
                     display: 'block',
@@ -504,8 +505,9 @@ export default function Settings() {
         onClose={() => setConfirmDialogOpen(false)}
         PaperProps={{
           sx: {
-            backgroundColor: '#1e1e1e',
-            color: 'white',
+            backgroundColor: "#1e1e1e",
+            color: "white",
+            borderColor: theme.palette.divider,
             borderRadius: isMobile ? 0 : 2,
             margin: isMobile ? 0 : '32px',
             width: isMobile ? '100%' : 'auto'
@@ -513,9 +515,9 @@ export default function Settings() {
         }}
         fullScreen={isMobile}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           pb: 1
         }}>
@@ -526,24 +528,24 @@ export default function Settings() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        
+
         <DialogContent>
           <Typography>
             {t('settings.confirm_remove_message') || 'Are you sure you want to remove your avatar? This action cannot be undone.'}
           </Typography>
         </DialogContent>
-        
+
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button 
-            onClick={() => setConfirmDialogOpen(false)} 
+          <Button
+            onClick={() => setConfirmDialogOpen(false)}
             variant="outlined"
             fullWidth={isMobile}
           >
             {t('common.cancel') || 'Cancel'}
           </Button>
-          <Button 
-            onClick={onRemoveAvatar} 
-            color="error" 
+          <Button
+            onClick={onRemoveAvatar}
+            color="error"
             variant="contained"
             fullWidth={isMobile}
           >
