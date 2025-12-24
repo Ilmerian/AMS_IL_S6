@@ -47,7 +47,7 @@ import Alert from '@mui/material/Alert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import InviteDialog from '../components/InviteDialog'; 
+import InviteDialog from '../components/InviteDialog';
 
 const ROLES = {
     OWNER: 'owner',
@@ -149,10 +149,10 @@ function ConnectionStatus({ connectionStatus }) {
 export default function Room() {
     const { t } = useTranslation();
     const { roomId } = useParams();
-    const { user, loading: authLoading } = useAuth(); 
+    const { user, loading: authLoading } = useAuth();
 
     const { openLogin } = useOutletContext() || {};
-    
+
     const hasAutoOpenedRef = useRef(false);
 
     useEffect(() => {
@@ -221,7 +221,7 @@ export default function Room() {
         initialPlaying: room?.is_playing
     });
     const canControlVideo = controlInfo.canControl || userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
-        
+
     const {
         playlistId,
         embedUrl,
@@ -232,9 +232,9 @@ export default function Room() {
         getNextVideo,
         getPrevVideo,
         handleVideoError
-    } = usePlaylistForRoom({ 
-        room, 
-        roomId, 
+    } = usePlaylistForRoom({
+        room,
+        roomId,
         accessGranted: !needPw || checked,
         syncVideoId: syncVideoId
     })
@@ -276,12 +276,12 @@ export default function Room() {
             setMembersLoading(false);
             return;
         }
-        
+
         if (userRole === 'owner' && room?.ownerId === user.id) {
             console.log('[Room] userRole already set to owner, skipping reset');
             setMembersLoading(false);
             return;
-        }        
+        }
         setMembersLoading(true);
         const cacheKey = `room_data_${roomId}_${user.id}`;
         const cacheTTL = isProduction ? 600000 : 30000;
@@ -326,16 +326,16 @@ export default function Room() {
 
             // Déterminer le rôle de l'utilisateur
             let role = null;
-            
+
             // 1. Vérifier si l'utilisateur est propriétaire de la salle
             if (room?.ownerId === user.id) {
                 role = 'owner';
-            } 
+            }
             // 2. Chercher l'utilisateur dans la liste des membres
             else if (initialMembers.length > 0) {
                 const currentUserMember = initialMembers.find(m => m.userId === user.id);
                 if (currentUserMember) {
-                    role = currentUserMember.isOwner ? 'owner' : 
+                    role = currentUserMember.isOwner ? 'owner' :
                         currentUserMember.is_manager ? 'manager' : 'member';
                 }
             }
@@ -362,25 +362,25 @@ export default function Room() {
             setMembersLoading(false);
         }
     }, [roomId, user, room?.ownerId, t, isProduction, userRole]);
-    
+
     useEffect(() => {
         if (!user || !room || membersLoading) {
             setIsModerator(false);
             return;
         }
-        
+
         // 1. Si user est owner de la room
         if (room.ownerId === user.id) {
             setIsModerator(true);
             return;
         }
-        
+
         // 2. Si userRole est owner ou manager
         if (userRole === 'owner' || userRole === 'manager') {
             setIsModerator(true);
             return;
         }
-        
+
         // 3. Vérifier dans les membres
         const userMember = members.find(m => m.userId === user.id);
         setIsModerator(userMember?.isOwner || userMember?.is_manager || false);
@@ -419,7 +419,7 @@ export default function Room() {
 
         // Réinitialiser les états avant de charger
         setMembers([]);
-        
+
         // Créer un timeout pour le chargement retardé
         const loadTimeout = setTimeout(() => {
             loadRoomData();
@@ -479,54 +479,54 @@ export default function Room() {
             if (!mounted) return;
 
             try {
-            // Get presence data
-            const presenceData = await RealtimeService.getPresence(roomId);
-            
-            if (!presenceData || !mounted) return;
+                // Get presence data
+                const presenceData = await RealtimeService.getPresence(roomId);
 
-            // Check if owner is still present
-            const ownerStillHere = presenceData.some(u => 
-                u.user_id === room.ownerId && 
-                Date.now() - (u.last_seen || 0) < 30000 
-            );
-            
-            if (!ownerStillHere && user.id !== room.ownerId) {
-                console.log("[OWNER LEFT] L'owner a quitté la room");
-                
-                const list = await RoleService.listMembers(roomId);
-                const managers = list.filter(m => m.is_manager && m.userId !== room.ownerId);
-                const members = list.filter(m => !m.is_manager && !m.isOwner && m.userId !== room.ownerId);
+                if (!presenceData || !mounted) return;
 
-                const newOwner = managers[0] || members[0] || null;
-                if (!newOwner) return;
+                // Check if owner is still present
+                const ownerStillHere = presenceData.some(u =>
+                    u.user_id === room.ownerId &&
+                    Date.now() - (u.last_seen || 0) < 30000
+                );
 
-                console.log("[NEW OWNER]", newOwner.userId);
-                
-                if (userRole === 'owner' || userRole === 'manager') {
-                await RoleService.promote(roomId, newOwner.userId);
-                await loadRoomData();
+                if (!ownerStillHere && user.id !== room.ownerId) {
+                    console.log("[OWNER LEFT] L'owner a quitté la room");
+
+                    const list = await RoleService.listMembers(roomId);
+                    const managers = list.filter(m => m.is_manager && m.userId !== room.ownerId);
+                    const members = list.filter(m => !m.is_manager && !m.isOwner && m.userId !== room.ownerId);
+
+                    const newOwner = managers[0] || members[0] || null;
+                    if (!newOwner) return;
+
+                    console.log("[NEW OWNER]", newOwner.userId);
+
+                    if (userRole === 'owner' || userRole === 'manager') {
+                        await RoleService.promote(roomId, newOwner.userId);
+                        await loadRoomData();
+                    }
                 }
-            }
             } catch (error) {
-            console.error('Error checking owner presence:', error);
+                console.error('Error checking owner presence:', error);
             }
         };
 
         const setupPresenceSubscription = () => {
             if (!mounted) return;
-            
+
             unsubscribe = RealtimeService.subscribePresence(roomId, async ({ users }) => {
-            if (!mounted || !users) return;
-            
-            clearTimeout(presenceCheckTimeout);
-            presenceCheckTimeout = setTimeout(() => {
-                checkOwnerPresence();
-            }, 3000);
+                if (!mounted || !users) return;
+
+                clearTimeout(presenceCheckTimeout);
+                presenceCheckTimeout = setTimeout(() => {
+                    checkOwnerPresence();
+                }, 3000);
             });
         };
 
         let presenceCheckTimeout;
-        
+
         const initialTimeout = setTimeout(() => {
             setupPresenceSubscription();
             checkOwnerPresence();
@@ -537,7 +537,7 @@ export default function Room() {
             clearTimeout(initialTimeout);
             clearTimeout(presenceCheckTimeout);
             if (unsubscribe) {
-            unsubscribe();
+                unsubscribe();
             }
         };
     }, [room, roomId, user, userRole, loadRoomData]);
@@ -607,23 +607,23 @@ export default function Room() {
                 </Box>
             )}
             {user && (
-            <Box sx={{ mb: 1 }}>
-                <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                p: 1, 
-                borderRadius: 1,
-                backgroundColor: connectionStatus === 'polling' ? 'success.main' : 
-                                connectionStatus === 'error' ? 'error.main' : 'warning.main',
-                opacity: 0.9
-                }}>
-                <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
-                    {connectionStatus === 'polling' ? t('room.succes_sync') :
-                    connectionStatus === 'error' ? t('room.deny_sync') : t('room.wait_sync')}
-                </Typography>
+                <Box sx={{ mb: 1 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        p: 1,
+                        borderRadius: 1,
+                        backgroundColor: connectionStatus === 'polling' ? 'success.main' :
+                            connectionStatus === 'error' ? 'error.main' : 'warning.main',
+                        opacity: 0.9
+                    }}>
+                        <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+                            {connectionStatus === 'polling' ? t('room.succes_sync') :
+                                connectionStatus === 'error' ? t('room.deny_sync') : t('room.wait_sync')}
+                        </Typography>
+                    </Box>
                 </Box>
-            </Box>
             )}
             {/* HEADER */}
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
@@ -641,8 +641,8 @@ export default function Room() {
                     {room.password ? t('room.private') : t('room.public')}
                 </Typography>
 
-                <Button 
-                    variant="contained" 
+                <Button
+                    variant="contained"
                     color="secondary"
                     size="small"
                     startIcon={<PersonAddIcon />}
@@ -872,10 +872,10 @@ export default function Room() {
             </Menu>
 
             {/* DIALOGUE D'INVITATION */}
-            <InviteDialog 
-                open={inviteOpen} 
-                onClose={() => setInviteOpen(false)} 
-                roomId={roomId} 
+            <InviteDialog
+                open={inviteOpen}
+                onClose={() => setInviteOpen(false)}
+                roomId={roomId}
             />
             {/* SNACKBAR */}
             <Snackbar

@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
+import { logMetric } from "../utils/metrics";
 
 import { passwordIssues } from '../utils/validators'
 
@@ -29,6 +30,7 @@ export default function Login() {
     setMsg('')
     try {
       await AuthService.signIn(email, { redirectTo: `${window.location.origin}/` })
+      logMetric("magic_link_sent", email)
       setMsg(t('auth.magic_sent'))
     } catch (err) {
       setMsg(err?.message || t('auth.signin_error'))
@@ -42,7 +44,8 @@ export default function Login() {
     setLoading(true)
     setMsg('')
     try {
-      await AuthService.signInWithPassword({ email, password: pw })
+      const { user } = await AuthService.signInWithPassword({ email, password: pw })
+      logMetric("user_login", user?.id)
       navigate('/')
     } catch (err) {
       setMsg(err?.message || t('auth.signin_error'))

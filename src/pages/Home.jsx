@@ -24,10 +24,10 @@ export default function Home() {
         sx={{
           width: "100vw",
           marginLeft: "calc(-50vw + 50%)",
-          height: { 
-            xs: "70vh", 
-            sm: "75vh", 
-            md: "650px" 
+          height: {
+            xs: "70vh",
+            sm: "75vh",
+            md: "650px"
           },
           minHeight: { xs: 500, sm: 600 },
           position: "relative",
@@ -90,9 +90,9 @@ export default function Home() {
           >
             <Box>
               <Typography
-                fontSize={{ 
-                  xs: "2rem", 
-                  sm: "2.4rem", 
+                fontSize={{
+                  xs: "2rem",
+                  sm: "2.4rem",
                   md: "2.8rem",
                   lg: "3.2rem"
                 }}
@@ -109,7 +109,7 @@ export default function Home() {
                 {t('homepage.homepage')},
               </Typography>
 
-              <Typography 
+              <Typography
                 fontSize={{ xs: "1rem", sm: "1.1rem", md: "1.2rem" }}
                 sx={{
                   opacity: 0.9,
@@ -124,10 +124,10 @@ export default function Home() {
                 {t('homepage.description')}
               </Typography>
 
-              <Stack 
-                direction={{ xs: "column", sm: "row" }} 
-                spacing={2} 
-                sx={{ 
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
+                sx={{
                   width: "100%",
                   maxWidth: { xs: "100%", sm: "400px" }
                 }}
@@ -150,6 +150,8 @@ export default function Home() {
 
                 <Button
                   variant="outlined"
+                  component={RouterLink}
+                  to="/rooms"
                   size={isMobile ? "medium" : "large"}
                   sx={{
                     color: "white",
@@ -182,8 +184,8 @@ export default function Home() {
             <Typography
               variant="h4"
               fontWeight={700}
-              sx={{ 
-                mb: { xs: 3, sm: 4 }, 
+              sx={{
+                mb: { xs: 3, sm: 4 },
                 textAlign: "center",
                 fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2rem" }
               }}
@@ -216,8 +218,8 @@ export default function Home() {
             <Typography
               variant="h4"
               fontWeight={700}
-              sx={{ 
-                mb: { xs: 3, sm: 4 }, 
+              sx={{
+                mb: { xs: 3, sm: 4 },
                 textAlign: "center",
                 fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2rem" }
               }}
@@ -246,11 +248,11 @@ export default function Home() {
 
           {/* CONTACT SECTION */}
           <Box>
-            <Typography 
-              variant="h4" 
-              fontWeight={700} 
-              sx={{ 
-                mb: { xs: 3, sm: 4 }, 
+            <Typography
+              variant="h4"
+              fontWeight={700}
+              sx={{
+                mb: { xs: 3, sm: 4 },
                 textAlign: "center",
                 fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2rem" }
               }}
@@ -280,23 +282,23 @@ export default function Home() {
 
           {/* MOBILE APP PROMO */}
           {isMobile && (
-            <Box sx={{ 
-              mt: 8, 
-              p: 3, 
-              borderRadius: 3, 
+            <Box sx={{
+              mt: 8,
+              p: 3,
+              borderRadius: 3,
               bgcolor: "rgba(155, 92, 255, 0.1)",
               border: "1px solid rgba(155, 92, 255, 0.3)",
               textAlign: "center"
             }}>
-              <Typography 
-                variant="h6" 
-                fontWeight={600} 
+              <Typography
+                variant="h6"
+                fontWeight={600}
                 sx={{ mb: 2, color: "#B17EFF" }}
               >
                 📱 {t('mobile_friendly')}
               </Typography>
-              <Typography 
-                variant="body2" 
+              <Typography
+                variant="body2"
                 sx={{ opacity: 0.9, mb: 2 }}
               >
                 {t('mobile_friendly_desc')}
@@ -305,14 +307,14 @@ export default function Home() {
           )}
 
           {/* CTA SECTION */}
-          <Box sx={{ 
-            mt: { xs: 8, md: 12 }, 
-            textAlign: "center" 
+          <Box sx={{
+            mt: { xs: 8, md: 12 },
+            textAlign: "center"
           }}>
-            <Typography 
-              variant="h5" 
-              fontWeight={700} 
-              sx={{ 
+            <Typography
+              variant="h5"
+              fontWeight={700}
+              sx={{
                 mb: 3,
                 fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.75rem" }
               }}
@@ -367,8 +369,8 @@ function InfoCard({ icon, title, subtitle, isMobile, contact = false }) {
         textAlign: isMobile ? "center" : "left"
       }}
     >
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           fontSize: contact ? { xs: "1.8rem", sm: "2rem" } : { xs: "1.6rem", sm: "1.8rem", md: "2rem" },
           color: "#B17EFF",
           mb: { xs: 1.5, sm: 2 }
@@ -377,14 +379,14 @@ function InfoCard({ icon, title, subtitle, isMobile, contact = false }) {
         {icon}
       </Box>
 
-      <Typography 
-        fontWeight={600} 
-        sx={{ 
+      <Typography
+        fontWeight={600}
+        sx={{
           mb: 1,
-          fontSize: { 
-            xs: contact ? "1.1rem" : "1rem", 
-            sm: contact ? "1.2rem" : "1.1rem", 
-            md: contact ? "1.3rem" : "1.2rem" 
+          fontSize: {
+            xs: contact ? "1.1rem" : "1rem",
+            sm: contact ? "1.2rem" : "1.1rem",
+            md: contact ? "1.3rem" : "1.2rem"
           }
         }}
       >
@@ -392,13 +394,13 @@ function InfoCard({ icon, title, subtitle, isMobile, contact = false }) {
       </Typography>
 
       {subtitle && (
-        <Typography 
-          sx={{ 
+        <Typography
+          sx={{
             opacity: 0.7,
-            fontSize: { 
-              xs: "0.85rem", 
-              sm: "0.9rem", 
-              md: "0.95rem" 
+            fontSize: {
+              xs: "0.85rem",
+              sm: "0.9rem",
+              md: "0.95rem"
             },
             lineHeight: 1.4,
             flex: 1

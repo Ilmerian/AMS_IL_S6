@@ -5,11 +5,18 @@ import { AuthContext } from './auth'
 import { AuthService } from '../services/AuthService'
 import { UserRepository } from '../repositories/UserRepository'
 import { cacheService } from '../services/CacheService'
+import { logMetric } from "../utils/metrics";
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (user) {
+      logMetric("user_connected", user.id);
+    }
+  }, [user]);
 
   // Charge le profil utilisateur depuis la DB
   const fetchProfile = useCallback(async (uid) => {
@@ -17,16 +24,16 @@ export default function AuthProvider({ children }) {
       setProfile(null);
       return;
     }
-    
+
     const cacheKey = `user_profile_${uid}`;
     const cached = cacheService.getMemory(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < 60000) {
       console.log(`[AuthProvider] Profile cache HIT for ${uid}`);
       setProfile(cached.data);
       return;
     }
-    
+
     try {
       console.log(`[AuthProvider] Profile cache MISS for ${uid}, fetching...`);
       const p = await UserRepository.getById(uid);
@@ -63,7 +70,7 @@ export default function AuthProvider({ children }) {
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (session?.user) {
           if (mounted) setUser(session.user)
           try {
@@ -100,7 +107,7 @@ export default function AuthProvider({ children }) {
         setUser(session.user)
         // On ne recharge le profil que s'il n'est pas déjà chargé ou si c'est un nouvel user
         if (!profile || profile.id !== session.user.id) {
-            await fetchProfile(session.user.id)
+          await fetchProfile(session.user.id)
         }
         setLoading(false)
       }
@@ -112,7 +119,7 @@ export default function AuthProvider({ children }) {
     }
     window.addEventListener('focus', handleFocus)
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') refreshSession()
+      if (document.visibilityState === 'visible') refreshSession()
     })
 
     return () => {
