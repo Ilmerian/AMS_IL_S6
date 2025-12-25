@@ -178,6 +178,10 @@
     "error_generic": "Невозможно загрузить этот зал.",
     "reload": "Заряжать",
     "playlist":"список воспроизведения",
+    "previous": "Предыдущий",
+    "next": "Следующий",
+    "archived_title": "Комната заархивирована",
+    "archived_message": "Эта комната заархивирована и больше недоступна.",
     "chat": "чат",
     "moderation":"модерация",
     "succes_sync": "🟢 Синхронизировано",
@@ -202,6 +206,7 @@
   },
   "roomCreate": {
     "title": "Создать комнату",
+    "error_name_exists": "Комната с таким названием уже существует",
     "subtitle": "Назовите комнату и при необходимости установите пароль, чтобы сделать её приватной.",
     "name_label": "Название комнаты",
     "name_placeholder": "Пятничный киносеанс",
@@ -222,6 +227,8 @@
   "rooms": {
     "titleMy": "Мои комнаты",
     "open": "ОТКРЫТЬ",
+    "showActive": "Показать Активные Rooms",
+    "showArchived": "Показать Архивные Rooms",    
     "live": "🔴 ПРЯМОЙ",
     "searchRoom": "Поиск гостиных...",
     "titlePublic": "Публичные комнаты",
@@ -233,17 +240,23 @@
       "public": "Публичная"
     },
     "aria": {
-      "deleteRoom": "Удалить комнату {{name}}"
+      "deleteRoom": "Удалить комнату {{name}}",
+      "archiveRoom": "Архивиктировать эту комноту {{name}}"
     },
     "dialog": {
       "deleteTitle": "Удалить комнату?",
       "deleteBody": "Это действие навсегда удалит «{{name}}».",
       "cancel": "Отмена",
       "deleting": "Удаление…",
-      "delete": "Удалить"
+      "delete": "Удалить",
+      "archiveTitle": "Архивиктировать комнату ?",
+      "archiveBody": "Скрыть это « {{name}} » список комнат. Данные сохранены.",
+      "archiving": "Archivage…",
+      "archive": "Archiver"
     },
     "errors": {
-      "deleteFailed": "Не удалось удалить"
+      "deleteFailed": "Не удалось удалить",
+      "archiveFailed": "Ошибка архивированния"
     }
   },
   "settings": {

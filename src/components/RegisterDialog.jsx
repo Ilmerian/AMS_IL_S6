@@ -16,6 +16,10 @@ import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Link from '@mui/material/Link'
+import TermsModal from '../pages/TermsModal'
 
 import InputAdornment from '@mui/material/InputAdornment'
 import Visibility from '@mui/icons-material/Visibility'
@@ -37,6 +41,8 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
   
   const [showPw, setShowPw] = useState(false)
   const [showPw2, setShowPw2] = useState(false)
+  const [acceptCgu, setAcceptCgu] = useState(false)
+  const [openTerms, setOpenTerms] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
@@ -53,12 +59,18 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
     setPw2('')
     setShowPw(false)
     setShowPw2(false)
+    setAcceptCgu(false)
+    setOpenTerms(false)
     onClose()
   }
 
   const onSubmit = async (e) => {
     e.preventDefault()
     setMsg('')
+    if (!acceptCgu) {
+      setMsg(t('auth.must_accept_cgu') || 'You must accept the Terms of Use (CGU).')
+      return
+    }
     if (mismatch) { 
       setMsg(t('auth.passwords_no_match')); 
       return 
@@ -201,7 +213,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                 required
                 fullWidth
                 size={isMobile ? "small" : "medium"}
-                disabled={loading}
+                disabled={loading || !acceptCgu}
                 InputProps={{
                   sx: {
                     fontSize: isMobile ? '0.875rem' : '1rem',
@@ -226,7 +238,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                   required
                   fullWidth
                   size={isMobile ? "small" : "medium"}
-                  disabled={loading}
+                  disabled={loading || !acceptCgu}
                   helperText={t('auth.policy_hint')}
                   InputProps={{
                     sx: {
@@ -240,7 +252,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                           edge="end"
                           sx={{ color: 'rgba(255,255,255,0.7)' }}
                           size={isMobile ? "small" : "medium"}
-                          disabled={loading}
+                          disabled={loading || !acceptCgu}
                         >
                           {showPw ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -266,7 +278,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                 required
                 fullWidth
                 size={isMobile ? "small" : "medium"}
-                disabled={loading}
+                disabled={loading || !acceptCgu}
                 error={Boolean(mismatch)}
                 helperText={mismatch ? t('auth.passwords_no_match') : ' '}
                 InputProps={{
@@ -281,7 +293,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                         edge="end"
                         sx={{ color: 'rgba(255,255,255,0.7)' }}
                         size={isMobile ? "small" : "medium"}
-                        disabled={loading}
+                        disabled={loading || !acceptCgu}
                       >
                         {showPw2 ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -329,12 +341,36 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                   {msg}
                 </Alert>
               )}
+              <TermsModal open={openTerms} onClose={() => setOpenTerms(false)} />
 
+              <FormControlLabel
+                sx={{ mt: 0.5 }}
+                control={
+                  <Checkbox
+                    checked={acceptCgu}
+                    onChange={(e) => setAcceptCgu(e.target.checked)}
+                    disabled={loading || !acceptCgu}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                    {t('auth.accept_cgu_prefix') || 'I accept the'}{' '}
+                    <Link
+                      component="button"
+                      type="button"
+                      onClick={() => setOpenTerms(true)}
+                      sx={{ fontWeight: 700 }}
+                    >
+                      {t('auth.cgu_link') || 'Terms of Use (CGU)'}
+                    </Link>
+                  </Typography>
+                }
+              />
               {/* REGISTER BUTTON */}
               <Button 
                 type="submit" 
                 variant="contained" 
-                disabled={loading} 
+                disabled={loading || !acceptCgu} 
                 size={isMobile ? "medium" : "large"}
                 fullWidth
                 sx={{

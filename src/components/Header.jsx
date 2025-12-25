@@ -438,15 +438,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
                   {t('nav.settings')}
                 </MenuItem>,
                 <MenuItem
-                  key="rooms"
-                  component={RouterLink}
-                  to="/rooms"
-                  onClick={() => setAnchorEl(null)}
-                  sx={{ fontSize: '0.9rem' }}
-                >
-                  {t('nav.myRooms')}
-                </MenuItem>,
-                <MenuItem
                   key="logout"
                   onClick={() => { void handleSignOut(false) }}
                   sx={{ fontSize: '0.9rem', color: 'error.main' }}

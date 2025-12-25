@@ -50,12 +50,15 @@ export default function Rooms() {
   const [carouselIndex, setCarouselIndex] = useState(0)
 
   const [toDelete, setToDelete] = useState(null)
+  const [toArchive, setToArchive] = useState(null)
+  const [toRestore, setToRestore] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [err, setErr] = useState('')
   const [onlineCounts, setOnlineCounts] = useState({});
 
   const load = async () => {
-    const cacheKey = `rooms_list_public_${user?.id || 'guest'}`;
+    const cacheKey = `rooms_list_${showArchived ? 'archived' : 'public'}_${user?.id || 'guest'}`;
     
     try {
       // First, we try from the persistent cache (5 minutes)
@@ -63,11 +66,12 @@ export default function Rooms() {
       if (cached && Date.now() - cached.timestamp < 300000) {
         console.log('[Rooms] Persistent cache HIT (5min)');
         setRooms(cached.data);
-        return;
       }
 
       if (!user) {
-        const pub = await RoomService.listPublic();
+        const pub = showArchived
+          ? await RoomService.listArchived()
+          : await RoomService.listPublic();
         setRooms(pub);
         // Saving the cache in persistent
         cacheService.setPersistent(cacheKey, {
@@ -75,7 +79,9 @@ export default function Rooms() {
           timestamp: Date.now()
         }, 300000);
       } else {
-        const pub = await RoomService.listPublic();
+        const pub = showArchived
+          ? await RoomService.listArchived()
+          : await RoomService.listPublic();
         setRooms(pub);
         cacheService.setPersistent(cacheKey, {
           data: pub,
@@ -88,7 +94,7 @@ export default function Rooms() {
     }
   }
 
-  useEffect(() => { load() }, [user])
+  useEffect(() => { load() }, [user, showArchived])
   // eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -241,9 +247,55 @@ export default function Rooms() {
     try {
       await RoomService.remove(toDelete.id)
       setToDelete(null)
+      const cacheKey = `rooms_list_public_${user?.id || 'guest'}`
+      cacheService.setPersistent(cacheKey, { data: [], timestamp: 0 }, 1)      
       await load()
     } catch (e) {
       setErr(e?.message || t('rooms.errors.deleteFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ARCHIVE
+  const confirmArchive = room => { setToArchive(room); setErr('') }
+  const cancelArchive = () => { setToArchive(null); setErr('') }
+
+  const doArchive = async () => {
+    setBusy(true)
+    try {
+      await RoomService.archive(toArchive.id)
+      setToArchive(null)
+
+      const cacheKey = `rooms_list_public_${user?.id || 'guest'}`
+      cacheService.setPersistent(cacheKey, { data: [], timestamp: 0 }, 1)
+
+      await load()
+    } catch (e) {
+      setErr(e?.message || t('rooms.errors.archiveFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // RESTORE (UNARCHIVE)
+  const confirmRestore = room => { setToRestore(room); setErr('') }
+  const cancelRestore = () => { setToRestore(null); setErr('') }
+
+  const doRestore = async () => {
+    setBusy(true)
+    try {
+      await RoomService.unarchive(toRestore.id)
+      setToRestore(null)
+
+      const kPub = `rooms_list_public_${user?.id || 'guest'}`
+      const kArch = `rooms_list_archived_${user?.id || 'guest'}`
+      cacheService.setPersistent(kPub, { data: [], timestamp: 0 }, 1)
+      cacheService.setPersistent(kArch, { data: [], timestamp: 0 }, 1)
+
+      await load()
+    } catch (e) {
+      setErr(e?.message || t('rooms.errors.restoreFailed'))
     } finally {
       setBusy(false)
     }
@@ -266,7 +318,16 @@ export default function Rooms() {
           {user ? t('rooms.titleMy') : t('rooms.titlePublic')}
         </Typography>
 
-        {user && (
+      {user && (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => { setShowArchived(v => !v); setCarouselIndex(0); }}
+            sx={{ borderRadius: 2 }}
+          >
+            {showArchived ? t('rooms.showActive') : t('rooms.showArchived')}
+          </Button>
+
           <Button component={RouterLink} to="/rooms/new" variant="contained"
             sx={{
               background: 'linear-gradient(90deg,#9147ff,#b07bff)',
@@ -274,7 +335,8 @@ export default function Rooms() {
             }}>
             + {t('rooms.newRoom')}
           </Button>
-        )}
+        </Box>
+      )}
       </Box>
 
       {/* SEARCH FIELD */}
@@ -689,25 +751,69 @@ export default function Rooms() {
                 </Box>
 
                 {user && user.id === r.ownerId && (
-                  <IconButton
-                    onClick={(e) => { e.preventDefault(); confirmDelete(r); }}
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "0.25s",
-                      "&:hover": {
-                        background: "rgba(255, 107, 138, 0.28)",
-                        transform: "scale(1.07)",
-                        boxShadow: "0 0 12px rgba(255, 107, 138, 0.28)",
-                      },
-                    }}
-                  >
-                    ✖
-                  </IconButton>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {showArchived ? (
+                      <IconButton
+                        onClick={(e) => { e.preventDefault(); confirmRestore(r); }}
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "0.25s",
+                          "&:hover": {
+                            background: "rgba(120, 255, 170, 0.18)",
+                            transform: "scale(1.07)",
+                            boxShadow: "0 0 12px rgba(120, 255, 170, 0.18)",
+                          },
+                        }}
+                      >
+                        ♻️
+                      </IconButton>
+                    ) : (
+                      <IconButton
+                        onClick={(e) => { e.preventDefault(); confirmArchive(r); }}
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "0.25s",
+                          "&:hover": {
+                            background: "rgba(155, 92, 255, 0.22)",
+                            transform: "scale(1.07)",
+                            boxShadow: "0 0 12px rgba(155, 92, 255, 0.22)",
+                          },
+                        }}
+                      >
+                        🗄️
+                      </IconButton>
+                    )}
+
+                    <IconButton
+                      onClick={(e) => { e.preventDefault(); confirmDelete(r); }}
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "0.25s",
+                        "&:hover": {
+                          background: "rgba(255, 107, 138, 0.28)",
+                          transform: "scale(1.07)",
+                          boxShadow: "0 0 12px rgba(255, 107, 138, 0.28)",
+                        },
+                      }}
+                    >
+                      ✖
+                    </IconButton>
+                  </Box>
                 )}
               </Box>
 
@@ -733,7 +839,42 @@ export default function Rooms() {
           </Button>
         </DialogActions>
       </Dialog>
-
+      {/* ARCHIVE dialog */}
+      <Dialog open={!!toArchive} onClose={cancelArchive}>
+        <DialogTitle>{t('rooms.dialog.archiveTitle')}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t('rooms.dialog.archiveBody', { name: toArchive?.name })}
+          </Typography>
+          {err && <Typography color="error">{err}</Typography>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelArchive} disabled={busy}>
+            {t('rooms.dialog.cancel')}
+          </Button>
+          <Button variant="contained" onClick={doArchive} disabled={busy}>
+            {busy ? t('rooms.dialog.archiving') : t('rooms.dialog.archive')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* RESTORE dialog */}
+      <Dialog open={!!toRestore} onClose={cancelRestore}>
+        <DialogTitle>{t('rooms.dialog.restoreTitle')}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t('rooms.dialog.restoreBody', { name: toRestore?.name })}
+          </Typography>
+          {err && <Typography color="error">{err}</Typography>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelRestore} disabled={busy}>
+            {t('rooms.dialog.cancel')}
+          </Button>
+          <Button variant="contained" onClick={doRestore} disabled={busy}>
+            {busy ? t('rooms.dialog.restoring') : t('rooms.dialog.restore')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box >
   )
 }

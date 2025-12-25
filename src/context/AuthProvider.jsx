@@ -1,5 +1,5 @@
 // src/context/AuthProvider.jsx
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { AuthContext } from './auth'
 import { AuthService } from '../services/AuthService'
@@ -9,14 +9,19 @@ import { logMetric } from "../utils/metrics";
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const userIdRef = useRef(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const lastMetricUserRef = useRef(null)
+
   useEffect(() => {
-    if (user) {
-      logMetric("user_connected", user.id);
-    }
-  }, [user]);
+    const uid = user?.id
+    if (!uid) return
+    if (lastMetricUserRef.current === uid) return
+    lastMetricUserRef.current = uid
+    logMetric("user_connected", uid)
+  }, [user?.id])
 
   // Charge le profil utilisateur depuis la DB
   const fetchProfile = useCallback(async (uid) => {
@@ -47,21 +52,28 @@ export default function AuthProvider({ children }) {
   const refreshSession = useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.getSession()
-      if (error || !data.session) {
-        // Si la session est morte, on nettoie
+      const sessionUser = (!error && data?.session?.user) ? data.session.user : null
+
+      if (!sessionUser) {
         setUser(null)
         setProfile(null)
-      } else {
-        // Si l'utilisateur a changé (rare) ou si on veut être sûr d'avoir les dernières infos
-        if (data.session.user.id !== user?.id) {
-          setUser(data.session.user)
-          fetchProfile(data.session.user.id)
-        }
+        userIdRef.current = null
+        return
+      }
+
+      if (sessionUser.id !== userIdRef.current) {
+        userIdRef.current = sessionUser.id
+        setUser(sessionUser)
+        fetchProfile(sessionUser.id)
       }
     } catch (error) {
       console.warn('[AuthProvider] refreshSession error:', error)
     }
-  }, [user, fetchProfile])
+  }, [fetchProfile])
+
+  useEffect(() => {
+    userIdRef.current = user?.id || null
+  }, [user?.id])
 
   useEffect(() => {
     let mounted = true
@@ -127,7 +139,7 @@ export default function AuthProvider({ children }) {
       subscription.unsubscribe()
       window.removeEventListener('focus', handleFocus)
     }
-  }, [fetchProfile, refreshSession])
+  }, [])
 
   const value = useMemo(() => ({ user, profile, loading }), [user, profile, loading])
 

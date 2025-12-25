@@ -5,6 +5,10 @@ import { AuthService } from '../services/AuthService'
 import PasswordStrength from '../components/PasswordStrength'
 import { passwordIssues, isPasswordStrong } from '../utils/validators'
 
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Link from '@mui/material/Link'
+import TermsModal from './TermsModal'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
@@ -16,6 +20,8 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
+  const [acceptCgu, setAcceptCgu] = useState(false)
+  const [openTerms, setOpenTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -25,6 +31,10 @@ export default function Register() {
   const onSubmit = async (e) => {
     e.preventDefault()
     setMsg('')
+    if (!acceptCgu) { 
+      setMsg(t('auth.must_accept_cgu') || 'You must accept the Terms of Use (CGU).'); 
+      return 
+    }
     if (mismatch) { setMsg(t('auth.passwords_no_match')); return }
     if (!isPasswordStrong(pw)) { setMsg(t('auth.password_too_weak')); return }
 
@@ -87,9 +97,32 @@ export default function Register() {
               {issues.map((k) => <li key={k}>{t(`password.issue.${k}`, k)}</li>)}
             </Box>
           )}
+          <TermsModal open={openTerms} onClose={() => setOpenTerms(false)} />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={acceptCgu}
+                onChange={(e) => setAcceptCgu(e.target.checked)}
+                disabled={loading || !acceptCgu}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                {t('auth.accept_cgu_prefix') || 'I accept the'}{' '}
+                <Link
+                  component="button"
+                  type="button"
+                  onClick={() => setOpenTerms(true)}
+                  sx={{ fontWeight: 700 }}
+                >
+                  {t('auth.cgu_link') || 'Terms of Use (CGU)'}
+                </Link>
+              </Typography>
+            }
+          />
 
           <Stack direction="row" spacing={1}>
-            <Button type="submit" variant="contained" disabled={loading}>
+            <Button type="submit" variant="contained" disabled={loading || !acceptCgu}>
               {loading ? t('auth.creating') : t('auth.create_account')}
             </Button>
             <Button href="/login" variant="outlined">

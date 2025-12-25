@@ -199,7 +199,11 @@
     "error_generic": "Impossible de charger cette salle.",
     "reload": "Recharger",
     "playlist":"playlist",
+    "previous": "Précédent",
+    "next": "Suivant",
     "chat": "chat",
+    "archived_title": "Salon archivé",
+    "archived_message": "Ce salon a été archivé et n’est plus accessible.",
     "moderation": "moderation",
     "succes_sync": "🟢 Synchronisé",
     "wait_sync": "🟡 Connexion...",
@@ -223,6 +227,7 @@
   },
   "roomCreate": {
     "title": "Créer un salon",
+    "error_name_exists": "This room name already exists",
     "subtitle": "Donnez un nom à votre salon et définissez éventuellement un mot de passe pour le rendre privé.",
     "name_label": "Nom du salon",
     "name_placeholder": "Soirée cinéma du vendredi",
@@ -244,6 +249,8 @@
     "titleMy": "Mes salons",
     "open": "OUVRIR",
     "live": "🔴 DIRECT",
+    "showActive": "Montrer Active Rooms",
+    "showArchived": "Monter Archive Rooms",
     "titlePublic": "Salons publics",
     "newRoom": "Nouveau salon",
     "emptyMy": "Aucun salon pour l’instant.",
@@ -253,17 +260,23 @@
       "public": "Public"
     },
     "aria": {
-      "deleteRoom": "Supprimer le salon {{name}}"
+      "deleteRoom": "Supprimer le salon {{name}}",
+      "archiveRoom": "Archiver le salon {{name}}"
     },
     "dialog": {
       "deleteTitle": "Supprimer le salon ?",
       "deleteBody": "Cela supprimera définitivement « {{name}} ».",
       "cancel": "Annuler",
       "deleting": "Suppression…",
-      "delete": "Supprimer"
+      "delete": "Supprimer",
+      "archiveTitle": "Archiver le salon ?",
+      "archiveBody": "Cela va masquer « {{name}} » de la liste des salons. Les données restent conservées.",
+      "archiving": "Archivage…",
+      "archive": "Archiver"      
     },
     "errors": {
-      "deleteFailed": "Échec de la suppression"
+      "deleteFailed": "Échec de la suppression",
+      "archiveFailed": "Échec de l’archivage"      
     }
   },
   "settings": {

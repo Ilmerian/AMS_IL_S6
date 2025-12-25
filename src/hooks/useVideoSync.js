@@ -20,6 +20,7 @@ export function useVideoSync({ roomId, user }) {
   
   const localProgressRef = useRef(0);
   const syncIntervalRef = useRef(null);
+  const lastHistoryVideoRef = useRef(null);
 
   // =========================================================================
   // 1. POLLING SYNC
@@ -164,6 +165,27 @@ export function useVideoSync({ roomId, user }) {
         isPlaying: true
       });
       console.log(`[DB UPDATE] Video changed to: ${cleanId}`);
+      try {
+        if (lastHistoryVideoRef.current === cleanId) {
+          console.log('[video_history] skip duplicate:', cleanId)
+        } else {
+          lastHistoryVideoRef.current = cleanId
+
+          console.log('[video_history] inserting:', { roomId, cleanId, userId: safeUser.id })
+
+          await RoomService.addVideoHistory({
+            roomId: Number(roomId),
+            youtubeId: cleanId,
+            videoUrl: `https://www.youtube.com/watch?v=${cleanId}`,
+            videoTitle: null,
+            userId: safeUser.id || null,
+          })
+
+          console.log('[video_history] insert OK:', cleanId)
+        }
+      } catch (e) {
+        console.warn('[video_history] insert FAILED:', e)
+      }
     } catch (e) {
       console.error(`[DB UPDATE] Failed:`, e);
       setSyncVideoId(null);

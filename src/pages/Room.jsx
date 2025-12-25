@@ -21,11 +21,16 @@ import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import PlaylistPanel from '../components/PlaylistPanel';
+import { RoomService } from '../services/RoomService'
 
 // IMPORT DU NOUVEAU HOOK
 import { useVideoSync } from '../hooks/useVideoSync';
 
 // UI Imports
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
@@ -104,7 +109,7 @@ function ControlStatus({ controlInfo, user }) {
             <Button
                 size="small"
                 variant="contained"
-                onClick={controlInfo.takeLeadership}
+                onClick={() => (controlInfo.requirePin ? controlInfo.requirePin(controlInfo.takeLeadership) : controlInfo.takeLeadership())}
                 sx={{ ml: 1 }}
             >
                 {t('room.take_control')}
@@ -167,6 +172,22 @@ export default function Room() {
     }, [user, authLoading, openLogin]);
     const [membersLoading, setMembersLoading] = useState(false);
     const [isModerator, setIsModerator] = useState(false);
+    const [pinOpen, setPinOpen] = useState(false);
+    const [pinValue, setPinValue] = useState('');
+    const [pinError, setPinError] = useState('');
+    const [pinOk, setPinOk] = useState(false);
+    const [pinMode, setPinMode] = useState('verify'); // 'verify' | 'set'
+
+    const pendingActionRef = useRef(null);
+    const pinOkRef = useRef(false);
+    useEffect(() => { pinOkRef.current = pinOk; }, [pinOk]);
+    useEffect(() => {
+        setPinOk(false);
+        setPinValue('');
+        setPinError('');
+        setPinOpen(false);
+        pendingActionRef.current = null;
+    }, [roomId]);
 
     const isProduction = typeof window !== 'undefined' &&
         window.location.hostname !== 'localhost' &&
@@ -174,6 +195,22 @@ export default function Room() {
 
     // UI States
     const [activeTab, setActiveTab] = useState('playlist');
+    const [history, setHistory] = useState([])
+    const [historyLoading, setHistoryLoading] = useState(false)
+
+    const loadHistory = useCallback(async () => {
+    if (!roomId) return
+    setHistoryLoading(true)
+    try {
+        const rows = await RoomService.getVideoHistoryForRoom(roomId)
+        setHistory(rows || [])
+    } catch (e) {
+        console.warn('[Room] loadHistory failed:', e?.message || e)
+        setHistory([])
+    } finally {
+        setHistoryLoading(false)
+    }
+    }, [roomId])
     const [pw, setPw] = useState('');
     const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -187,6 +224,105 @@ export default function Room() {
         refresh,
         verifyPassword,
     } = useRoom(roomId);
+    const isPinEnabled = !!room?.parental_pin_enabled;
+    const closePinDialog = useCallback(() => {
+        setPinOpen(false);
+        setPinValue('');
+        setPinError('');
+        pendingActionRef.current = null;
+    }, []);
+
+    const requirePin = useCallback((actionFn) => {
+    if (typeof actionFn !== 'function') {
+        console.warn('[requirePin] actionFn is not a function:', actionFn);
+        return;
+    }
+
+    if (!isPinEnabled) return actionFn();
+    if (pinOkRef.current) return actionFn();
+
+    pendingActionRef.current = actionFn;
+    setPinMode('verify');
+    setPinError('');
+    setPinOpen(true);
+    }, [isPinEnabled]);
+
+    const submitPin = useCallback(async () => {
+        try {
+            setPinError('');
+            const ok = await RoomService.verifyRoomPin(roomId, pinValue);
+
+            if (!ok) {
+                setPinError(t('room.pin_invalid', 'Invalid PIN'));
+                return;
+            }
+
+            setPinOk(true);
+            setPinOpen(false);
+
+            const fn = pendingActionRef.current;
+            pendingActionRef.current = null;
+            if (fn) fn();
+        } catch (e) {
+            setPinError(e?.message || t('auth.error', 'Error'));
+        }
+    }, [roomId, pinValue, t]);
+
+    const handleSavePin = useCallback(async () => {
+    if (!roomId) {
+        setSnackbar({ open: true, message: 'roomId is missing', severity: 'error' });
+        return;
+    }
+    if (!user) {
+        setSnackbar({ open: true, message: t('auth.login_required', 'Login required'), severity: 'warning' });
+        return;
+    }
+
+    try {
+        setPinError('');
+        await RoomService.setRoomPin(roomId, pinValue);
+
+        setPinOk(true);
+        setPinOpen(false);
+        setPinValue('');
+
+        await refresh(); // IMPORTANT
+        setSnackbar({ open: true, message: t('room.pin_saved', 'PIN saved'), severity: 'success' });
+    } catch (e) {
+        console.error('[PIN] save failed:', e);
+        const msg = e?.message || 'Save failed (check Network tab / RLS)';
+        setPinError(msg);
+        setSnackbar({ open: true, message: msg, severity: 'error' });
+    }
+    }, [roomId, user, pinValue, refresh, t]);
+
+    const handleDisablePin = useCallback(async () => {
+    if (!roomId) {
+        setSnackbar({ open: true, message: 'roomId is missing', severity: 'error' });
+        return;
+    }
+    if (!user) {
+        setSnackbar({ open: true, message: t('auth.login_required', 'Login required'), severity: 'warning' });
+        return;
+    }
+
+    try {
+        setPinError('');
+        await RoomService.disableRoomPin(roomId);
+
+        setPinOk(false);
+        setPinOpen(false);
+        setPinValue('');
+
+        await refresh(); // IMPORTANT
+        setSnackbar({ open: true, message: t('room.pin_disabled', 'PIN disabled'), severity: 'success' });
+    } catch (e) {
+        console.error('[PIN] disable failed:', e);
+        const msg = e?.message || 'Disable failed (check Network tab / RLS)';
+        setPinError(msg);
+        setSnackbar({ open: true, message: msg, severity: 'error' });
+    }
+    }, [roomId, user, refresh, t]);
 
     // Moderation States
     const [members, setMembers] = useState([]);
@@ -236,10 +372,12 @@ export default function Room() {
         room,
         roomId,
         accessGranted: !needPw || checked,
-        syncVideoId: syncVideoId
+        canControlVideo
     })
 
-    const handleAddVideo = addVideoByRawUrl;
+    const handleAddVideo = useCallback((value) => {
+        requirePin(() => addVideoByRawUrl(value));
+    }, [requirePin, addVideoByRawUrl]);
     const handleVideoEnded = useCallback(() => {
         console.log('Video ended, playing next...')
         playNextVideo()
@@ -364,6 +502,11 @@ export default function Room() {
     }, [roomId, user, room?.ownerId, t, isProduction, userRole]);
 
     useEffect(() => {
+        if (activeTab !== 'history') return
+        loadHistory()
+    }, [activeTab, loadHistory])
+
+    useEffect(() => {
         if (!user || !room || membersLoading) {
             setIsModerator(false);
             return;
@@ -398,10 +541,14 @@ export default function Room() {
 
     const handleVideoSelect = useCallback(async (url) => {
         const videoId = getYouTubeId(url);
-        if (videoId && canControlVideo) {
-            changeVideo(`https://www.youtube.com/watch?v=${videoId}`);
-        }
-    }, [canControlVideo, changeVideo])
+        if (!videoId) return;
+
+        requirePin(() => {
+            if (canControlVideo) {
+                changeVideo(`https://www.youtube.com/watch?v=${videoId}`);
+            }
+        });
+    }, [requirePin, canControlVideo, changeVideo]);
 
     // useEffect to clear the cache when unmounting:
     useEffect(() => {
@@ -603,7 +750,7 @@ export default function Room() {
 
             {user && controlInfo && (
                 <Box sx={{ mb: 2 }}>
-                    <ControlStatus controlInfo={controlInfo} user={user} />
+                    <ControlStatus controlInfo={{ ...controlInfo, requirePin }} user={user} />
                 </Box>
             )}
             {user && (
@@ -651,6 +798,22 @@ export default function Room() {
                 >
                     Inviter
                 </Button>
+
+                {canControlVideo && (
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                            setPinMode('set');
+                            setPinError('');
+                            setPinValue('');
+                            setPinOpen(true);
+                        }}
+                        sx={{ borderRadius: 20, px: 2 }}
+                    >
+                        PIN
+                    </Button>
+                )}
             </Stack>
 
             {/* PASSWORD FORM */}
@@ -698,8 +861,8 @@ export default function Room() {
                                 }
                                 playing={syncIsPlaying}
                                 canControl={canControlVideo}
-                                onPlay={triggerPlay}
-                                onPause={triggerPause}
+                                onPlay={() => requirePin(() => triggerPlay())}
+                                onPause={() => requirePin(() => triggerPause())}
                                 onSeek={triggerSeek}
                                 onProgress={updateLocalProgress}
                                 seekToTimestamp={seekTimestamp}
@@ -712,28 +875,32 @@ export default function Room() {
                                     <Button
                                         variant="outlined"
                                         onClick={() => {
-                                            const videoIdToUse = syncVideoId || currentVideoId;
-                                            const prevVideo = getPrevVideo(videoIdToUse);
-                                            if (prevVideo?.url) {
-                                                changeVideo(prevVideo.url);
-                                            }
+                                            requirePin(() => {
+                                                const videoIdToUse = syncVideoId || currentVideoId;
+                                                const prevVideo = getPrevVideo(videoIdToUse);
+                                                if (prevVideo?.url) {
+                                                    changeVideo(prevVideo.url);
+                                                }
+                                            });
                                         }}
                                         disabled={!currentVideoId && !syncVideoId}
                                     >
-                                        Previous
+                                        {t('room.previous')}
                                     </Button>
                                     <Button
                                         variant="outlined"
                                         onClick={() => {
-                                            const videoIdToUse = syncVideoId || currentVideoId;
-                                            const nextVideo = getNextVideo(videoIdToUse);
-                                            if (nextVideo?.url) {
-                                                changeVideo(nextVideo.url);
-                                            }
+                                            requirePin(() => {
+                                                const videoIdToUse = syncVideoId || currentVideoId;
+                                                const nextVideo = getNextVideo(videoIdToUse);
+                                                if (nextVideo?.url) {
+                                                    changeVideo(nextVideo.url);
+                                                }
+                                            });
                                         }}
                                         disabled={!currentVideoId && !syncVideoId}
                                     >
-                                        Next
+                                        {t('room.next')}
                                     </Button>
                                 </Box>
                             )}
@@ -767,6 +934,7 @@ export default function Room() {
                                 >
                                     <Tab label={t('room.playlist')} value="playlist" />
                                     <Tab label={t('room.chat')} value="chat" />
+                                    <Tab label={t('room.history', 'History')} value="history" />
                                     {isModerator && <Tab label={t('room.moderation')} value="moderation" />}
                                 </Tabs>
                             </Box>
@@ -788,6 +956,50 @@ export default function Room() {
                                         <Box sx={{ height: '100%', minHeight: 300 }}>
                                             <ChatBox roomId={roomId} isBanned={isBanned} />
                                         </Box>
+                                    )}
+                                    
+                                    {activeTab === 'history' && (
+                                    <Box sx={{ height: '100%', overflowY: 'auto', px: 1, py: 1 }}>
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                                        <Typography variant="h6">
+                                            {t('room.history', 'History')}
+                                        </Typography>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={loadHistory}
+                                            disabled={historyLoading}
+                                        >
+                                            {t('common.refresh', 'Refresh')}
+                                        </Button>
+                                        </Stack>
+
+                                        {historyLoading ? (
+                                        <Typography sx={{ opacity: 0.8 }}>
+                                            {t('common.loading', 'Loading...')}
+                                        </Typography>
+                                        ) : history.length === 0 ? (
+                                        <Typography sx={{ opacity: 0.8 }}>
+                                            {t('room.history_empty', 'No videos watched yet in this room.')}
+                                        </Typography>
+                                        ) : (
+                                        <List dense>
+                                            {history.map((h) => {
+                                            const title = h.video_title || h.video_url || `YouTube: ${h.video_youtube_id}`
+                                            const when = h.created_at ? new Date(h.created_at).toLocaleString() : ''
+
+                                            return (
+                                                <ListItem key={h.id || `${h.video_youtube_id}-${h.created_at}`}>
+                                                <ListItemText
+                                                    primary={title}
+                                                    secondary={when}
+                                                />
+                                                </ListItem>
+                                            )
+                                            })}
+                                        </List>
+                                        )}
+                                    </Box>
                                     )}
 
                                     {activeTab === 'moderation' && isModerator && (
@@ -887,6 +1099,72 @@ export default function Room() {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
-        </Section>
+            {/* PIN DIALOG */}
+            <Dialog open={pinOpen} onClose={closePinDialog} maxWidth="xs" fullWidth>
+            <DialogTitle>
+                {pinMode === 'set'
+                ? t('room.pin_set_title', 'Set / Change PIN')
+                : t('room.pin_enter_title', 'Enter PIN')}
+            </DialogTitle>
+
+            <DialogContent>
+                <TextField
+                autoFocus
+                fullWidth
+                margin="dense"
+                label={t('room.pin_label', 'PIN')}
+                value={pinValue}
+                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputProps={{ inputMode: 'numeric' }}
+                type="password"
+                error={!!pinError}
+                helperText={pinError || ' '}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                    if (pinMode === 'set') {
+                        (async () => {
+                        try {
+                            setPinError('');
+                            await RoomService.setRoomPin(roomId, pinValue);
+                            setPinOk(true);
+                            setPinOpen(false);
+                            setPinValue('');
+                        } catch (err) {
+                            setPinError(err?.message || t('auth.error', 'Error'));
+                        }
+                        })();
+                    } else {
+                        submitPin();
+                    }
+                    }
+                }}
+                />
+            </DialogContent>
+
+            <DialogActions>
+                <Button onClick={closePinDialog}>
+                {t('common.cancel', 'Cancel')}
+                </Button>
+
+                {pinMode === 'set' && (
+                    <Button variant="outlined" onClick={handleDisablePin}>
+                    {t('room.pin_disable', 'Disable')}
+                    </Button>
+                )}
+
+            <Button
+                variant="contained"
+                disabled={pinValue.length < 4}
+                onClick={() => {
+                    if (pinMode === 'set') handleSavePin();
+                    else submitPin();
+                }}
+                >
+                {pinMode === 'set' ? t('common.save', 'Save') : t('common.verify', 'Verify')}
+            </Button>
+            </DialogActions>
+            </Dialog>
+
+            </Section>
     );
 }

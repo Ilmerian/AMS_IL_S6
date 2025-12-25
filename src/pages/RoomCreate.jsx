@@ -93,10 +93,19 @@ export default function RoomCreate() {
       
     } catch (err) {
       console.error('Room creation error:', err)
-      showMessage(
-        err?.message || t('roomCreate.error_creating') || 'Failed to create room. Please try again.',
-        'error'
-      )
+
+      const code = err?.code || err?.message;
+
+      if (code === 'ROOM_NAME_EXISTS') {
+        showMessage(t('roomCreate.error_name_exists') || 'This room name already exists', 'error')
+      } else if (code === 'ROOM_NAME_REQUIRED') {
+        showMessage(t('roomCreate.error_name_required') || 'Room name is required', 'error')
+      } else {
+        showMessage(
+          err?.message || t('roomCreate.error_creating') || 'Failed to create room. Please try again.',
+          'error'
+        )
+      }
     } finally {
       setLoading(false)
     }

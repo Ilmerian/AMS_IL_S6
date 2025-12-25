@@ -184,6 +184,10 @@
     "deny_sync": "🔴 Connection problem",
     "error_generic" :"Unable to load this room. ",
     "not_found" :"room not found",
+    "previous": "Previous",
+    "next": "Next",
+    "archived_title": "Room archived",
+    "archived_message": "This room has been archived and is no longer accessible.",
     "take_control": "Take Control",
     "banned_title": "Access denied",
     "banned_message": "You have been banned from this room. It is impossible to re-enter.",
@@ -202,6 +206,7 @@
   },
   "roomCreate": {
     "title": "Create a room",
+    "error_name_exists": "This room name already exists",
     "subtitle": "Name your room and optionally set a password to make it private.",
     "name_label": "Room name",
     "name_placeholder": "Friday Movie Night",
@@ -222,6 +227,8 @@
   "rooms": {
     "titleMy": "My Rooms",
     "open": "OPEN",
+    "showActive": "Show Active Rooms",
+    "showArchived": "Show Archive Rooms",
     "live": "🔴 LIVE",
     "searchRoom": "search room...",
     "titlePublic": "Public Rooms",
@@ -233,17 +240,23 @@
       "public": "Public"
     },
     "aria": {
-      "deleteRoom": "Delete room {{name}}"
+      "deleteRoom": "Delete room {{name}}",
+      "archiveRoom": "Archive room {{name}}"
     },
     "dialog": {
       "deleteTitle": "Delete room?",
       "deleteBody": "This will remove \"{{name}}\" permanently.",
       "cancel": "Cancel",
       "deleting": "Deleting…",
-      "delete": "Delete"
+      "delete": "Delete",
+      "archiveTitle": "Archive room?",
+      "archiveBody": "This will hide \"{{name}}\" from the rooms list. You can keep its data.",
+      "archiving": "Archiving…",
+      "archive": "Archive"      
     },
     "errors": {
-      "deleteFailed": "Delete failed"
+      "deleteFailed": "Delete failed",
+      "archiveFailed": "Archive failed"
     }
   },
   "settings": {

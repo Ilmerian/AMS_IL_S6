@@ -5,14 +5,11 @@ import { VideoService } from '../services/VideoService'
 import { getYouTubeId, toWatchUrl, toEmbedUrl } from '../utils/youtube'
 import { PlaybackRepository } from '../repositories/PlaybackRepository'
 import { cacheService } from '../services/CacheService';
+import { RoomService } from '../services/RoomService'
+import { supabase } from '../lib/supabaseClient'
 
-function extractIdFromStoredValue(val) {
-  if (!val) return null
-  if (/^https?:\/\//.test(String(val))) return getYouTubeId(val)
-  return val
-}
-
-export function usePlaylistForRoom({ room, roomId, accessGranted }) {
+export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVideo}) {
+  const stableRoomId = room?.id || roomId
   const [playlistId, setPlaylistId] = useState(null)
   const [embedUrl, setEmbedUrl] = useState(null)
   const [currentVideoId, setCurrentVideoId] = useState(null)
@@ -20,98 +17,71 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
   const retryCountRef = useRef(new Map())
 
   useEffect(() => {
-    if (!room || !accessGranted) return;
-    
+    if (!stableRoomId || !accessGranted) return
+
     const loadData = async () => {
-      const cacheKey = `playlist_room_${roomId}`;
-      
+      const cacheKey = `playlist_room_${stableRoomId}`
+
       try {
-        // Check the cache
-        const cached = cacheService.getMemory(cacheKey);
+        const cached = cacheService.getMemory(cacheKey)
         if (cached && Date.now() - cached.timestamp < 30000) {
-          console.log(`[usePlaylistForRoom] Cache hit for room ${roomId}`);
-          setPlaylistId(cached.playlistId);
-          setPlaylistItems(cached.videos);
-          
-          // Restore the current video from the cache
+          console.log(`[usePlaylistForRoom] Cache hit for room ${stableRoomId}`)
+          setPlaylistId(cached.playlistId)
+          setPlaylistItems(cached.videos)
+
           if (cached.currentVideoId) {
-            setCurrentVideoId(cached.currentVideoId);
-            setEmbedUrl(toEmbedUrl(cached.currentVideoId));
+            setCurrentVideoId(cached.currentVideoId)
+            setEmbedUrl(toEmbedUrl(cached.currentVideoId))
           }
-          return;
+          return
         }
 
-        const list = await PlaylistService.listByRoom(roomId);
-        let pl = list[0];
+        const list = await PlaylistService.listByRoom(stableRoomId)
+        let pl = list[0]
         if (!pl) {
-          pl = await PlaylistService.create({ roomId, name: 'Default' });
+          pl = await PlaylistService.create({ roomId: stableRoomId, name: 'Default' })
         }
-        setPlaylistId(pl?.id || null);
+        setPlaylistId(pl?.id || null)
 
-        // Load playlist items
-        const { videos } = await PlaylistService.loadItems(pl.id);
-        setPlaylistItems(videos);
+        const { videos } = await PlaylistService.loadItems(pl.id)
+        setPlaylistItems(videos)
 
-        // Check current playback state
-        const playback = await PlaybackRepository.getCurrentPlayback(roomId);
+        const playback = await PlaybackRepository.getCurrentPlayback(stableRoomId)
         if (playback?.video_id) {
-          const currentVideo = videos.find(v => v.id === playback.video_id);
+          const currentVideo = videos.find(v => v.id === playback.video_id)
           if (currentVideo) {
-            const yid = getYouTubeId(currentVideo.url);
+            const yid = getYouTubeId(currentVideo.url)
             if (yid) {
-              setCurrentVideoId(yid);
-              setEmbedUrl(toEmbedUrl(yid));
-              
-              // Save to the cache with the current video
+              setCurrentVideoId(yid)
+              setEmbedUrl(toEmbedUrl(yid))
+
               cacheService.setMemory(cacheKey, {
                 timestamp: Date.now(),
                 playlistId: pl?.id,
-                videos: videos,
+                videos,
                 currentVideoId: yid
-              }, 30000);
-              return;
+              }, 30000)
+              return
             }
           }
         }
 
-        // Fallback to last video
-        const last = pl?.videoIds?.slice(-1)[0];
-        if (last) {
-          const stored = extractIdFromStoredValue(last);
-          if (stored && !/^https?:\/\//.test(String(stored)) && !/^[\w-]{6,}$/.test(String(stored))) {
-            const video = await VideoService.getById(stored);
-            const yid = getYouTubeId(video?.url);
-            if (yid) {
-              setCurrentVideoId(yid);
-              setEmbedUrl(toEmbedUrl(yid));
-            }
-          } else {
-            const yid = getYouTubeId(stored) || stored;
-            if (yid) {
-              setCurrentVideoId(yid);
-              setEmbedUrl(toEmbedUrl(yid));
-            }
-          }
-        } else {
-          setEmbedUrl(null);
-          setCurrentVideoId(null);
-        }
+        setEmbedUrl(null)
+        setCurrentVideoId(null)
 
-        // Save in cache
         cacheService.setMemory(cacheKey, {
           timestamp: Date.now(),
           playlistId: pl?.id,
-          videos: videos,
+          videos,
           currentVideoId: null
-        }, 30000);
-
+        }, 30000)
       } catch (e) {
-        console.warn('[usePlaylistForRoom] init failed:', e?.message || e);
+        console.warn('[usePlaylistForRoom] init failed:', e?.message || e)
       }
-    };
+    }
 
-    loadData();
-  }, [room, accessGranted, roomId]);
+    loadData()
+  }, [stableRoomId, accessGranted])
 
   // ---------------------------------------------------------
   // C'EST ICI QUE LA MAGIE OPERE (Fonction Modifiée)
@@ -194,10 +164,24 @@ export function usePlaylistForRoom({ room, roomId, accessGranted }) {
       
       // Save to playback state
       await PlaybackRepository.setCurrentPlayback(roomId, playlistId, videoId);
+      if (canControlVideo) {
+        try {
+          const { data } = await supabase.auth.getUser()
+          await RoomService.addVideoHistory({
+            roomId,
+            youtubeId: yid,
+            videoUrl: video.url,
+            videoTitle: video.title,
+            userId: data?.user?.id || null
+          })
+        } catch (e) {
+          console.warn('[usePlaylistForRoom] addVideoHistory failed:', e)
+        }
+      }     
     } catch (error) {
       console.error('Failed to play video:', error);
     }
-  }, [playlistId, playlistItems, roomId])
+  }, [playlistId, playlistItems, roomId, canControlVideo])
 
   const getNextVideo = useCallback((targetVideoId = currentVideoId) => {
     if (!playlistItems.length) return null

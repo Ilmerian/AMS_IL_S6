@@ -1,6 +1,7 @@
 // src/services/RoomService.js
 import { RoomRepository } from '../repositories/RoomRepository';
 import { RoleRepository } from '../repositories/RoleRepository';
+import { VideoRepository } from '../repositories/VideoRepository'
 import { supabase } from '../lib/supabaseClient';
 
 export const RoomService = {
@@ -10,7 +11,7 @@ export const RoomService = {
     try {
       const { data, error } = await supabase
         .from('rooms')
-        .select('room_id, name, owner_id, current_video_id, is_playing, password')
+        .select('room_id, name, owner_id, current_video_id, is_playing, password, archived_at')
         .eq('room_id', roomId)
         .single();
       
@@ -29,7 +30,8 @@ export const RoomService = {
         // CORRECTION ICI : on renomme 'has_password' en 'hasPassword'
         // et on passe aussi 'password' si besoin pour d'autres vérifications
         hasPassword: !!data.password, 
-        password: data.password 
+        password: data.password,
+        archivedAt: data.archived_at,
       };
     } catch (error) {
       console.error('RoomService.get error:', error);
@@ -41,6 +43,12 @@ export const RoomService = {
   listPublic: (query = '') => RoomRepository.listPublic(query),
   updatePosition: (roomId, position) => RoomRepository.updatePosition(roomId, position),
   archive: (id) => RoomRepository.archive(id),
+  unarchive: (id) => RoomRepository.unarchive(id),
+  listArchived: () => RoomRepository.listArchived(),
+  addVideoHistory: (args) => RoomRepository.addVideoHistory(args),
+  setRoomPin: (roomId, pin) => RoomRepository.setRoomPin(roomId, pin),
+  verifyRoomPin: (roomId, pin) => RoomRepository.verifyRoomPin(roomId, pin),
+  disableRoomPin: (roomId) => RoomRepository.disableRoomPin(roomId),
   setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),
   pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
 
@@ -112,16 +120,11 @@ export const RoomService = {
   },
   
   async getVideoHistoryForRoom(roomId) {
-      const { data, error } = await supabase
-        .from("video_history")
-        .select("*")
-        .eq("room_id", roomId)
-        .order("created_at", { ascending: true });
-  
-      if (error) {
-        console.error("Error loading video history:", error);
-        return [];
-      }
-      return data || [];
+    try {
+      return await RoomRepository.getVideoHistoryForRoom(roomId)
+    } catch (e) {
+      console.error('RoomService.getVideoHistoryForRoom error:', e)
+      return []
     }
+  },
 };

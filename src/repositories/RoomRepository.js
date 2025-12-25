@@ -10,11 +10,12 @@ export const RoomRepository = {
     const user = data?.user;
     if (!user) return [];
 
-    const { data: own, error: e1 } = await supabase
-      .from('rooms')
-      .select('*, users!fk_rooms_owner(username, avatar_url)')
-      .eq('owner_id', user.id)
-      .order('room_id', { ascending: false });
+  const { data: own, error: e1 } = await supabase
+    .from('rooms')
+    .select('*, users!fk_rooms_owner(username, avatar_url)')
+    .eq('owner_id', user.id)
+    .is('archived_at', null)
+    .order('room_id', { ascending: false });
     if (e1) throw e1;
 
     const { data: roleRows, error: eRoles } = await supabase
@@ -31,6 +32,7 @@ export const RoomRepository = {
         .from('rooms')
         .select('*, users!fk_rooms_owner(username, avatar_url)')
         .in('room_id', memberIds)
+        .is('archived_at', null)
         .order('room_id', { ascending: false });
       if (e2) throw e2;
       member = memberRooms || [];
@@ -49,6 +51,7 @@ export const RoomRepository = {
       .from('rooms')
       .select('room_id, name, owner_id, password, is_private')
       .eq('is_private', false)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -150,8 +153,30 @@ export const RoomRepository = {
 
     const user = data?.user;
 
+    const cleanName = (name || '').trim();
+    if (!cleanName) {
+      const err = new Error('ROOM_NAME_REQUIRED');
+      err.code = 'ROOM_NAME_REQUIRED';
+      throw err;
+    }
+
+    const { data: existing, error: checkError } = await supabase
+      .from('rooms')
+      .select('room_id')
+      .eq('name', cleanName)
+      .is('archived_at', null)
+      .limit(1);
+
+    if (checkError) throw checkError;
+
+    if ((existing || []).length > 0) {
+      const err = new Error('ROOM_NAME_EXISTS');
+      err.code = 'ROOM_NAME_EXISTS';
+      throw err;
+    }
+
     const payload = {
-      name,
+      name: cleanName,
       password: password || null,
       owner_id: user?.id || null,
     };
@@ -222,13 +247,29 @@ export const RoomRepository = {
 
   async getVideoHistoryForRoom(roomId) {
     const { data, error } = await supabase
-      .from('videos')
+      .from('video_history')
       .select('*')
       .eq('room_id', roomId)
-      .order('id', { ascending: true });
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
 
-    if (error) throw error;
-    return data || [];
+  async addVideoHistory({ roomId, youtubeId, videoUrl, videoTitle, userId }) {
+    const payload = {
+      room_id: roomId,
+      video_youtube_id: youtubeId,
+      video_url: videoUrl || null,
+      video_title: videoTitle || null,
+      ...(userId ? { user_id: userId } : {}),
+    }
+
+    const { error } = await supabase
+      .from('video_history')
+      .insert(payload)
+
+    if (error) throw error
+    return true
   },
 
   async getPlaylistVideos(roomId) {
@@ -281,5 +322,60 @@ export const RoomRepository = {
     }
     
     return profilesMap;
-  }
+  },
+  async unarchive(id) {
+    const { error } = await supabase
+      .from('rooms')
+      .update({ archived_at: null })
+      .eq('room_id', id)
+
+    if (error) throw error
+    return true
+  },
+  async listArchived() {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('room_id, name, owner_id, password, is_private, archived_at, users!fk_rooms_owner(username, avatar_url)')
+      .not('archived_at', 'is', null)
+      .order('archived_at', { ascending: false })
+
+    if (error) throw error
+
+    return (data || []).map(r => ({
+      id: r.room_id,
+      name: r.name,
+      ownerId: r.owner_id,
+      ownerName: r.users?.username,
+      ownerAvatar: r.users?.avatar_url,
+      hasPassword: !!r.password,
+      isPrivate: !!r.is_private,
+      archivedAt: r.archived_at,
+    }))
+  },
+
+  async setRoomPin(roomId, pin) {
+    const { error } = await supabase.rpc('set_room_pin', {
+      p_room_id: Number(roomId),
+      p_pin: String(pin || '')
+    })
+    if (error) throw error
+    return true
+  },
+
+  async verifyRoomPin(roomId, pin) {
+    const { data, error } = await supabase.rpc('verify_room_pin', {
+      p_room_id: Number(roomId),
+      p_pin: String(pin || '')
+    })
+    if (error) throw error
+    return !!data
+  },
+
+  async disableRoomPin(roomId) {
+    const { error } = await supabase.rpc('disable_room_pin', {
+      p_room_id: Number(roomId)
+    })
+    if (error) throw error
+    return true
+  },
 };
