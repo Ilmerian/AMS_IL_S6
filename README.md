@@ -1,64 +1,98 @@
-# **WorldWatchMe — Real-Time Collaborative Video Rooms**
+# **WatchWithMe — Real-Time Collaborative Video Rooms**
 
-WorldWatchMe is a real-time platform that allows multiple users to watch YouTube videos together, chat instantly, and manage collaborative playlists inside shared rooms.
-The frontend is built using **React + Vite**, while backend functionality (authentication, realtime events, storage, and database) is powered by **Supabase**.
+WatchWithMe is a real-time web platform that allows multiple users to watch YouTube videos together, chat instantly, and collaboratively manage playlists inside shared rooms.
 
-This project demonstrates a fully implemented modern web application with real-time syncing, secure access control, playlist collaboration, and responsive UI.
+The application is built with **React + Vite** on the frontend and relies entirely on **Supabase** for backend services, including authentication, database management, realtime synchronization, and security (Row-Level Security).
+
+This project is an **academic, non-commercial prototype** developed as part of the **AMS course at Avignon Université**.  
+It demonstrates the design and implementation of a complete modern web application using **Supabase as a Backend-as-a-Service (BaaS)**, featuring realtime interactions, role-based access control, moderation mechanisms, and a fully responsive user interface (desktop & mobile).
 
 ---
 
 ## **Main Features**
 
-### Watch Together
+### 🎬 Watch Together (Realtime Sync)
 
-* Play/pause synchronized for all users
-* Shared YouTube player based on embed
-* Current playing video stored in Supabase
-* Realtime sync of currently selected video
-
-### Realtime Chat
-
-* Messages broadcast instantly using Realtime API
-* Smooth auto-scroll behavior
-* Sender highlighting
-* History stored in PostgreSQL
-* RLS-secured message visibility per room
-
-### Collaborative Playlist
-
-* Add videos using any YouTube URL
-* Remove items (owner or manager only)
-* Reorder playlist via drag & drop
-* Persistent playlist stored in Supabase
-* Current video automatically updates when played
-
-### Authentication
-
-* Email/password registration and login
-* Reset password
-* Update password
-* Persistent Supabase session
-* Protected routes on frontend (`<Protected />`)
-
-### Room System
-* Create & delete rooms
-* Public and private rooms
-* Room password protection
-* Owner & manager role system
-* Automatic synchronization of room info
-* Full room list page
-
-### Polished UI
-* Material UI
-* Clean layout structure
-* Responsive design
-* Dark theme by default
+* Shared YouTube embed player
+* Realtime play / pause / seek synchronization across all users
+* Leader-based playback control (single controller at a time)
+* Automatic leader release and takeover when users join or leave
+* Current playback state stored and synchronized via Supabase
+* Automatic handling of next / previous videos in the playlist
 
 ---
 
-# **Project Structure (Frontend)**
+### 💬 Realtime Chat
+
+* Instant message delivery using **Supabase Realtime**
+* Smooth auto-scroll behavior
+* Sender identification and visual highlighting
+* Persistent chat history stored in **PostgreSQL**
+* Row-Level Security (RLS) enforcing room-based message access
+* Moderation actions (kick / ban) reflected in realtime
+
+---
+
+### 📋 Collaborative Playlist
+
+* Add videos using **any YouTube URL**
+* Automatic YouTube ID extraction and validation
+* Playlist reordering (drag & drop)
+* Video removal restricted to owner / manager roles
+* Persistent playlist storage in Supabase
+* Automatic synchronization of the currently selected video
+
+---
+
+### 🔐 Authentication & Access
+
+* Email / password registration and login via Supabase Auth
+* Password reset and update flows
+* Persistent user sessions
+* Protected routes on the frontend
+* Guest access with limited permissions
+* Upgrade banner encouraging account creation for guests
+
+---
+
+### 🏠 Room System
+
+* Room creation and deletion
+* Public and private rooms
+* Password-protected rooms
+* Optional **PIN protection** for sensitive actions
+* Owner / manager / member role hierarchy
+* Automatic room data refresh and synchronization
+* Dedicated room listing page
+
+---
+
+### 🛡️ Moderation & Safety
+
+* Role-based moderation interface
+* Promote / demote members
+* Kick or ban users from rooms
+* Dedicated banned users list with unban action
+* Automatic ownership transfer when the owner leaves
+* All moderation rules enforced at the database level using Supabase RLS
+
+---
+
+### 📱 Responsive UI
+
+* Fully responsive layout (desktop & mobile)
+* Adaptive sidebar (playlist / chat / history / moderation)
+* Mobile-friendly buttons, dialogs, and forms
+* Touch-friendly lists and menus
+* Dark theme by default
+* UI built with **Material UI (MUI)**
+
+---
+
+## **Project Structure (Frontend)**
 
 ```
+
 src/
 │
 ├─ App.jsx
@@ -71,15 +105,21 @@ src/
 ├─ hooks/
 │   ├─ useRoom.js
 │   ├─ usePlaylistForRoom.js
+│   ├─ useVideoSync.js
 │   └─ ...
 │
 ├─ services/
 │   ├─ AuthService.js
 │   ├─ RoomService.js
 │   ├─ PlaylistService.js
+│   ├─ RoleService.js
 │   ├─ ChatService.js
 │   ├─ RealtimeService.js
 │   ├─ AccessService.js
+│   └─ ...
+│
+├─ repositories/
+│   ├─ BanRepository.js
 │   └─ ...
 │
 ├─ components/
@@ -96,22 +136,23 @@ src/
 │   └─ AuthLayout.jsx
 │
 └─ pages/
-    ├─ Home.jsx
-    ├─ Login.jsx
-    ├─ Register.jsx
-    ├─ Rooms.jsx
-    ├─ Room.jsx
-    ├─ RoomCreate.jsx
-    ├─ ResetPassword.jsx
-    ├─ UpdatePassword.jsx
-    └─ NotFound.jsx
-```
+├─ Home.jsx
+├─ Login.jsx
+├─ Register.jsx
+├─ Rooms.jsx
+├─ Room.jsx
+├─ RoomCreate.jsx
+├─ ResetPassword.jsx
+├─ UpdatePassword.jsx
+└─ NotFound.jsx
+
+````
 
 ---
 
-# **Technologies**
+## **Technologies**
 
-### **Frontend**
+### Frontend
 
 * React 19
 * Vite 7
@@ -121,53 +162,58 @@ src/
 * YouTube Embed Player
 * Vanilla CSS
 
-### **Backend (Supabase)**
+### Backend (Supabase)
 
 * PostgreSQL
-* Realtime (for chat + room updates)
-* Auth (email/password)
+* Supabase Realtime (chat, presence, room updates)
+* Supabase Auth (email/password)
 * Row-Level Security (RLS)
-* Policies for rooms, roles, chat, playlists
-* Supabase JS Client
+* Database policies for rooms, roles, chat, and playlists
+* Supabase JavaScript Client
 
 ---
 
-# **Role Model (Owner / Manager / Member)**
+## **Role Model (Owner / Manager / Member)**
 
-| Action            | Owner | Manager | Member |
-| ----------------- | ----- | ------- | ------ |
-| Join room         | ✔     | ✔       | ✔      |
-| View playlist     | ✔     | ✔       | ✔      |
-| Add video         | ✔     | ✔       | ✔      |
-| Remove video      | ✔     | ✔       | ✖      |
-| Reorder playlist  | ✔     | ✔       | ✔      |
-| Delete room       | ✔     | ✖       | ✖      |
-| Set room password | ✔     | ✖       | ✖      |
-| Manage roles      | ✔     | ✖       | ✖      |
+| Action                  | Owner | Manager | Member |
+|-------------------------|:-----:|:-------:|:------:|
+| Join room               | ✔     | ✔       | ✔      |
+| View playlist           | ✔     | ✔       | ✔      |
+| Add video               | ✔     | ✔       | ✔      |
+| Remove video            | ✔     | ✔       | ✖      |
+| Reorder playlist        | ✔     | ✔       | ✔      |
+| Delete room             | ✔     | ✖       | ✖      |
+| Set room password / PIN | ✔     | ✖       | ✖      |
+| Manage roles            | ✔     | ✖       | ✖      |
+| Moderate users          | ✔     | ✔       | ✖      |
 
-RLS policies enforce this on the backend.
-AccessService mirrors this logic on frontend.
+> All permissions are strictly enforced on the backend using **Supabase Row-Level Security (RLS)**.  
+> The frontend mirrors these rules via `AccessService`.
 
 ---
 
-# Getting Started
+## **Getting Started**
 
-## 1. Install dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
-```
+````
 
-## 2. Environment variables
+---
 
-Create `.env`:
+### 2. Environment variables
 
-```
+Create a `.env` file at the project root:
+
+```env
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=your-key
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-## 3. Start dev server
+---
+
+### 3. Start development server
 
 ```bash
 npm run dev
@@ -175,38 +221,46 @@ npm run dev
 
 ---
 
-# Production Build
+## **Production Build**
 
 ```bash
 npm run build
 ```
 
-Deploy `dist/` to any static host (Vercel recommended).
+Deploy the `dist/` folder to any static hosting provider
+(Vercel or Netlify recommended).
 
 ---
 
-# Commands
+## **Available Commands**
 
 | Command           | Description              |
 | ----------------- | ------------------------ |
-| `npm run dev`     | Start dev server         |
+| `npm run dev`     | Start development server |
 | `npm run build`   | Build for production     |
 | `npm run preview` | Preview production build |
-| `npm run lint`    | Lint project             |
+| `npm run lint`    | Run ESLint               |
 
 ---
 
-# Development Notes
+## **Development Notes**
 
-* All data-fetching and mutations pass through `services/`.
-* Realtime events trigger UI updates in `useRoom`, `usePlaylistForRoom`, and `ChatBox`.
-* All auth state is managed globally through `AuthProvider`.
-* Rooms auto-refresh when browser tab becomes visible again.
-* MUI components are used extensively for clean UI.
+* All data fetching and mutations go through `services/` and `repositories/`
+* Realtime logic is handled in:
+
+  * `useRoom`
+  * `usePlaylistForRoom`
+  * `useVideoSync`
+  * `ChatBox`
+* Authentication state is managed globally via `AuthProvider`
+* Room data is refreshed automatically when the browser tab regains focus
+* Mobile responsiveness is achieved using MUI breakpoints and adaptive layouts
 
 ---
 
-# License
+## **License**
 
 MIT License.
 
+This project is provided **for educational purposes only**
+and is not intended for commercial use.

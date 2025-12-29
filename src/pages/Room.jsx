@@ -33,6 +33,8 @@ import DialogActions from '@mui/material/DialogActions';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Tabs from '@mui/material/Tabs';
@@ -162,7 +164,8 @@ function ConnectionStatus({ connectionStatus }) {
 
 export default function Room() {
     const { t } = useTranslation();
-    const { roomId } = useParams();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));    const { roomId } = useParams();
     const { user, loading: authLoading } = useAuth();
 
     const { openLogin } = useOutletContext() || {};
@@ -785,21 +788,21 @@ export default function Room() {
     }
 
     return (
-        <Section>
+        <Section sx={{ px: { xs: 1, sm: 0 } }}>
             {/* --- BANNIÈRES & STATUTS --- */}
             {!user && (
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
                     <GuestUpgradeBanner />
                 </Box>
             )}
 
             {user && controlInfo && (
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: { xs: 1, sm: 2 } }}>
                     <ControlStatus controlInfo={{ ...controlInfo, requirePin }} user={user} />
                 </Box>
             )}
             {user && (
-                <Box sx={{ mb: 1 }}>
+                <Box sx={{ mb: { xs: 1, sm: 1 } }}>
                     <ConnectionStatus connectionStatus={connectionStatus} />
                 </Box>
             )}
@@ -808,19 +811,32 @@ export default function Room() {
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
                 <Typography
                     variant="h4"
-                    sx={{ 
-                        fontWeight: 700, 
-                        textTransform: 'uppercase', 
+                    sx={{
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
                         letterSpacing: 0.5,
-                        fontSize: { xs: '1.5rem', md: '2.125rem' } 
+                        fontSize: { xs: '1.35rem', sm: '1.6rem', md: '2.125rem' },
+                        lineHeight: { xs: 1.15, md: 1.2 },
+                        wordBreak: 'break-word'
                     }}
                 >
                     {room.name}
                 </Typography>
             </Box>
 
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Typography sx={{ opacity: 0.8 }}>
+            <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                spacing={2}
+                sx={{
+                    mb: 2,
+                    gap: 1,
+                    '& .MuiButton-root': {
+                        width: { xs: '100%', sm: 'auto' }
+                    }
+                }}
+            >
+                <Typography sx={{ opacity: 0.8, textAlign: { xs: 'left', sm: 'inherit' } }}>
                     {room.password ? t('room.private') : t('room.public')}
                 </Typography>
 
@@ -858,7 +874,7 @@ export default function Room() {
                 <Box component="form" onSubmit={verify} sx={{ mt: 2, maxWidth: 480 }}>
                     <Stack spacing={2}>
                         <Typography>{t('room.enterPassword')}</Typography>
-                        <Stack direction="row" spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                             <TextField
                                 type="password"
                                 placeholder={t('room.password_placeholder')}
@@ -866,7 +882,11 @@ export default function Room() {
                                 onChange={(e) => setPw(e.target.value)}
                                 fullWidth
                             />
-                            <Button type="submit" variant="contained">
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                sx={{ width: { xs: '100%', sm: 'auto' } }}
+                            >
                                 {t('room.join')}
                             </Button>
                         </Stack>
@@ -875,13 +895,23 @@ export default function Room() {
                 </Box>
             ) : (
                 // LAYOUT VIDEO + SIDEBAR
-                <Box sx={{ mt: 2, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                <Box
+                sx={{
+                    mt: 2,
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    px: { xs: 1, sm: 0 },
+                    gap: { xs: 1.5, sm: 2 }
+                }}
+                >
                     <Box sx={{ position: 'relative', width: '100%' }}>
                         <Box
                             sx={{
-                                mr: { xs: 0, lg: '466px' }, 
+                                mr: { xs: 0, lg: '466px' },
                                 width: { xs: '100%', lg: 'auto' },
-                                mb: { xs: 2, lg: 0 } 
+                                mb: { xs: 1.5, lg: 0 },
+                                minWidth: 0
                             }}
                         >
                             <VideoPlayerShell
@@ -903,9 +933,18 @@ export default function Room() {
 
                             {/* BOUTONS PREV/NEXT */}
                             {canControlVideo && playlistItems.length > 1 && (
-                                <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                <Box
+                                sx={{
+                                    display: 'flex',
+                                    gap: 1,
+                                    mt: 2,
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap'
+                                }}
+                                >
                                     <Button
                                         variant="outlined"
+                                        sx={{ width: { xs: 'calc(50% - 4px)', sm: 'auto' } }}
                                         onClick={() => requirePin(() => {
                                             const videoIdToUse = syncVideoId || currentVideoId;
                                             const prevVideo = getPrevVideo(videoIdToUse);
@@ -932,34 +971,44 @@ export default function Room() {
 
                         {/* 2. SIDEBAR (CHAT / PLAYLIST) */}
                         <Box
-                            sx={{
-                                position: { xs: 'static', lg: 'absolute' },
-                                top: 0,
-                                right: 0,
-                                bottom: 0,
-                                
-                                width: { xs: '100%', lg: '450px' },
-                                
-                                height: { xs: '600px', lg: 'auto' }, 
-                                
-                                display: 'flex',
-                                flexDirection: 'column',
-                                bgcolor: 'background.paper',
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                            }}
+                        sx={{
+                            position: { xs: 'static', lg: 'absolute' },
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+
+                            width: { xs: '100%', lg: '450px' },
+
+                            height: { xs: 'min(70dvh, 720px)', lg: 'auto' },
+
+                            display: 'flex',
+                            flexDirection: 'column',
+                            bgcolor: 'background.paper',
+
+                            borderRadius: { xs: 2, lg: 1 },
+                            overflow: 'hidden',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}
                         >
                             {/* ONGLETS */}
                             <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-                                <Tabs
+                                    <Tabs
                                     value={activeTab}
                                     onChange={(e, val) => setActiveTab(val)}
-                                    variant="fullWidth"
+                                    variant={isMobile ? "scrollable" : "fullWidth"}
+                                    scrollButtons={isMobile ? "auto" : false}
+                                    allowScrollButtonsMobile
                                     textColor="primary"
                                     indicatorColor="primary"
                                     key={`tabs-${roomId}-${user?.id}`}
-                                >
+                                    sx={{
+                                        '& .MuiTab-root': {
+                                            minWidth: isMobile ? 100 : undefined,
+                                            px: isMobile ? 1 : 2,
+                                            minHeight: isMobile ? 40 : 48
+                                        }
+                                    }}
+                                    >
                                     <Tab label={t('room.playlist')} value="playlist" />
                                     <Tab label={t('room.chat')} value="chat" />
                                     <Tab label={t('room.history')} value="history" sx={{ minWidth: '60px' }} />
@@ -968,22 +1017,29 @@ export default function Room() {
                             </Box>
 
                             {/* CONTENU DES ONGLETS */}
-                            <Box sx={{ flex: 1, minHeight: 0, overflowY: activeTab === 'chat' ? 'hidden' : 'auto' }}>
-                                <Box sx={{ p: 1, height: '100%' }}>
-                                    
+                            <Box
+                            sx={{
+                                flex: 1,
+                                minHeight: 0,
+                                overflow: 'hidden'
+                            }}
+                            >
+                                <Box sx={{ p: { xs: 1, sm: 1 }, height: '100%' }}>
                                     {activeTab === 'playlist' && (
-                                        <PlaylistPanel
-                                            playlistId={playlistId}
-                                            canEdit={canControlVideo}
-                                            onAdd={handleAddVideo}
-                                            onPlay={handleVideoSelect}
-                                            currentVideoId={syncVideoId || currentVideoId}
-                                            onVideoSelect={handleVideoSelect}
-                                        />
+                                        <Box sx={{ height: '100%', overflowY: 'auto' }}>
+                                            <PlaylistPanel
+                                                playlistId={playlistId}
+                                                canEdit={canControlVideo}
+                                                onAdd={handleAddVideo}
+                                                onPlay={handleVideoSelect}
+                                                currentVideoId={syncVideoId || currentVideoId}
+                                                onVideoSelect={handleVideoSelect}
+                                            />
+                                        </Box>
                                     )}
 
                                     {activeTab === 'chat' && (
-                                        <Box sx={{ height: '100%', minHeight: 300 }}>
+                                        <Box sx={{ height: '100%', minHeight: 0, overflow: 'hidden' }}>
                                             <ChatBox 
                                                 roomId={roomId} 
                                                 isBanned={isBanned}
@@ -994,9 +1050,15 @@ export default function Room() {
                                     
                                     {activeTab === 'history' && (
                                         <Box sx={{ height: '100%', overflowY: 'auto', px: 1, py: 1 }}>
-                                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: { xs: 1, sm: 1 } }}>
                                                 <Typography variant="h6"> {t('room.history', 'History')}</Typography>
-                                                <Button size="small" variant="outlined" onClick={loadHistory} disabled={historyLoading}>
+                                                <Button
+                                                size="small"
+                                                variant="outlined"
+                                                onClick={loadHistory}
+                                                disabled={historyLoading}
+                                                sx={{ width: { xs: '100%', sm: 'auto' } }}
+                                                >
                                                     {t('common.refresh')}
                                                 </Button>
                                             </Stack>
@@ -1007,10 +1069,20 @@ export default function Room() {
                                             ) : (
                                                 <List dense>
                                                     {history.map((h) => (
-                                                        <ListItem key={h.id || `${h.video_youtube_id}-${h.created_at}`}>
+                                                        <ListItem
+                                                        key={h.id || `${h.video_youtube_id}-${h.created_at}`}
+                                                        alignItems="flex-start"
+                                                        sx={{ py: 0.5 }}
+                                                        >
                                                             <ListItemText
-                                                                primary={h.video_title || h.video_url}
-                                                                secondary={h.created_at ? new Date(h.created_at).toLocaleString() : ''}
+                                                            primary={h.video_title || h.video_url}
+                                                            secondary={h.created_at ? new Date(h.created_at).toLocaleString() : ''}
+                                                            primaryTypographyProps={{
+                                                                sx: { fontSize: { xs: '0.95rem', sm: '1rem' }, wordBreak: 'break-word' }
+                                                            }}
+                                                            secondaryTypographyProps={{
+                                                                sx: { fontSize: { xs: '0.75rem', sm: '0.8rem' }, opacity: 0.75 }
+                                                            }}
                                                             />
                                                         </ListItem>
                                                     ))}
@@ -1032,6 +1104,10 @@ export default function Room() {
                                                     onChange={(e, newView) => { if (newView) setModView(newView); }}
                                                     size="small"
                                                     color="primary"
+                                                    sx={{
+                                                        width: { xs: '100%', sm: 'auto' },
+                                                        '& .MuiToggleButton-root': { flex: 1 }
+                                                    }}
                                                 >
                                                     <ToggleButton value="members">{t('moderation.actif')}</ToggleButton>
                                                     <ToggleButton value="banned">{t('moderation.ban')}</ToggleButton>
@@ -1046,6 +1122,7 @@ export default function Room() {
                                                         return (
                                                             <ListItem
                                                                 key={member.userId}
+                                                                sx={{ py: 0.75 }}
                                                                 secondaryAction={
                                                                     canActOn && (
                                                                         <IconButton edge="end" onClick={(e) => {
@@ -1057,10 +1134,10 @@ export default function Room() {
                                                                     )
                                                                 }
                                                             >
-                                                                <ListItemAvatar><Avatar src={member.avatar_url} /></ListItemAvatar>
+                                                                <ListItemAvatar><Avatar src={member.avatar_url} sx={{ width: { xs: 36, sm: 40 }, height: { xs: 36, sm: 40 } }}/></ListItemAvatar>
                                                                 <ListItemText
                                                                     primary={
-                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                                                                             {isCurrentUser ? t('room.user_you', { name: member.name }) : member.name}
                                                                             {member.isOnline && <Box sx={{ width: 8, height: 8, bgcolor: 'success.main', borderRadius: '50%' }} />}
                                                                         </Box>
@@ -1107,7 +1184,16 @@ export default function Room() {
             )}
 
             {/* MENUS FLOTTANTS ET DIALOGUES */}
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+            <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+            PaperProps={{
+                sx: {
+                '& .MuiMenuItem-root': { minHeight: { xs: 44, sm: 36 } }
+                }
+            }}
+            >
                 {selectedMember && (
                     <Box>
                         {(selectedMember.role === ROLES.MEMBER || selectedMember.role === ROLES.MANAGER) && userRole === ROLES.OWNER && (
@@ -1123,7 +1209,13 @@ export default function Room() {
             </Menu>
 
             <InviteDialog open={inviteOpen} onClose={() => setInviteOpen(false)} roomId={roomId} />
-            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            sx={{ px: { xs: 1, sm: 0 } }}
+            >
                 <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
                     {snackbar.message}
                 </Alert>
@@ -1141,12 +1233,32 @@ export default function Room() {
                         onKeyDown={(e) => { if (e.key === 'Enter') pinMode === 'set' ? handleSavePin() : submitPin() }}
                     />
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={closePinDialog}>{t('common.cancel')}</Button>
-                    {pinMode === 'set' && <Button color="error" onClick={handleDisablePin}>{t('room.pin_disable')}</Button>}
-                    <Button variant="contained" onClick={() => pinMode === 'set' ? handleSavePin() : submitPin()}>
-                        {pinMode === 'set' ? t('common.save') : t('common.verify')}
+                <DialogActions
+                sx={{
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
+                    gap: { xs: 1, sm: 0.5 },
+                    px: { xs: 2, sm: 1.5 },
+                    pb: { xs: 2, sm: 1.5 }
+                }}
+                >
+                <Button onClick={closePinDialog} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+                    {t('common.cancel')}
+                </Button>
+
+                {pinMode === 'set' && (
+                    <Button color="error" onClick={handleDisablePin} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+                    {t('room.pin_disable')}
                     </Button>
+                )}
+
+                <Button
+                    variant="contained"
+                    onClick={() => pinMode === 'set' ? handleSavePin() : submitPin()}
+                    sx={{ width: { xs: '100%', sm: 'auto' } }}
+                >
+                    {pinMode === 'set' ? t('common.save') : t('common.verify')}
+                </Button>
                 </DialogActions>
             </Dialog>
         </Section>

@@ -170,7 +170,7 @@ export default function PasswordStrength({ value }) {
             >
               {strengthEmoji}
             </Box>
-            {t('password.strength.title')}
+            {t('password.strength_title')}
           </Typography>
           <Typography 
             variant="body2" 
@@ -211,7 +211,7 @@ export default function PasswordStrength({ value }) {
                 fontSize: '0.8rem'
               }}
             >
-              {t('password.strength.requirements') || 'Missing requirements:'}
+              {t('password.strength_requirements') || 'Missing requirements:'}
             </Typography>
             <Stack spacing={0.5}>
               {issues.map((issue) => (

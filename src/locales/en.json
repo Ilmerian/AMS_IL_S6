@@ -105,6 +105,8 @@
     "magic_link_sent": "Magic link sent. Check your inbox.",
     "magic_link_failed": "Failed to send magic link.",
     "loginTitle": "Login",
+    "accept_cgu_prefix": "Accept CGU prefix",
+    "cgu_link": "CGU Link",
     "remember_me": "Remember me",
     "mode": {
       "magic": "Magic link",
@@ -153,7 +155,8 @@
       "mixedCase": "Both lower and upper case",
       "digitOrSymbol": "Contains a digit or a symbol"
     },
-    "strength.title": "Password Strength",
+    "strength_title": "Password Strength",
+    "strength_requirements": "Strength requirements",
     "level.0": "Level 0",
     "level.1": "Level 1",
     "level.2": "Level 2",
@@ -336,6 +339,68 @@
     "ban": "Banned",
     "no_banned_users": "No banned users.",
     "banned_date": "Banned on {{date}}"
-  }
-  
+  },
+  "legal_modal": {
+    "title": "Legal notice",
+    "website_name_label": "Website name:",
+    "website_name_value": "WatchWithMe",
+    "project_type_label": "Project type:",
+    "project_type_value": "Academic, non-commercial project developed for the AMS course at the University of Avignon.",
+    "project_team_label": "Project team:",
+    "supervisors_label": "Supervisors:",
+    "supervisors_value": "Mr. Ludovic Bonnefoy & Mr. Rémy Kessler",
+    "hosting_label": "Hosting:",
+    "hosting_backend_label": "Backend and database:",
+    "hosting_backend_value": "Supabase (PostgreSQL, Auth, Realtime)",
+    "hosting_frontend_label": "Frontend hosting:",
+    "hosting_frontend_value": "Vercel / Netlify (student deployment)",
+    "contact_label": "Contact:",
+    "contact_value": "contact@watchwithme.com",
+    "prototype_notice": "WatchWithMe is an educational prototype. It is not intended for commercial use and no data is monetized.",
+    "close_button": "Close"
+  },
+  "terms_modal": {
+    "title": "Terms of Use",
+    "intro": "By using WatchWithMe, users agree to the following Terms of Use.",
+
+    "section_1_title": "1. Account creation",
+    "section_1_text": "Users must provide a valid email address and password. Passwords are automatically hashed by Supabase.",
+
+    "section_2_title": "2. Use of rooms",
+    "section_2_text": "Users can create public or private rooms, join rooms via a link, and watch synchronized videos. The room creator becomes the moderator and may manage the playlist, roles, and remove users if necessary.",
+
+    "section_3_title": "3. Chat behavior",
+    "section_3_text": "Users must remain respectful. Illegal, offensive, or discriminatory messages are not allowed. Moderators may delete messages or remove users from the room.",
+
+    "section_4_title": "4. Responsibilities",
+    "section_4_text": "WatchWithMe is an experimental academic project. No guarantee is provided regarding uptime or service stability. Users are responsible for the YouTube links they add.",
+
+    "section_5_title": "5. Suspension",
+    "section_5_text": "Administrators or supervisors may suspend accounts or rooms in case of misuse.",
+
+    "close_button": "Close"
+  },
+  "privacy_modal": {
+    "title": "Privacy Policy",
+
+    "section_1_title": "1. Data collected",
+    "section_1_text": "WatchWithMe may collect the following data: email, username, avatar, chat messages, playlists, and room activity.",
+
+    "section_2_title": "2. Purpose of data",
+    "section_2_text": "Data is used only to enable: authentication, room management, chat, video synchronization, and general platform functionality.",
+
+    "section_3_title": "3. Storage and security",
+    "section_3_text": "Data is stored in Supabase (PostgreSQL). Passwords are hashed and Row Level Security (RLS) rules protect sensitive data. All connections use HTTPS.",
+
+    "section_4_title": "4. User rights",
+    "section_4_text": "Users may request account deletion or modification of their personal data at any time.",
+
+    "section_5_title": "5. Cookies",
+    "section_5_text": "The platform may use technical cookies for session handling and language settings.",
+
+    "section_6_title": "6. Academic project",
+    "section_6_text": "This platform is a student project developed for educational purposes. It is not intended for commercial use.",
+
+    "close_button": "Close"
+  }  
 }

@@ -4,8 +4,11 @@ import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import Button from '@mui/material/Button'
+import { useTranslation } from 'react-i18next'
 
 export default function LegalModal({ open, onClose }) {
+    const { t } = useTranslation()
+
     return (
         <Dialog
             open={open}
@@ -24,13 +27,20 @@ export default function LegalModal({ open, onClose }) {
                 }
             }}
         >
-            <DialogTitle>Legal Notice</DialogTitle>
+            <DialogTitle>{t('legal_modal.title')}</DialogTitle>
 
             <DialogContent dividers sx={{ fontSize: "0.95rem" }}>
-                <p><strong>Website name:</strong> WatchWithMe</p>
-                <p><strong>Project type:</strong> Academic, non-commercial project developed for the AMS course at the University of Avignon.</p>
+                <p>
+                    <strong>{t('legal_modal.website_name_label')}</strong>{' '}
+                    {t('legal_modal.website_name_value')}
+                </p>
 
-                <p><strong>Project team:</strong></p>
+                <p>
+                    <strong>{t('legal_modal.project_type_label')}</strong>{' '}
+                    {t('legal_modal.project_type_value')}
+                </p>
+
+                <p><strong>{t('legal_modal.project_team_label')}</strong></p>
                 <ul>
                     <li>Deniz Ertekin</li>
                     <li>Maïssara Berrabah</li>
@@ -38,24 +48,32 @@ export default function LegalModal({ open, onClose }) {
                     <li>Alexandre Pontal</li>
                 </ul>
 
-                <p><strong>Supervisors:</strong>
-                    Mr. Ludovic Bonnefoy &amp; Mr. Rémy Kessler
+                <p>
+                    <strong>{t('legal_modal.supervisors_label')}</strong>{' '}
+                    {t('legal_modal.supervisors_value')}
                 </p>
 
-                <p><strong>Hosting:</strong></p>
-                <p>Backend and database: Supabase (PostgreSQL, Auth, Realtime)<br />
-                    Frontend hosting: Vercel / Netlify (student deployment)</p>
-
-                <p><strong>Contact:</strong> contact@watchwithme.com</p>
+                <p><strong>{t('legal_modal.hosting_label')}</strong></p>
+                <p>
+                    {t('legal_modal.hosting_backend_label')}{' '}
+                    {t('legal_modal.hosting_backend_value')}
+                    <br />
+                    {t('legal_modal.hosting_frontend_label')}{' '}
+                    {t('legal_modal.hosting_frontend_value')}
+                </p>
 
                 <p>
-                    WatchWithMe is an educational prototype.
-                    It is not intended for commercial use and no data is monetized.
+                    <strong>{t('legal_modal.contact_label')}</strong>{' '}
+                    {t('legal_modal.contact_value')}
                 </p>
+
+                <p>{t('legal_modal.prototype_notice')}</p>
             </DialogContent>
 
             <DialogActions>
-                <Button onClick={onClose} variant="contained">Close</Button>
+                <Button onClick={onClose} variant="contained">
+                    {t('legal_modal.close_button')}
+                </Button>
             </DialogActions>
         </Dialog>
     )

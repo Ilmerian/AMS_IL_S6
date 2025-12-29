@@ -174,7 +174,8 @@
       "mixedCase": "Minuscules et majuscules",
       "digitOrSymbol": "Contient un chiffre ou un symbole"
     },
-    "strength.title": "Force du mot de passe",
+    "strength_title": "Force du mot de passe",
+    "strength_requirements": "Exigences de résistance",
     "level.0": "Niveau 0",
     "level.1": "Niveau 1",
     "level.2": "Niveau 2",
@@ -337,5 +338,68 @@
     "ban": "Bannis",
     "no_banned_users": "Aucun utilisateur banni.",
     "banned_date": "Banni le {{date}}"
-  }
+  },
+  "legal_modal": {
+    "title": "Mentions légales",
+    "website_name_label": "Nom du site :",
+    "website_name_value": "WatchWithMe",
+    "project_type_label": "Type de projet :",
+    "project_type_value": "Projet académique non commercial développé dans le cadre du cours AMS à l’Université d’Avignon.",
+    "project_team_label": "Équipe projet :",
+    "supervisors_label": "Encadrants :",
+    "supervisors_value": "M. Ludovic Bonnefoy & M. Rémy Kessler",
+    "hosting_label": "Hébergement :",
+    "hosting_backend_label": "Backend et base de données :",
+    "hosting_backend_value": "Supabase (PostgreSQL, Auth, Realtime)",
+    "hosting_frontend_label": "Hébergement du front-end :",
+    "hosting_frontend_value": "Vercel / Netlify (déploiement étudiant)",
+    "contact_label": "Contact :",
+    "contact_value": "contact@watchwithme.com",
+    "prototype_notice": "WatchWithMe est un prototype éducatif. Il n’est pas destiné à un usage commercial et aucune donnée n’est monétisée.",
+    "close_button": "Fermer"
+  },
+  "terms_modal": {
+    "title": "Conditions d’utilisation",
+    "intro": "En utilisant WatchWithMe, les utilisateurs acceptent les présentes conditions d’utilisation.",
+
+    "section_1_title": "1. Création de compte",
+    "section_1_text": "Les utilisateurs doivent fournir une adresse e-mail valide et un mot de passe. Les mots de passe sont automatiquement chiffrés par Supabase.",
+
+    "section_2_title": "2. Utilisation des salons",
+    "section_2_text": "Les utilisateurs peuvent créer des salons publics ou privés, rejoindre un salon via un lien et regarder des vidéos synchronisées. Le créateur du salon devient modérateur et peut gérer la playlist, les rôles et exclure des utilisateurs si nécessaire.",
+
+    "section_3_title": "3. Comportement dans le chat",
+    "section_3_text": "Les utilisateurs doivent rester respectueux. Les messages illégaux, offensants ou discriminatoires sont interdits. Les modérateurs peuvent supprimer des messages ou exclure des utilisateurs.",
+
+    "section_4_title": "4. Responsabilités",
+    "section_4_text": "WatchWithMe est un projet académique expérimental. Aucune garantie n’est fournie concernant la disponibilité ou la stabilité du service. Les utilisateurs sont responsables des liens YouTube qu’ils ajoutent.",
+
+    "section_5_title": "5. Suspension",
+    "section_5_text": "Les administrateurs ou encadrants peuvent suspendre des comptes ou des salons en cas de mauvaise utilisation.",
+
+    "close_button": "Fermer"
+  },
+  "privacy_modal": {
+    "title": "Politique de confidentialité",
+
+    "section_1_title": "1. Données collectées",
+    "section_1_text": "WatchWithMe peut collecter les données suivantes : e-mail, nom d’utilisateur, avatar, messages du chat, playlists et activité dans les salons.",
+
+    "section_2_title": "2. Finalité des données",
+    "section_2_text": "Les données sont utilisées uniquement pour permettre : l’authentification, la gestion des salons, le chat, la synchronisation vidéo et le bon fonctionnement général de la plateforme.",
+
+    "section_3_title": "3. Stockage et sécurité",
+    "section_3_text": "Les données sont stockées sur Supabase (PostgreSQL). Les mots de passe sont hachés et des règles Row Level Security (RLS) protègent les données sensibles. Toutes les connexions utilisent HTTPS.",
+
+    "section_4_title": "4. Droits des utilisateurs",
+    "section_4_text": "Les utilisateurs peuvent demander la suppression du compte ou la modification de leurs données personnelles à tout moment.",
+
+    "section_5_title": "5. Cookies",
+    "section_5_text": "La plateforme peut utiliser des cookies techniques pour la gestion de session et les paramètres de langue.",
+
+    "section_6_title": "6. Projet académique",
+    "section_6_text": "Cette plateforme est un projet étudiant développé à des fins pédagogiques. Elle n’est pas destinée à un usage commercial.",
+
+    "close_button": "Fermer"
+  }  
 }

@@ -295,13 +295,13 @@ export default function Home() {
                 fontWeight={600}
                 sx={{ mb: 2, color: "#B17EFF" }}
               >
-                📱 {t('mobile_friendly')}
+                📱 {t('homepage.mobile_friendly')}
               </Typography>
               <Typography
                 variant="body2"
                 sx={{ opacity: 0.9, mb: 2 }}
               >
-                {t('mobile_friendly_desc')}
+                {t('homepage.mobile_friendly_desc')}
               </Typography>
             </Box>
           )}
