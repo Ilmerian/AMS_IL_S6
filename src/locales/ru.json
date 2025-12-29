@@ -22,10 +22,13 @@
   "confirm": {
     "kick": "пинать ",
     "ban": "изгнанный",
-    "unban": "не запрещен "
+    "unban": "не запрещен ",
+    "unban_user": "Вы хотите разбанить {{user}}?"
   },
   "error": {
-    "permission_denied": "в разрешении отказано "
+    "permission_denied": "в разрешении отказано ",
+    "cannot_demote_owner": "Невозможно понизить владельца.",
+    "unban_failed": "Ошибка при разблокировке."
   },
   "user": {
     "default": "Пользователь",
@@ -58,7 +61,15 @@
   },
   "common": {
     "sending": "Отправка…",
-    "close": "Закрыть"    
+    "close": "Закрыть",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "verify": "Проверить",
+    "refresh": "Обновить",
+    "loading": "Загрузка...",
+    "visitor": "Гость",
+    "online": "В сети",
+    "back_to_home": "На главную"
   },
   "homepage": {
     "homepage": "Приходите Watch With Me !",
@@ -183,7 +194,12 @@
     "archived_title": "Комната заархивирована",
     "archived_message": "Эта комната заархивирована и больше недоступна.",
     "chat": "чат",
+    "history": "история",
     "moderation":"модерация",
+    "sync_realtime": "🟢 Синхронизация в реальном времени",
+    "sync_active": "🟢 Синхронизация активна",
+    "sync_error": "🔴 Ошибка соединения",
+    "sync_connecting": "⚪ Подключение...",
     "succes_sync": "🟢 Синхронизировано",
     "wait_sync": "🟡 Связь...",
     "deny_sync": "🔴 Проблема с подключением",
@@ -202,7 +218,21 @@
     "enterPassword": "Введите пароль комнаты, чтобы присоединиться:",
     "password_placeholder": "••••",
     "join": "Войти",
-    "you": "Вы"
+    "you": "Вы",
+    "invite": "Пригласить",
+    "pin_button": "PIN",
+    "pin_invalid": "Неверный PIN",
+    "pin_saved": "PIN сохранен",
+    "pin_disabled": "PIN отключен",
+    "pin_set_title": "Установить / Изменить PIN",
+    "pin_enter_title": "Введите PIN",
+    "pin_label": "PIN",
+    "pin_disable": "Отключить",
+    "promoted_message": "Поздравляем! Вы теперь модератор.",
+    "kicked_title": "Вас выгнали",
+    "kicked_message": "Модератор удалил вас из списка активных участников.",
+    "user_unbanned": "Пользователь {{user}} был разбанен",
+    "user_you": "{{name}} (Вы)"
   },
   "roomCreate": {
     "title": "Создать комнату",
@@ -278,7 +308,8 @@
     "promote": "Менеджер По Продвижению",
     "demote": "Понизить В Должности Участника",
     "kick": "Исключить (Kick)",
-    "ban": "Заблокировать (Ban)"
+    "ban": "Заблокировать (Ban)",
+    "unban": "Разбанить"
   },
   "invite": {
     "title": "Присоединиться к комнате",
@@ -299,5 +330,11 @@
     "email.sending": "Отправка...",
     "email.success": "Приглашение отправлено!",
     "quickActions": "Быстрые действия"
-  }  
+  },
+  "moderation": {
+    "actif": "Активные",
+    "ban": "Забаненные",
+    "no_banned_users": "Нет забаненных пользователей.",
+    "banned_date": "Забанен {{date}}"
+  }
 }

@@ -20,12 +20,15 @@
     "unbanned":" unbanned"
   },
   "confirm": {
-    "kick": "kick ",
-    "ban": "ban ",
-    "unban": "unban"
+    "kick": "Do you want to kick {{user}}?",
+    "ban": "Do you want to ban {{user}}?",
+    "unban": "Do you want to unban {{user}}?",
+    "unban_user": "Do you want to unban {{user}}?"
   },
   "error": {
-    "permission_denied": "permission denied "
+    "permission_denied": "permission denied ",
+    "cannot_demote_owner": "Cannot demote the owner.",
+    "unban_failed": "Error while unbanning user."
   },
   "user": {
     "default": "User",
@@ -58,7 +61,15 @@
   },
   "common": {
     "sending": "Sending…",
-    "close": "Close"
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "verify": "Verify",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "visitor": "Visitor",
+    "online": "Online",
+    "back_to_home": "Back to home"
   },
   "homepage": {
     "homepage": "Come Watch With Me!",
@@ -177,8 +188,13 @@
     "loading": "Loading the room",
     "playlist":"playlist",
     "chat": "chat",
+    "history": "history",
     "moderation":"moderation",
     "reload": "Reload",
+    "sync_realtime": "🟢 Real-time synchronization",
+    "sync_active": "🟢 Synchronization active",
+    "sync_error": "🔴 Connection problem",
+    "sync_connecting": "⚪ Connecting...",
     "succes_sync": "🟢 Synchronized",
     "wait_sync": "🟡 Connecting...",
     "deny_sync": "🔴 Connection problem",
@@ -202,7 +218,21 @@
     "enterPassword": "Enter room password to join:",
     "password_placeholder": "••••",
     "join": "Join",
-    "you": "You"
+    "you": "You",
+    "invite": "Invite",
+    "pin_button": "PIN",
+    "pin_invalid": "Invalid PIN",
+    "pin_saved": "PIN saved",
+    "pin_disabled": "PIN disabled",
+    "pin_set_title": "Set / Change PIN",
+    "pin_enter_title": "Enter PIN",
+    "pin_label": "PIN",
+    "pin_disable": "Disable",
+    "promoted_message": "Congratulations! You are now a Moderator.",
+    "kicked_title": "You have been kicked",
+    "kicked_message": "A moderator removed you from the active members list.",
+    "user_unbanned": "{{user}} has been unbanned",
+    "user_you": "{{name}} (You)"
   },
   "roomCreate": {
     "title": "Create a room",
@@ -278,7 +308,8 @@
     "promote": "Promote Manager",
     "demote": "demoter Member",
     "kick": "Kick",
-    "ban": "Ban"
+    "ban": "Ban",
+    "unban": "Unban"
   },
   "invite": {
     "title": "Join Room",
@@ -299,5 +330,12 @@
     "email.sending": "Sending...",
     "email.success": "Invitation sent successfully!",
     "quickActions": "Quick Actions"
+  },
+  "moderation": {
+    "actif": "Active",
+    "ban": "Banned",
+    "no_banned_users": "No banned users.",
+    "banned_date": "Banned on {{date}}"
   }
+  
 }

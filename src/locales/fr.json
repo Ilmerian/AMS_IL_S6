@@ -21,12 +21,15 @@
     "unbanned":"non banni "
   },
   "confirm": {
-    "kick": "refusé ",
-    "ban": "banni",
-    "unban": "non banni "
+    "kick": "Voulez-vous expulser {{user}} ?",
+    "ban": "Voulez-vous bannir {{user}} ?",
+    "unban": "Voulez-vous débannir {{user}} ?",
+    "unban_user": "Voulez-vous débannir {{user}} ?"
   },
   "error": {
-    "permission_denied": "permission refusée "
+    "permission_denied": "permission refusée ",
+    "cannot_demote_owner": "Impossible de rétrograder le propriétaire.",
+    "unban_failed": "Erreur lors du débannissement."
   },
   "user": {
     "default": "Utilisateur",
@@ -79,7 +82,15 @@
   },
   "common": {
     "sending": "Envoi…",
-    "close": "Fermer"
+    "close": "Fermer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "verify": "Vérifier",
+    "refresh": "Actualiser",
+    "loading": "Chargement...",
+    "visitor": "Visiteur",
+    "online": "En ligne",
+    "back_to_home": "Retour à l'accueil"
   },
   "homepage": {
     "homepage": "Venez Watch With Me !",
@@ -202,9 +213,14 @@
     "previous": "Précédent",
     "next": "Suivant",
     "chat": "chat",
+    "history": "historique",
     "archived_title": "Salon archivé",
     "archived_message": "Ce salon a été archivé et n’est plus accessible.",
     "moderation": "moderation",
+    "sync_realtime": "🟢 Synchronisation en temps réel",
+    "sync_active": "🟢 Synchronisation active",
+    "sync_error": "🔴 Problème de connexion",
+    "sync_connecting": "⚪ Connexion...",
     "succes_sync": "🟢 Synchronisé",
     "wait_sync": "🟡 Connexion...",
     "deny_sync": "🔴 Problème de connexion",
@@ -223,7 +239,21 @@
     "enterPassword": "Entrez le mot de passe du salon pour rejoindre :",
     "password_placeholder": "••••",
     "join": "Rejoindre",
-    "you": "Vous"
+    "you": "Vous",
+    "invite": "Inviter",
+    "pin_button": "PIN",
+    "pin_invalid": "Code PIN invalide",
+    "pin_saved": "Code PIN enregistré",
+    "pin_disabled": "Code PIN désactivé",
+    "pin_set_title": "Définir / Changer le PIN",
+    "pin_enter_title": "Entrer le PIN",
+    "pin_label": "PIN",
+    "pin_disable": "Désactiver",
+    "promoted_message": "Félicitations ! Vous êtes maintenant Modérateur.",
+    "kicked_title": "Vous avez été expulsé",
+    "kicked_message": "Un modérateur vous a retiré de la liste des membres actifs.",
+    "user_unbanned": "{{user}} a été débanni",
+    "user_you": "{{name}} (Vous)"
   },
   "roomCreate": {
     "title": "Créer un salon",
@@ -298,7 +328,14 @@
     "promote": "Promouvoir Manager",
     "demote": "Rétrograder Membre",
     "kick": "Exclure (Kick)",
-    "ban": "Bannir (Ban)"
+    "ban": "Bannir (Ban)",
+    "unban": "Débannir"
 
-  }  
+  },
+  "moderation": {
+    "actif": "Actifs",
+    "ban": "Bannis",
+    "no_banned_users": "Aucun utilisateur banni.",
+    "banned_date": "Banni le {{date}}"
+  }
 }

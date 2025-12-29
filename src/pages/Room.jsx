@@ -53,12 +53,13 @@ import Alert from '@mui/material/Alert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import Badge from '@mui/material/Badge'; // Pour indiquer "En ligne"
-import ToggleButton from '@mui/material/ToggleButton'; // <--- AJOUTER CET IMPORT
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'; // <--- AJOUTER CET IMPORT
-import PersonOffIcon from '@mui/icons-material/PersonOff'; // <--- AJOUTER CET IMPORT
-import PeopleIcon from '@mui/icons-material/People'; // <--- AJOUTER CET IMPORT
+import Badge from '@mui/material/Badge';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import PersonOffIcon from '@mui/icons-material/PersonOff';
+import PeopleIcon from '@mui/icons-material/People';
 import DeleteIcon from '@mui/icons-material/Delete';
+
 
 const ROLES = {
     OWNER: 'owner',
@@ -125,16 +126,18 @@ function ControlStatus({ controlInfo, user }) {
 }
 
 function ConnectionStatus({ connectionStatus }) {
+    const { t } = useTranslation(); // AJOUT DU HOOK
+
     const getStatusInfo = (status) => {
         switch (status) {
             case 'connected':
-                return { text: '🟢 Synchronisation en temps réel', color: 'success.main' };
+                return { text: t('room.sync_realtime'), color: 'success.main' };
             case 'polling':
-                return { text: '🟡 Synchronisation active', color: 'warning.main' };
+                return { text: t('room.sync_active'), color: 'success.main' };
             case 'error':
-                return { text: '🔴 Problème de connexion', color: 'error.main' };
+                return { text: t('room.sync_error'), color: 'error.main' };
             default:
-                return { text: '⚪ Connexion...', color: 'grey.500' };
+                return { text: t('room.sync_connecting'), color: 'grey.500' };
         }
     };
 
@@ -497,7 +500,7 @@ export default function Room() {
         } finally {
             setMembersLoading(false);
         }
-    }, [roomId, user, room?.ownerId, isProduction]);
+    }, [roomId, user, room?.ownerId, isProduction, t]);
 
     useEffect(() => {
         if (activeTab !== 'history') return
@@ -516,7 +519,7 @@ export default function Room() {
             } else {
                 map.set(u.user_id, {
                     userId: u.user_id,
-                    name: u.username || 'Visiteur',
+                    name: u.username || t('common.visitor', 'Visitor'), // TRADUCTION
                     avatar_url: u.avatar_url,
                     role: ROLES.MEMBER,
                     is_manager: false,
@@ -527,7 +530,7 @@ export default function Room() {
         });
 
         return Array.from(map.values());
-    }, [members, onlineUsers]);
+    }, [members, onlineUsers, t]);
 
     useEffect(() => {
         if (!user || !room) {
@@ -602,7 +605,7 @@ export default function Room() {
                     setSnackbar({ open: true, message: t('role.promoted', { user: targetMember.name }), severity: 'success' });
                     break;
                 case 'demote':
-                    if (targetMember.role === ROLES.OWNER) throw new Error("Impossible de rétrograder l'owner.");
+                    if (targetMember.role === ROLES.OWNER) throw new Error(t('error.cannot_demote_owner')); // TRADUCTION
                     await RoleService.demote(roomId, targetMember.userId);
                     setSnackbar({ open: true, message: t('role.demoted', { user: targetMember.name }), severity: 'success' });
                     break;
@@ -688,7 +691,7 @@ export default function Room() {
                     setIsKicked(true);
                 }
                 else if (payload.new?.is_manager === true) {
-                    setSnackbar({ open: true, message: "Félicitations ! Vous êtes maintenant Modérateur.", severity: 'success' });
+                    setSnackbar({ open: true, message: t('room.promoted_message'), severity: 'success' }); // TRADUCTION
                 }
             }
         };
@@ -698,7 +701,7 @@ export default function Room() {
         return () => {
             if (unsub) unsub();
         };
-    }, [roomId, user, loadRoomData]);
+    }, [roomId, user, loadRoomData, t]);
 
     const loadBannedUsers = useCallback(async () => {
         if (!roomId) return;
@@ -719,13 +722,13 @@ export default function Room() {
 
     // NOUVELLE ACTION : Débannir
     const handleUnbanUser = async (targetUserId, targetName) => {
-        if (!window.confirm(`Voulez-vous débannir ${targetName} ?`)) return;
+        if (!window.confirm(t('confirm.unban_user', { user: targetName }))) return; // TRADUCTION
         try {
             await BanRepository.unbanUser(roomId, targetUserId);
-            setSnackbar({ open: true, message: `${targetName} a été débanni`, severity: 'success' });
+            setSnackbar({ open: true, message: t('room.user_unbanned', { user: targetName }), severity: 'success' }); // TRADUCTION
             loadBannedUsers(); // Rafraîchir la liste
         } catch (err) {
-            setSnackbar({ open: true, message: "Erreur lors du débannissement", severity: 'error' });
+            setSnackbar({ open: true, message: t('error.unban_failed'), severity: 'error' }); // TRADUCTION
         }
     };
 
@@ -753,17 +756,17 @@ export default function Room() {
             <Box component={Section} sx={{ p: 4, textAlign: 'center', mt: 4 }}>
                 <Typography variant="h4" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                     <WarningIcon fontSize="large" />
-                    Vous avez été expulsé
+                    {t('room.kicked_title')} 
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.8, mb: 3 }}>
-                    Un modérateur vous a retiré de la liste des membres actifs.
+                    {t('room.kicked_message')} 
                 </Typography>
                 <Button 
                     variant="outlined" 
                     color="inherit"
-                    onClick={() => window.location.href = '/'} // Retour accueil
+                    onClick={() => window.location.href = '/'} 
                 >
-                    Retour à l'accueil
+                    {t('common.back_to_home')} 
                 </Button>
                 
                 {!room.password && (
@@ -774,7 +777,7 @@ export default function Room() {
                             loadRoomData();
                         }}
                     >
-                        Refresh
+                        {t('common.refresh')} 
                     </Button>
                 )}
             </Box>
@@ -783,6 +786,7 @@ export default function Room() {
 
     return (
         <Section>
+            {/* --- BANNIÈRES & STATUTS --- */}
             {!user && (
                 <Box sx={{ mb: 2 }}>
                     <GuestUpgradeBanner />
@@ -796,34 +800,26 @@ export default function Room() {
             )}
             {user && (
                 <Box sx={{ mb: 1 }}>
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        p: 1,
-                        borderRadius: 1,
-                        backgroundColor: connectionStatus === 'polling' ? 'success.main' :
-                            connectionStatus === 'error' ? 'error.main' : 'warning.main',
-                        opacity: 0.9
-                    }}>
-                        <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
-                            {connectionStatus === 'polling' ? t('room.succes_sync') :
-                                connectionStatus === 'error' ? t('room.deny_sync') : t('room.wait_sync')}
-                        </Typography>
-                    </Box>
+                    <ConnectionStatus connectionStatus={connectionStatus} />
                 </Box>
             )}
-            {/* HEADER */}
+
+            {/* --- HEADER --- */}
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
                 <Typography
                     variant="h4"
-                    sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                    sx={{ 
+                        fontWeight: 700, 
+                        textTransform: 'uppercase', 
+                        letterSpacing: 0.5,
+                        fontSize: { xs: '1.5rem', md: '2.125rem' } 
+                    }}
                 >
                     {room.name}
                 </Typography>
             </Box>
 
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Typography sx={{ opacity: 0.8 }}>
                     {room.password ? t('room.private') : t('room.public')}
                 </Typography>
@@ -836,7 +832,7 @@ export default function Room() {
                     onClick={() => setInviteOpen(true)}
                     sx={{ borderRadius: 20, px: 2 }}
                 >
-                    Inviter
+                    {t('room.invite')}
                 </Button>
 
                 {canControlVideo && (
@@ -851,13 +847,14 @@ export default function Room() {
                         }}
                         sx={{ borderRadius: 20, px: 2 }}
                     >
-                        PIN
+                        {t('room.pin_button')}
                     </Button>
                 )}
             </Stack>
 
-            {/* PASSWORD FORM */}
+            {/* --- CONTENU PRINCIPAL --- */}
             {needPw && !checked ? (
+                // FORMULAIRE MOT DE PASSE
                 <Box component="form" onSubmit={verify} sx={{ mt: 2, maxWidth: 480 }}>
                     <Stack spacing={2}>
                         <Typography>{t('room.enterPassword')}</Typography>
@@ -877,19 +874,14 @@ export default function Room() {
                     </Stack>
                 </Box>
             ) : (
-                <Stack spacing={2} sx={{ mt: 2 }}>
-                    <Box
-                        sx={{
-                            position: 'relative',
-                            width: '100%',
-                            display: 'block'
-                        }}
-                    >
-                        {/* VIDEO PLAYER */}
+                // LAYOUT VIDEO + SIDEBAR
+                <Box sx={{ mt: 2, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ position: 'relative', width: '100%' }}>
                         <Box
                             sx={{
-                                mr: { xs: 0, lg: '466px' },
-                                minWidth: 0
+                                mr: { xs: 0, lg: '466px' }, 
+                                width: { xs: '100%', lg: 'auto' },
+                                mb: { xs: 2, lg: 0 } 
                             }}
                         >
                             <VideoPlayerShell
@@ -908,35 +900,28 @@ export default function Room() {
                                 onEnded={handleVideoEnded}
                                 onError={handleVideoError}
                             />
-                            {/* NAVIGATION BUTTONS */}
+
+                            {/* BOUTONS PREV/NEXT */}
                             {canControlVideo && playlistItems.length > 1 && (
                                 <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
                                     <Button
                                         variant="outlined"
-                                        onClick={() => {
-                                            requirePin(() => {
-                                                const videoIdToUse = syncVideoId || currentVideoId;
-                                                const prevVideo = getPrevVideo(videoIdToUse);
-                                                if (prevVideo?.url) {
-                                                    changeVideo(prevVideo.url);
-                                                }
-                                            });
-                                        }}
+                                        onClick={() => requirePin(() => {
+                                            const videoIdToUse = syncVideoId || currentVideoId;
+                                            const prevVideo = getPrevVideo(videoIdToUse);
+                                            if (prevVideo?.url) changeVideo(prevVideo.url);
+                                        })}
                                         disabled={!currentVideoId && !syncVideoId}
                                     >
                                         {t('room.previous')}
                                     </Button>
                                     <Button
                                         variant="outlined"
-                                        onClick={() => {
-                                            requirePin(() => {
-                                                const videoIdToUse = syncVideoId || currentVideoId;
-                                                const nextVideo = getNextVideo(videoIdToUse);
-                                                if (nextVideo?.url) {
-                                                    changeVideo(nextVideo.url);
-                                                }
-                                            });
-                                        }}
+                                        onClick={() => requirePin(() => {
+                                            const videoIdToUse = syncVideoId || currentVideoId;
+                                            const nextVideo = getNextVideo(videoIdToUse);
+                                            if (nextVideo?.url) changeVideo(nextVideo.url);
+                                        })}
                                         disabled={!currentVideoId && !syncVideoId}
                                     >
                                         {t('room.next')}
@@ -945,15 +930,18 @@ export default function Room() {
                             )}
                         </Box>
 
-                        {/* SIDEBAR */}
+                        {/* 2. SIDEBAR (CHAT / PLAYLIST) */}
                         <Box
                             sx={{
                                 position: { xs: 'static', lg: 'absolute' },
                                 top: 0,
                                 right: 0,
                                 bottom: 0,
+                                
                                 width: { xs: '100%', lg: '450px' },
-                                mt: { xs: 2, lg: 0 },
+                                
+                                height: { xs: '600px', lg: 'auto' }, 
+                                
                                 display: 'flex',
                                 flexDirection: 'column',
                                 bgcolor: 'background.paper',
@@ -962,6 +950,7 @@ export default function Room() {
                                 border: '1px solid rgba(255,255,255,0.1)'
                             }}
                         >
+                            {/* ONGLETS */}
                             <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
                                 <Tabs
                                     value={activeTab}
@@ -973,13 +962,15 @@ export default function Room() {
                                 >
                                     <Tab label={t('room.playlist')} value="playlist" />
                                     <Tab label={t('room.chat')} value="chat" />
-                                    <Tab label={t('room.history', 'History')} value="history" />
-                                    {isModerator && <Tab label={t('room.moderation')} value="moderation" />}
+                                    <Tab label={t('room.history')} value="history" sx={{ minWidth: '60px' }} />
+                                    {isModerator && <Tab label={t('room.moderation')} value="moderation" sx={{ minWidth: '60px' }} />}
                                 </Tabs>
                             </Box>
 
+                            {/* CONTENU DES ONGLETS */}
                             <Box sx={{ flex: 1, minHeight: 0, overflowY: activeTab === 'chat' ? 'hidden' : 'auto' }}>
                                 <Box sx={{ p: 1, height: '100%' }}>
+                                    
                                     {activeTab === 'playlist' && (
                                         <PlaylistPanel
                                             playlistId={playlistId}
@@ -993,49 +984,36 @@ export default function Room() {
 
                                     {activeTab === 'chat' && (
                                         <Box sx={{ height: '100%', minHeight: 300 }}>
-                                            <ChatBox roomId={roomId} isBanned={isBanned} />
+                                            <ChatBox 
+                                                roomId={roomId} 
+                                                isBanned={isBanned}
+                                                isModerator={isModerator || userRole === 'owner'} 
+                                            />
                                         </Box>
                                     )}
                                     
                                     {activeTab === 'history' && (
                                         <Box sx={{ height: '100%', overflowY: 'auto', px: 1, py: 1 }}>
                                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                                        <Typography variant="h6">
-                                            {t('room.history', 'History')}
-                                        </Typography>
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            onClick={loadHistory}
-                                            disabled={historyLoading}
-                                        >
-                                            {t('common.refresh', 'Refresh')}
-                                        </Button>
+                                                <Typography variant="h6"> {t('room.history', 'History')}</Typography>
+                                                <Button size="small" variant="outlined" onClick={loadHistory} disabled={historyLoading}>
+                                                    {t('common.refresh')}
+                                                </Button>
                                             </Stack>
-
-                                        {historyLoading ? (
-                                        <Typography sx={{ opacity: 0.8 }}>
-                                            {t('common.loading', 'Loading...')}
-                                        </Typography>
-                                        ) : history.length === 0 ? (
-                                        <Typography sx={{ opacity: 0.8 }}>
-                                            {t('room.history_empty', 'No videos watched yet in this room.')}
-                                        </Typography>
-                                        ) : (
+                                            {historyLoading ? (
+                                                <Typography sx={{ opacity: 0.8 }}>{t('common.loading')}</Typography>
+                                            ) : history.length === 0 ? (
+                                                <Typography sx={{ opacity: 0.8 }}>{t('room.history_empty')}</Typography>
+                                            ) : (
                                                 <List dense>
-                                            {history.map((h) => {
-                                            const title = h.video_title || h.video_url || `YouTube: ${h.video_youtube_id}`
-                                            const when = h.created_at ? new Date(h.created_at).toLocaleString() : ''
-
-                                            return (
+                                                    {history.map((h) => (
                                                         <ListItem key={h.id || `${h.video_youtube_id}-${h.created_at}`}>
-                                                <ListItemText
-                                                    primary={title}
-                                                    secondary={when}
-                                                />
+                                                            <ListItemText
+                                                                primary={h.video_title || h.video_url}
+                                                                secondary={h.created_at ? new Date(h.created_at).toLocaleString() : ''}
+                                                            />
                                                         </ListItem>
-                                            )
-                                            })}
+                                                    ))}
                                                 </List>
                                             )}
                                         </Box>
@@ -1043,13 +1021,10 @@ export default function Room() {
 
                                     {activeTab === 'moderation' && isModerator && (
                                         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                
                                             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1, mt: 1 }}>
                                                 <GavelIcon fontSize="small" sx={{ mr: 1 }} />
                                                 {t('room.moderation_panel')}
                                             </Typography>
-
-                                            {/* SOUS-MENU (Toggle) */}
                                             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                                                 <ToggleButtonGroup
                                                     value={modView}
@@ -1057,72 +1032,51 @@ export default function Room() {
                                                     onChange={(e, newView) => { if (newView) setModView(newView); }}
                                                     size="small"
                                                     color="primary"
-                                                    aria-label="Moderation view"
                                                 >
-                                                    <ToggleButton value="members" aria-label="members">
-                                                        <PeopleIcon sx={{ mr: 1, fontSize: 20 }} />
-                                                        Actifs
-                                                    </ToggleButton>
-                                                    <ToggleButton value="banned" aria-label="banned">
-                                                        <PersonOffIcon sx={{ mr: 1, fontSize: 20 }} />
-                                                        Bannis
-                                                    </ToggleButton>
+                                                    <ToggleButton value="members">{t('moderation.actif')}</ToggleButton>
+                                                    <ToggleButton value="banned">{t('moderation.ban')}</ToggleButton>
                                                 </ToggleButtonGroup>
                                             </Box>
-
-                                            {/* VUE 1 : MEMBRES ACTIFS */}
                                             {modView === 'members' && (
-                                               <List dense sx={{ overflowY: 'auto', flex: 1 }}>
-                                                    {allMembers
-                                                        .filter(member => member.isOnline) 
-                                                        .map((member) => {
-                                                            const memberRole = getMemberRole(member);
-                                                            const isCurrentUser = member.userId === user?.id;
-                                                            const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
+                                                <List dense sx={{ overflowY: 'auto', flex: 1 }}>
+                                                    {allMembers.filter(m => m.isOnline).map((member) => {
+                                                        const memberRole = getMemberRole(member);
+                                                        const isCurrentUser = member.userId === user?.id;
+                                                        const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
                                                         return (
                                                             <ListItem
                                                                 key={member.userId}
                                                                 secondaryAction={
                                                                     canActOn && (
-                                                                        <IconButton
-                                                                            edge="end"
-                                                                            onClick={(e) => {
-                                                                                setAnchorEl(e.currentTarget);
-                                                                                setSelectedMember({ ...member, name: member.name, role: memberRole });
-                                                                            }}
-                                                                        >
+                                                                        <IconButton edge="end" onClick={(e) => {
+                                                                            setAnchorEl(e.currentTarget);
+                                                                            setSelectedMember({ ...member, name: member.name, role: memberRole });
+                                                                        }}>
                                                                             <MoreVertIcon />
                                                                         </IconButton>
                                                                     )
                                                                 }
                                                             >
-                                                                <ListItemAvatar>
-                                                                    <Avatar src={member.avatar_url} alt={member.name} />
-                                                                </ListItemAvatar>
+                                                                <ListItemAvatar><Avatar src={member.avatar_url} /></ListItemAvatar>
                                                                 <ListItemText
                                                                     primary={
                                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                            {isCurrentUser ? `${member.name} (You)` : member.name}
-                                                                            {member.isOnline && (
-                                                                                <Box sx={{ width: 8, height: 8, bgcolor: 'success.main', borderRadius: '50%' }} title="En ligne" />
-                                                                            )}
+                                                                            {isCurrentUser ? t('room.user_you', { name: member.name }) : member.name}
+                                                                            {member.isOnline && <Box sx={{ width: 8, height: 8, bgcolor: 'success.main', borderRadius: '50%' }} />}
                                                                         </Box>
                                                                     }
                                                                     secondary={getRoleBadge(memberRole)}
-                                                                    secondaryTypographyProps={{ component: 'span' }}
                                                                 />
                                                             </ListItem>
                                                         );
                                                     })}
                                                 </List>
                                             )}
-
-                                            {/* VUE 2 : UTILISATEURS BANNIS */}
                                             {modView === 'banned' && (
                                                 <Box sx={{ overflowY: 'auto', flex: 1 }}>
                                                     {bannedUsers.length === 0 ? (
                                                         <Typography variant="body2" sx={{ opacity: 0.6, textAlign: 'center', mt: 4 }}>
-                                                            Aucun utilisateur banni.
+                                                            {t('moderation.no_banned_users')}
                                                         </Typography>
                                                     ) : (
                                                         <List dense>
@@ -1130,150 +1084,69 @@ export default function Room() {
                                                                 <ListItem
                                                                     key={banned.userId}
                                                                     secondaryAction={
-                                                                        <Button 
-                                                                            variant="outlined" 
-                                                                            size="small" 
-                                                                            color="success"
-                                                                            startIcon={<CheckCircleIcon />}
-                                                                            onClick={() => handleUnbanUser(banned.userId, banned.name)}
-                                                                        >
-                                                                            Débannir
+                                                                        <Button variant="outlined" size="small" color="success" onClick={() => handleUnbanUser(banned.userId, banned.name)}>
+                                                                            {t('action.unban')}
                                                                         </Button>
                                                                     }
                                                                 >
-                                                                    <ListItemAvatar>
-                                                                        <Avatar src={banned.avatar_url} />
-                                                                    </ListItemAvatar>
-                                                                    <ListItemText
-                                                                        primary={banned.name}
-                                                                        secondary={`Banni le ${new Date(banned.bannedAt).toLocaleDateString()}`}
-                                                                    />
+                                                                    <ListItemAvatar><Avatar src={banned.avatar_url} /></ListItemAvatar>
+                                                                    <ListItemText primary={banned.name} secondary={t('moderation.banned_date', { date: new Date(banned.bannedAt).toLocaleDateString() })} />
                                                                 </ListItem>
                                                             ))}
                                                         </List>
                                                     )}
                                                 </Box>
                                             )}
-
                                         </Box>
                                     )}
                                 </Box>
                             </Box>
                         </Box>
                     </Box>
-                </Stack>
+                </Box>
             )}
 
-            {/* CONTEXT MENU */}
-            <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={() => setAnchorEl(null)}
-            >
+            {/* MENUS FLOTTANTS ET DIALOGUES */}
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
                 {selectedMember && (
                     <Box>
                         {(selectedMember.role === ROLES.MEMBER || selectedMember.role === ROLES.MANAGER) && userRole === ROLES.OWNER && (
-                            <MenuItem onClick={() => handleAction('promote', selectedMember)}>
-                                {t('action.promote')}
-                            </MenuItem>
+                            <MenuItem onClick={() => handleAction('promote', selectedMember)}>{t('action.promote')}</MenuItem>
                         )}
-
-                        {/* DEMOTE */}
                         {selectedMember.role === ROLES.MANAGER && userRole === ROLES.OWNER && (
-                            <MenuItem onClick={() => handleAction('demote', selectedMember)}>
-                                {t('action.demote')}
-                            </MenuItem>
+                            <MenuItem onClick={() => handleAction('demote', selectedMember)}>{t('action.demote')}</MenuItem>
                         )}
-
-                        {/* KICK/BAN */}
-                        <MenuItem onClick={() => handleAction('kick', selectedMember)}>
-                            {t('action.kick')}
-                        </MenuItem>
-                        <MenuItem onClick={() => handleAction('ban', selectedMember)} sx={{ color: 'error.main' }}>
-                            {t('action.ban')}
-                        </MenuItem>
+                        <MenuItem onClick={() => handleAction('kick', selectedMember)}>{t('action.kick')}</MenuItem>
+                        <MenuItem onClick={() => handleAction('ban', selectedMember)} sx={{ color: 'error.main' }}>{t('action.ban')}</MenuItem>
                     </Box>
                 )}
             </Menu>
 
-            {/* DIALOGUE D'INVITATION */}
-            <InviteDialog
-                open={inviteOpen}
-                onClose={() => setInviteOpen(false)}
-                roomId={roomId}
-            />
-            {/* SNACKBAR */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
-            >
+            <InviteDialog open={inviteOpen} onClose={() => setInviteOpen(false)} roomId={roomId} />
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
                 <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>
-            {/* PIN DIALOG */}
-            <Dialog open={pinOpen} onClose={closePinDialog} maxWidth="xs" fullWidth>
-            <DialogTitle>
-                {pinMode === 'set'
-                ? t('room.pin_set_title', 'Set / Change PIN')
-                : t('room.pin_enter_title', 'Enter PIN')}
-            </DialogTitle>
 
+            <Dialog open={pinOpen} onClose={closePinDialog} maxWidth="xs" fullWidth>
+                <DialogTitle>{pinMode === 'set' ? t('room.pin_set_title') : t('room.pin_enter_title')}</DialogTitle>
                 <DialogContent>
-                <TextField
-                autoFocus
-                fullWidth
-                margin="dense"
-                label={t('room.pin_label', 'PIN')}
-                value={pinValue}
-                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                inputProps={{ inputMode: 'numeric' }}
-                type="password"
-                error={!!pinError}
-                helperText={pinError || ' '}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                    if (pinMode === 'set') {
-                        (async () => {
-                        try {
-                            setPinError('');
-                            await RoomService.setRoomPin(roomId, pinValue);
-                            setPinOk(true);
-                            setPinOpen(false);
-                            setPinValue('');
-                        } catch (err) {
-                            setPinError(err?.message || t('auth.error', 'Error'));
-                        }
-                        })();
-                    } else {
-                        submitPin();
-                    }
-                    }
-                }}
-                />
+                    <TextField
+                        autoFocus fullWidth margin="dense"
+                        label={t('room.pin_label')} type="password"
+                        inputProps={{ inputMode: 'numeric' }}
+                        value={pinValue} onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        error={!!pinError} helperText={pinError}
+                        onKeyDown={(e) => { if (e.key === 'Enter') pinMode === 'set' ? handleSavePin() : submitPin() }}
+                    />
                 </DialogContent>
                 <DialogActions>
-                <Button onClick={closePinDialog}>
-                {t('common.cancel', 'Cancel')}
-                </Button>
-
-                {pinMode === 'set' && (
-                    <Button variant="outlined" onClick={handleDisablePin}>
-                    {t('room.pin_disable', 'Disable')}
+                    <Button onClick={closePinDialog}>{t('common.cancel')}</Button>
+                    {pinMode === 'set' && <Button color="error" onClick={handleDisablePin}>{t('room.pin_disable')}</Button>}
+                    <Button variant="contained" onClick={() => pinMode === 'set' ? handleSavePin() : submitPin()}>
+                        {pinMode === 'set' ? t('common.save') : t('common.verify')}
                     </Button>
-                )}
-
-            <Button
-                variant="contained"
-                disabled={pinValue.length < 4}
-                onClick={() => {
-                    if (pinMode === 'set') handleSavePin();
-                    else submitPin();
-                }}
-                >
-                {pinMode === 'set' ? t('common.save', 'Save') : t('common.verify', 'Verify')}
-            </Button>
                 </DialogActions>
             </Dialog>
         </Section>
