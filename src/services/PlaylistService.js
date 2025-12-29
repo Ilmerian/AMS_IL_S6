@@ -2,6 +2,10 @@
 import { PlaylistRepository } from '../repositories/PlaylistRepository';
 import { VideoRepository } from '../repositories/VideoRepository';
 
+/**
+ * Service de gestion des playlists
+ */
+
 export const PlaylistService = {
   listByRoom: (roomId) => PlaylistRepository.getByRoom(roomId),
 
@@ -38,5 +42,5 @@ export const PlaylistService = {
       playlistId,
       videoIds
     });
-  },  
+  },
 };

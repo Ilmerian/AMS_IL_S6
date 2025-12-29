@@ -1,3 +1,7 @@
+/**
+ * Point d'entrée des services de l'application
+ */
+
 export * as AuthService from './AuthService'
 export { UserService } from './UserService'
 export { RoomService } from './RoomService'

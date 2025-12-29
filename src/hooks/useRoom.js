@@ -2,13 +2,18 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RoomService } from '../services/RoomService'
 
+/**
+ * Hook de gestion des informations d'une salle
+ * @param {string} roomId
+ */
+
 export function useRoom(roomId) {
   const [room, setRoom] = useState(null)
   const [needPw, setNeedPw] = useState(false)
   const [checked, setChecked] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  
+
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -26,13 +31,13 @@ export function useRoom(roomId) {
     try {
       const r = await RoomService.get(roomId)
       setRoom(r)
-      
+
       const hasPw = r?.hasPassword ?? !!r?.password
       setNeedPw(!!hasPw)
 
-      
-      setChecked(prev => prev || !hasPw) 
-      
+
+      setChecked(prev => prev || !hasPw)
+
     } catch (err) {
       console.error('[useRoom] failed', err)
       setRoom(null)
@@ -51,7 +56,7 @@ export function useRoom(roomId) {
     try {
       const ok = await RoomService.join(roomId, password)
       if (ok) {
-        setChecked(true) 
+        setChecked(true)
         return true
       } else {
         setError('Invalid password')

@@ -3,21 +3,25 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { RoomService } from '../services/RoomService';
 import { getYouTubeId } from '../utils/youtube';
 
+/**
+ * Hook de synchronisation de la lecture vidéo dans une salle
+ */
+
 export function useVideoSync({ roomId, user }) {
   const safeUser = user || { id: null };
-  
+
   const [syncVideoId, setSyncVideoId] = useState(null);
   const [syncIsPlaying, setSyncIsPlaying] = useState(false);
   const [seekTimestamp, setSeekTimestamp] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
 
-  const stateRef = useRef({ 
-    videoId: null, 
+  const stateRef = useRef({
+    videoId: null,
     isPlaying: false,
     lastLocalAction: 0,
     ignoreNextPoll: false
   });
-  
+
   const localProgressRef = useRef(0);
   const syncIntervalRef = useRef(null);
   const lastHistoryVideoRef = useRef(null);
@@ -52,13 +56,13 @@ export function useVideoSync({ roomId, user }) {
             localProgressRef.current = 0;
             setSeekTimestamp(0);
           }
-          
+
           if (room.is_playing !== stateRef.current.isPlaying && room.is_playing !== undefined) {
             console.log(`[POLLING] Playback state: ${room.is_playing ? 'PLAY' : 'PAUSE'}`);
             setSyncIsPlaying(room.is_playing);
             stateRef.current.isPlaying = room.is_playing;
           }
-          
+
           setConnectionStatus('polling');
         }
       } catch (error) {
@@ -71,10 +75,10 @@ export function useVideoSync({ roomId, user }) {
 
     const setupPolling = () => {
       const interval = 5000;
-      
+
       syncRoomState();
       syncIntervalRef.current = setInterval(syncRoomState, interval);
-      
+
       console.log(`[POLLING] Started with ${interval}ms interval`);
     };
 
@@ -100,14 +104,14 @@ export function useVideoSync({ roomId, user }) {
     stateRef.current.isPlaying = true;
     stateRef.current.lastLocalAction = Date.now();
     stateRef.current.ignoreNextPoll = true;
-    
+
     if (timestamp !== null) {
       setSeekTimestamp(timestamp);
       localProgressRef.current = timestamp;
     }
 
     try {
-      await RoomService.updatePlaybackState(roomId, { 
+      await RoomService.updatePlaybackState(roomId, {
         isPlaying: true,
         ...(syncVideoId && { currentVideoId: syncVideoId })
       });
@@ -121,7 +125,7 @@ export function useVideoSync({ roomId, user }) {
 
   const triggerPause = useCallback(async () => {
     console.log(`👆 User ${safeUser.id} Triggered: PAUSE`);
-    
+
     setSyncIsPlaying(false);
     stateRef.current.isPlaying = false;
     stateRef.current.lastLocalAction = Date.now();
@@ -139,7 +143,7 @@ export function useVideoSync({ roomId, user }) {
 
   const triggerSeek = useCallback((seconds) => {
     console.log(`👆 User ${safeUser.id} Triggered: SEEK to ${seconds}`);
-    
+
     setSeekTimestamp(seconds);
     localProgressRef.current = seconds;
   }, [safeUser.id]);
@@ -147,9 +151,9 @@ export function useVideoSync({ roomId, user }) {
   const changeVideo = useCallback(async (urlOrId) => {
     const cleanId = getYouTubeId(urlOrId) || urlOrId;
     if (!cleanId) return;
-    
+
     console.log(`👆 User ${safeUser.id} Changing video to: ${cleanId}`);
-    
+
     setSyncVideoId(cleanId);
     stateRef.current.videoId = cleanId;
     localProgressRef.current = 0;
@@ -160,8 +164,8 @@ export function useVideoSync({ roomId, user }) {
     stateRef.current.ignoreNextPoll = true;
 
     try {
-      await RoomService.updatePlaybackState(roomId, { 
-        currentVideoId: cleanId, 
+      await RoomService.updatePlaybackState(roomId, {
+        currentVideoId: cleanId,
         isPlaying: true
       });
       console.log(`[DB UPDATE] Video changed to: ${cleanId}`);

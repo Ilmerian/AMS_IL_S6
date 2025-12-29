@@ -1,4 +1,9 @@
 // src/models/Room.js
+
+/**
+ * Modèle représentant une salle
+ */
+
 export class Room {
   constructor({
     id,
@@ -12,7 +17,7 @@ export class Room {
     position,
     createdAt,
     archivedAt,
-    hasPassword 
+    hasPassword
   } = {}) {
     this.id = id;
     this.name = name;
@@ -42,7 +47,7 @@ export class Room {
       position: r.position,
       createdAt: r.created_at,
       archivedAt: r.archived_at,
-      hasPassword: r.hasPassword 
+      hasPassword: r.hasPassword
     });
   }
 }

@@ -2,6 +2,10 @@
 import { supabase } from '../lib/supabaseClient'
 import { VideoRepository } from '../repositories/VideoRepository'
 
+/**
+ * Service de gestion des vidéos
+ */
+
 export const VideoService = {
   getOrCreate: ({ url, title }) => VideoRepository.getOrCreate({ url, title }),
   getById: (id) => VideoRepository.getById(id),
@@ -13,7 +17,7 @@ export const VideoService = {
 
     try {
       console.log('[VideoService] Searching YouTube for:', q)
-      
+
       const { data, error } = await supabase.functions.invoke('youtube-search', {
         body: { query: q },
       })

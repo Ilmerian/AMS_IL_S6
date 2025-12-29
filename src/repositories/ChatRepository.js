@@ -2,6 +2,10 @@
 import { supabase } from '../lib/supabaseClient';
 import { ChatMessage } from '../models/ChatMessage';
 
+/**
+ * Accès aux messages de chat d'une salle
+ */
+
 export const ChatRepository = {
   async listByRoom(roomId, { limit = 50, before } = {}) {
     let query = supabase
@@ -48,11 +52,11 @@ export const ChatRepository = {
     const numRoomId = Number(roomId);
     console.log(`🎯 Subscribing to chat messages for room ${numRoomId}`);
 
-    const isProduction = window.location.hostname !== 'localhost' && 
-                        window.location.hostname !== '127.0.0.1';
+    const isProduction = window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1';
     if (isProduction) {
       console.log('🚫 Realtime disabled in production due to WebSocket restrictions');
-      return () => {};
+      return () => { };
     }
 
     let retryCount = 0;
@@ -74,7 +78,7 @@ export const ChatRepository = {
               console.log('📨 New message received via subscription:', payload);
               const msgRow = payload.new;
               let username = null;
-              
+
               if (msgRow.user_id) {
                 const { data: userData } = await supabase
                   .from('users')
@@ -98,7 +102,7 @@ export const ChatRepository = {
         )
         .subscribe((status) => {
           console.log(`📡 Subscription status for room ${numRoomId}:`, status);
-          
+
           if (status === 'SUBSCRIBED') {
             console.log('✅ Successfully subscribed to chat messages');
             retryCount = 0;

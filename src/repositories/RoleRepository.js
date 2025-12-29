@@ -4,6 +4,10 @@ import { supabase } from '../lib/supabaseClient';
 import { Role } from '../models/Role';
 import { cacheService } from '../services/CacheService';
 
+/**
+ * Gestion des rôles et des membres d'une salle
+ */
+
 export const RoleRepository = {
   async listForRoom(roomId) {
     const { data, error } = await supabase
@@ -20,7 +24,7 @@ export const RoleRepository = {
   async listMembers(roomId, bypassCache = false) {
     const cacheKey = `room_members_${roomId}`;
     const CACHE_TTL = 30000;
-    
+
     try {
       if (!bypassCache) {
           const cached = cacheService.getMemory(cacheKey);
@@ -31,13 +35,13 @@ export const RoleRepository = {
 
       const currentUserId = (await supabase.auth.getUser()).data?.user?.id;
       const numRoomId = Number(roomId);
-      
+
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
         .select('room_id, owner_id')
         .eq('room_id', numRoomId)
         .single();
-      
+
       if (roomError) throw roomError;
 
       const ownerId = roomData.owner_id;
@@ -51,7 +55,7 @@ export const RoleRepository = {
           users!inner(username, email, avatar_url)
         `)
         .eq('room_id', numRoomId);
-      
+
       if (rolesError && rolesError.code !== 'PGRST116') {
         console.warn('Roles query error:', rolesError);
       }
@@ -61,7 +65,7 @@ export const RoleRepository = {
           const userId = role.user_id;
           const isOwner = userId === ownerId;
           const isCurrentUser = userId === currentUserId;
-          
+
           membersMap.set(userId, {
             userId,
             name: role.users?.username || role.users?.email || userId.slice(0, 8),
@@ -152,12 +156,12 @@ export const RoleRepository = {
 
   // NOUVEAU: Promote (met is_manager à true)
   async promote({ roomId, userId }) {
-      return this.addMember({ roomId, userId, isManager: true });
+    return this.addMember({ roomId, userId, isManager: true });
   },
 
   // NOUVEAU: Demote (met is_manager à false)
   async demote({ roomId, userId }) {
-      return this.addMember({ roomId, userId, isManager: false });
+    return this.addMember({ roomId, userId, isManager: false });
   },
 
 

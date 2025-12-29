@@ -4,9 +4,13 @@ import { RoleRepository } from '../repositories/RoleRepository';
 import { VideoRepository } from '../repositories/VideoRepository'
 import { supabase } from '../lib/supabaseClient';
 
+/**
+ * Service de gestion des salles
+ */
+
 export const RoomService = {
   listMy: () => RoomRepository.listMy(),
-  
+
   async get(roomId) {
     try {
       const { data, error } = await supabase
@@ -14,13 +18,13 @@ export const RoomService = {
         .select('room_id, name, owner_id, current_video_id, is_playing, password, archived_at')
         .eq('room_id', roomId)
         .single();
-      
+
       if (error) throw error;
-      
+
       if (!data) {
         throw new Error('Room not found');
       }
-      
+
       return {
         id: data.room_id,
         name: data.name,
@@ -29,7 +33,7 @@ export const RoomService = {
         is_playing: data.is_playing,
         // CORRECTION ICI : on renomme 'has_password' en 'hasPassword'
         // et on passe aussi 'password' si besoin pour d'autres vérifications
-        hasPassword: !!data.password, 
+        hasPassword: !!data.password,
         password: data.password,
         archivedAt: data.archived_at,
       };
@@ -38,7 +42,7 @@ export const RoomService = {
       throw error;
     }
   },
-  
+
   // ... (le reste du fichier ne change pas)
   listPublic: (query = '') => RoomRepository.listPublic(query),
   updatePosition: (roomId, position) => RoomRepository.updatePosition(roomId, position),
@@ -111,14 +115,14 @@ export const RoomService = {
       .from('rooms')
       .update(updates)
       .eq('room_id', roomId);
-    
+
     if (error) {
       console.error('RoomService.updatePlaybackState error:', error);
       throw error;
     }
     return true;
   },
-  
+
   async getVideoHistoryForRoom(roomId) {
     try {
       return await RoomRepository.getVideoHistoryForRoom(roomId)

@@ -1,91 +1,95 @@
- // src/services/AvatarService.js
- import { StorageService } from './StorageService'
- import { UserService } from './UserService'
- import { supabase } from '../lib/supabaseClient'
+// src/services/AvatarService.js
+import { StorageService } from './StorageService'
+import { UserService } from './UserService'
+import { supabase } from '../lib/supabaseClient'
 
- const BUCKET_PUBLIC = true
+const BUCKET_PUBLIC = true
 
- export const AvatarService = {
-   async upload(file) {
-     const { data: { user } } = await supabase.auth.getUser()
-     if (!user) throw new Error('Unauthorized')
+/**
+ * Gestion des avatars utilisateurs
+ */
 
-      try {
-        await UserService.me()
-      } catch (e) {
-        console.warn('[AvatarService.upload] ensure profile failed, will try minimal upsert:', e?.message || e)
-        const username =
-          user.user_metadata?.username ||
-          user.email?.split('@')[0] ||
-          `user_${(user.id || '').slice(0, 8)}`
-        await UserService.upsertProfile({
-          user_id: user.id,
-          username,
-          email: user.email,
-          avatar_url: null,
-        })
-      }
-     const path = await StorageService.uploadAvatar({ userId: user.id, file })
-     const url = BUCKET_PUBLIC ? StorageService.publicUrl(path) : await StorageService.signedUrl(path)
-     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-     if (!allowedTypes.includes(file.type)) {
-        throw new Error('Invalid file type');
-     }
+export const AvatarService = {
+  async upload(file) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
 
-     const buffer = await file.arrayBuffer();
-     const uint8Array = new Uint8Array(buffer.slice(0, 8));
-     const signature = Array.from(uint8Array).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    try {
+      await UserService.me()
+    } catch (e) {
+      console.warn('[AvatarService.upload] ensure profile failed, will try minimal upsert:', e?.message || e)
+      const username =
+        user.user_metadata?.username ||
+        user.email?.split('@')[0] ||
+        `user_${(user.id || '').slice(0, 8)}`
+      await UserService.upsertProfile({
+        user_id: user.id,
+        username,
+        email: user.email,
+        avatar_url: null,
+      })
+    }
+    const path = await StorageService.uploadAvatar({ userId: user.id, file })
+    const url = BUCKET_PUBLIC ? StorageService.publicUrl(path) : await StorageService.signedUrl(path)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Invalid file type');
+    }
 
-     const validSignatures = ['ff d8 ff', '89 50 4e 47', '47 49 46 38'];
-     if (!validSignatures.some(sig => signature.startsWith(sig))) {
-       throw new Error('Invalid file signature');
-     }
-      try {
-        await UserService.upsertProfile({
-          user_id: user.id,
-          avatar_url: url,
-        })
-      } catch (e) {
-        console.warn('[AvatarService.upload] failed to update profile avatar_url:', e?.message || e)
-      }
+    const buffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer.slice(0, 8));
+    const signature = Array.from(uint8Array).map(b => b.toString(16).padStart(2, '0')).join(' ');
+
+    const validSignatures = ['ff d8 ff', '89 50 4e 47', '47 49 46 38'];
+    if (!validSignatures.some(sig => signature.startsWith(sig))) {
+      throw new Error('Invalid file signature');
+    }
+    try {
+      await UserService.upsertProfile({
+        user_id: user.id,
+        avatar_url: url,
+      })
+    } catch (e) {
+      console.warn('[AvatarService.upload] failed to update profile avatar_url:', e?.message || e)
+    }
     try {
       await supabase.auth.updateUser({ data: { avatar_url: url } })
     } catch (e) {
       console.warn('[AvatarService.upload] failed to update auth metadata:', e?.message || e)
     }
 
-     return { url, path }
-   },
+    return { url, path }
+  },
 
-   async remove(currentUrlOrPath) {
-     const { data: { user } } = await supabase.auth.getUser()
-     if (!user) throw new Error('Unauthorized')
+  async remove(currentUrlOrPath) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
 
-     let path = null
-     try {
-       const u = new URL(currentUrlOrPath)
-       const idx = u.pathname.indexOf('/avatars/')
-       if (idx >= 0) path = u.pathname.slice(idx + '/avatars/'.length)
-     } catch {
-       path = currentUrlOrPath
-     }
+    let path = null
+    try {
+      const u = new URL(currentUrlOrPath)
+      const idx = u.pathname.indexOf('/avatars/')
+      if (idx >= 0) path = u.pathname.slice(idx + '/avatars/'.length)
+    } catch {
+      path = currentUrlOrPath
+    }
 
-     if (path) {
-       try { await StorageService.remove({ path }) } catch (e) {
-         console.error('Failed to remove avatar from storage:', e)
-       }
-     }
+    if (path) {
+      try { await StorageService.remove({ path }) } catch (e) {
+        console.error('Failed to remove avatar from storage:', e)
+      }
+    }
 
-     await UserService.upsertProfile({
-       user_id: user.id,
-       avatar_url: null,
-     })
+    await UserService.upsertProfile({
+      user_id: user.id,
+      avatar_url: null,
+    })
     try {
       await supabase.auth.updateUser({ data: { avatar_url: null } })
     } catch (e) {
       console.warn('[AvatarService.remove] failed to update auth metadata:', e?.message || e)
     }
 
-     return true
-   },
- }
+    return true
+  },
+}

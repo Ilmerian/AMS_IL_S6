@@ -1,4 +1,9 @@
 // src/models/ChatMessage.js
+
+/**
+ * Modèle représentant un message de chat
+ */
+
 export class ChatMessage {
   constructor({ id, userId, roomId, createdAt, content, username } = {}) {
     this.id = id;
@@ -17,7 +22,7 @@ export class ChatMessage {
       createdAt: r.created_at,
       content: r.content,
       // Récupération du username depuis la jointure (si disponible)
-      username: r.users?.username || null, 
+      username: r.users?.username || null,
     });
   }
 }

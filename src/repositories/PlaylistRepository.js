@@ -2,6 +2,10 @@
 import { supabase } from '../lib/supabaseClient';
 import { Playlist } from '../models/Playlist';
 
+/**
+ * Gestion des playlists des salles
+ */
+
 function normalizeVideoIds(rawIds) {
   const uniq = [];
   const seen = new Set();
@@ -115,18 +119,18 @@ export const PlaylistRepository = {
 
   async updateOrder({ playlistId, videoIds }) {
     const normalizedIds = normalizeVideoIds(videoIds);
-    
+
     const { data, error } = await supabase
       .from('playlists')
       .update({ video_ids: normalizedIds })
       .eq('playlist_id', playlistId)
       .select()
       .single();
-      
+
     if (error) throw error;
-    
+
     const pl = Playlist.fromRow(data);
     pl.videoIds = normalizeVideoIds(pl.videoIds);
     return pl;
-  },  
+  },
 };

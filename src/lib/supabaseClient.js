@@ -8,6 +8,10 @@ if (!url || !key) {
   throw new Error('Missing Supabase Env vars')
 }
 
+/**
+ * Client Supabase de l'application
+ */
+
 export const supabase = createClient(url, key, {
   auth: {
     persistSession: true,
@@ -15,7 +19,7 @@ export const supabase = createClient(url, key, {
     detectSessionInUrl: true,
     storageKey: 'watchwithme-auth-token',
     storage: window.localStorage,
-    flowType: 'pkce'    
+    flowType: 'pkce'
   },
   realtime: {
     timeout: 30000,

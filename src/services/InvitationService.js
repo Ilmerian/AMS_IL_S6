@@ -1,6 +1,10 @@
 import { InvitationRepository } from '../repositories/InvitationRepository';
 import { supabase } from '../lib/supabaseClient';
 
+/**
+ * Service de gestion des invitations aux salles
+ */
+
 export const InvitationService = {
   // ... votre méthode getOrCreateInviteLink existante ...
   async getOrCreateInviteLink(roomId) {
@@ -17,7 +21,7 @@ export const InvitationService = {
   async sendInviteByEmail(roomId, roomName, targetEmail) {
     // 1. Générer le lien
     const inviteLink = await this.getOrCreateInviteLink(roomId);
-    
+
     // 2. Récupérer le nom de l'utilisateur courant (expéditeur)
     const { data: { user } } = await supabase.auth.getUser();
     // On essaie de trouver un nom, un pseudo, ou à défaut le début de l'email

@@ -3,18 +3,23 @@ import { useEffect, useRef, useState } from 'react'
 import { ChatService } from '../services/ChatService'
 import { useAuth } from '../context/auth'
 
+/**
+ * Hook de chat basé sur le polling
+ * @param {string} roomId
+ */
+
 export function useChatPolling(roomId) {
   const { user } = useAuth()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const intervalRef = useRef(null)
-  const isProduction = typeof window !== 'undefined' && 
-    window.location.hostname !== 'localhost' && 
+  const isProduction = typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
     window.location.hostname !== '127.0.0.1'
 
   const loadMessages = async () => {
     if (!roomId) return
-    
+
     try {
       const newMessages = await ChatService.listByRoom(roomId, { limit: 100 })
       setMessages(newMessages)
@@ -41,7 +46,7 @@ export function useChatPolling(roomId) {
 
   const send = async (content) => {
     if (!user) return false
-    
+
     try {
       await ChatService.send(roomId, content)
       setTimeout(loadMessages, 500)
@@ -54,7 +59,7 @@ export function useChatPolling(roomId) {
 
   const remove = async (messageId) => {
     if (!user) return false
-    
+
     try {
       await ChatService.remove(messageId)
       setTimeout(loadMessages, 500)

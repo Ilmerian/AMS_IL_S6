@@ -1,8 +1,11 @@
 // src/utils/youtube.js
+/**
+ * Fonctions utilitaires liées aux URLs YouTube
+ */
 
 export function getYouTubeId(url) {
   if (!url) return null;
-  
+
   try {
     const str = String(url).trim();
     if (!str) return null;
@@ -11,14 +14,14 @@ export function getYouTubeId(url) {
     }
 
     const u = new URL(str);
-    
+
     if (u.hostname.includes('youtube.com')) {
       if (u.pathname === '/watch') return u.searchParams.get('v');
       if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
       if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
       if (u.pathname.startsWith('/v/')) return u.pathname.split('/')[2];
     }
-    
+
     if (u.hostname === 'youtu.be') {
       return u.pathname.replace('/', '');
     }

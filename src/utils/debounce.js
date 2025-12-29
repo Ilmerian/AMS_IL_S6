@@ -1,4 +1,9 @@
 // src/utils/debounce.js
+
+/**
+ * Fonctions utilitaires de debounce et throttle
+ */
+
 export function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -13,7 +18,7 @@ export function debounce(func, wait) {
 
 export function throttle(func, limit) {
   let inThrottle;
-  return function(...args) {
+  return function (...args) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = setTimeout(() => (inThrottle = false), limit);

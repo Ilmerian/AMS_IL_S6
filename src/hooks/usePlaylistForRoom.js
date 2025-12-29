@@ -8,7 +8,11 @@ import { cacheService } from '../services/CacheService';
 import { RoomService } from '../services/RoomService'
 import { supabase } from '../lib/supabaseClient'
 
-export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVideo}) {
+/**
+ * Hook de gestion de la playlist et de la lecture vidéo d'une salle
+ */
+
+export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVideo }) {
   const stableRoomId = room?.id || roomId
   const [playlistId, setPlaylistId] = useState(null)
   const [embedUrl, setEmbedUrl] = useState(null)
@@ -94,38 +98,38 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
 
     // CAS 1 : C'est une recherche (Pas d'ID trouvé dans l'input)
     if (!yid) {
-       console.log("Pas d'URL détectée, tentative de recherche pour :", inputValue);
-       try {
-         // On utilise l'input comme mots-clés de recherche
-         const results = await VideoService.searchYoutube(inputValue);
-         
-         if (results && results.length > 0) {
-            const firstHit = results[0];
-            
-            // Gestion des formats différents selon l'API (id.videoId ou id tout court)
-            yid = firstHit.id?.videoId || firstHit.id; 
-            
-            // Récupération du titre
-            title = firstHit.snippet?.title || firstHit.title || title;
-         } else {
-            throw new Error('Aucun résultat trouvé pour cette recherche.');
-         }
-       } catch (err) {
-         console.error("Erreur recherche :", err);
-         throw new Error('Echec de la recherche YouTube.');
-       }
-    } 
-    
+      console.log("Pas d'URL détectée, tentative de recherche pour :", inputValue);
+      try {
+        // On utilise l'input comme mots-clés de recherche
+        const results = await VideoService.searchYoutube(inputValue);
+
+        if (results && results.length > 0) {
+          const firstHit = results[0];
+
+          // Gestion des formats différents selon l'API (id.videoId ou id tout court)
+          yid = firstHit.id?.videoId || firstHit.id;
+
+          // Récupération du titre
+          title = firstHit.snippet?.title || firstHit.title || title;
+        } else {
+          throw new Error('Aucun résultat trouvé pour cette recherche.');
+        }
+      } catch (err) {
+        console.error("Erreur recherche :", err);
+        throw new Error('Echec de la recherche YouTube.');
+      }
+    }
+
     // CAS 2 : C'était déjà une URL (yid existe), on récupère juste le titre
     else {
-       try {
-         const results = await VideoService.searchYoutube(yid);
-         if (results && results.length > 0) {
-           title = results[0].snippet?.title || results[0].title || title;
-         }
-       } catch (err) {
-         console.warn("Impossible de récupérer le titre metadata", err);
-       }
+      try {
+        const results = await VideoService.searchYoutube(yid);
+        if (results && results.length > 0) {
+          title = results[0].snippet?.title || results[0].title || title;
+        }
+      } catch (err) {
+        console.warn("Impossible de récupérer le titre metadata", err);
+      }
     }
 
     // Vérification finale
@@ -148,20 +152,20 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
 
   const playVideoById = useCallback(async (videoId) => {
     if (!playlistId) return;
-    
+
     try {
       const video = playlistItems.find(v => v.id === videoId);
       if (!video) return;
-      
+
       const yid = getYouTubeId(video.url);
       if (!yid) return;
-      
+
       // Réinitialiser le compteur de rétroactions lors du changement de vidéo
       retryCountRef.current.delete(yid);
-      
+
       setCurrentVideoId(yid);
       setEmbedUrl(toEmbedUrl(yid));
-      
+
       // Save to playback state
       await PlaybackRepository.setCurrentPlayback(roomId, playlistId, videoId);
       if (canControlVideo) {
@@ -177,7 +181,7 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
         } catch (e) {
           console.warn('[usePlaylistForRoom] addVideoHistory failed:', e)
         }
-      }     
+      }
     } catch (error) {
       console.error('Failed to play video:', error);
     }
@@ -213,15 +217,15 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
 
   const handleVideoError = useCallback((errorInfo) => {
     if (!errorInfo.videoId) return;
-    
+
     const { videoId, isFatal, isTransient } = errorInfo;
-    
+
     // Pour les erreurs fatales, passez immédiatement à la vidéo suivante
     if (isFatal) {
       playNextVideo();
       return;
     }
-    
+
     // Pour les erreurs temporaires - une tentative automatique
     if (isTransient) {
       const currentRetryCount = retryCountRef.current.get(videoId) || 0;
@@ -256,19 +260,19 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
     })
 
     return unsubscribe
-  }, [roomId, playlistId, currentVideoId, playlistItems])  
+  }, [roomId, playlistId, currentVideoId, playlistItems])
 
   const playYouTubeId = (youtubeId) => {
     setEmbedUrl(youtubeId ? toEmbedUrl(youtubeId) : null)
   }
 
-  return { 
-    playlistId, 
-    embedUrl, 
+  return {
+    playlistId,
+    embedUrl,
     currentVideoId,
     playlistItems,
-    addVideoByRawUrl, 
-    playYouTubeId, 
+    addVideoByRawUrl,
+    playYouTubeId,
     setEmbedUrl,
     playVideoById,
     playNextVideo,

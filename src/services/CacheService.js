@@ -1,4 +1,9 @@
 // src/services/CacheService.js
+
+/**
+ * Service de cache côté client
+ */
+
 class CacheService {
   constructor(namespace = 'app') {
     this.namespace = namespace
@@ -20,12 +25,12 @@ class CacheService {
     const cacheKey = `${this.namespace}:${key}`
     const cached = this.memoryCache.get(cacheKey)
     if (!cached) return null
-    
+
     if (Date.now() > cached.expiry) {
       this.memoryCache.delete(cacheKey)
       return null
     }
-    
+
     return cached.value
   }
 
@@ -47,13 +52,13 @@ class CacheService {
       const cacheKey = `${this.namespace}:${key}`
       const cached = sessionStorage.getItem(cacheKey)
       if (!cached) return null
-      
+
       const parsed = JSON.parse(cached)
       if (Date.now() > parsed.expiry) {
         sessionStorage.removeItem(cacheKey)
         return null
       }
-      
+
       return parsed.value
     } catch (e) {
       console.warn('Session storage read failed:', e)
@@ -85,30 +90,30 @@ class CacheService {
         console.log(`[CacheService] Persistent cache MISS for key: ${key}`);
         return null;
       }
-      
+
       const parsed = JSON.parse(cached);
       if (Date.now() > parsed.expiry) {
         localStorage.removeItem(cacheKey);
         console.log(`[CacheService] Persistent cache EXPIRED for key: ${key}`);
         return null;
       }
-      
+
       console.log(`[CacheService] Persistent cache HIT for key: ${key}`);
       return parsed.value;
     } catch (e) {
       console.warn('LocalStorage read failed:', e);
       return this.getMemory(`persistent_${key}`);
     }
-  }  
+  }
 
   async withDebounce(key, fn, wait = 100) {
     const cacheKey = `${this.namespace}:debounce:${key}`
-    
+
     if (this.pendingRequests.has(cacheKey)) {
       console.log(`[CacheService] Reusing pending request for ${key}`)
       return this.pendingRequests.get(cacheKey)
     }
-    
+
     const promise = new Promise((resolve) => {
       setTimeout(async () => {
         try {
@@ -122,7 +127,7 @@ class CacheService {
         }
       }, wait)
     })
-    
+
     this.pendingRequests.set(cacheKey, promise)
     return promise
   }
@@ -140,7 +145,7 @@ class CacheService {
         keysToDelete.push(key)
       }
     }
-    
+
     keysToDelete.forEach(key => this.memoryCache.delete(key))
     console.log(`[CacheService] Invalidated ${keysToDelete.length} cache entries for pattern: ${pattern}`)
   }
@@ -148,18 +153,18 @@ class CacheService {
   cleanup() {
     const now = Date.now()
     let deletedCount = 0
-    
+
     for (const [key, value] of this.memoryCache.entries()) {
       if (now > value.expiry) {
         this.memoryCache.delete(key)
         deletedCount++
       }
     }
-    
+
     if (deletedCount > 0) {
       console.log(`[CacheService] Cleaned up ${deletedCount} expired cache entries`)
     }
-    
+
     if (this.pendingRequests.size > 100) {
       const keys = Array.from(this.pendingRequests.keys())
       for (let i = 0; i < Math.min(10, keys.length); i++) {

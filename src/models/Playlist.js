@@ -1,4 +1,9 @@
 // src/models/Playlist.js
+
+/**
+ * Modèle représentant une playlist
+ */
+
 export class Playlist {
   constructor({ id, name, roomId, videoIds } = {}) {
     this.id = id;

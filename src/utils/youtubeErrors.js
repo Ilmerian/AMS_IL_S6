@@ -1,4 +1,8 @@
 // src/utils/youtubeErrors.js
+/**
+ * Gestion des erreurs liées à YouTube
+ */
+
 export const YOUTUBE_ERROR_CODES = {
   FATAL: [100, 101, 150],
   TRANSIENT: [2, 5],
