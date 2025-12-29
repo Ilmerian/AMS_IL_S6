@@ -19,7 +19,7 @@ export const RoleRepository = {
   },
 
   /**
-   * NOUVEAU: Récupère la liste complète des membres avec leurs rôles et profils.
+   * Récupère la liste complète des membres avec leurs rôles et profils.
    */
   async listMembers(roomId, bypassCache = false) {
     const cacheKey = `room_members_${roomId}`;
@@ -154,12 +154,10 @@ export const RoleRepository = {
     return Role.fromRow(data);
   },
 
-  // NOUVEAU: Promote (met is_manager à true)
   async promote({ roomId, userId }) {
     return this.addMember({ roomId, userId, isManager: true });
   },
 
-  // NOUVEAU: Demote (met is_manager à false)
   async demote({ roomId, userId }) {
     return this.addMember({ roomId, userId, isManager: false });
   },

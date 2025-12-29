@@ -774,7 +774,7 @@ export default function Room() {
                             loadRoomData();
                         }}
                     >
-                        Rejoindre en tant que visiteur
+                        Refresh
                     </Button>
                 )}
             </Box>
