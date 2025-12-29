@@ -82,35 +82,50 @@ export const RealtimeService = {
   },
   _presenceChannels: {},
 
-  async joinPresence(roomId, user) {
-    if (!roomId || !user) return;
+  // --- NOUVELLE MÉTHODE TOUT-EN-UN ---
+  subscribeToRoomPresence(roomId, user, onSync) {
+    if (!roomId || !user) return () => {};
 
-    if (this._presenceChannels[roomId]) return;
+    // 1. Calcul de l'ID et des métadonnées
+    const userId = user.id || user.user_id;
+    const metadata = {
+        user_id: userId,
+        username: user.username || user.user_metadata?.username || user.email?.split('@')[0] || 'Visiteur',
+        avatar_url: user.avatar_url || user.user_metadata?.avatar_url,
+        joined_at: Date.now(),
+    };
 
+    // 2. Création du canal avec la config (IMPORTANT)
     const channel = supabase.channel(`presence:room_${roomId}`, {
       config: {
         presence: {
-          key: user.user_id,
+          key: userId,
         },
       },
     });
 
-    channel.on("presence", { event: "sync" }, () => {
-    });
+    // 3. Gestion de la réception des données
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        // On transforme l'objet state en liste simple d'utilisateurs
+        const users = Object.values(state).map(arr => arr[0]);
+        if (onSync) onSync(users);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // 4. On signale notre présence une fois connecté
+          await channel.track(metadata);
+        }
+      });
 
-    await channel.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await channel.track({
-          user_id: user.user_id,
-          username: user.username,
-          avatar_url: user.avatar_url,
-          joined_at: Date.now(),
-        });
-      }
-    });
-
-    this._presenceChannels[roomId] = channel;
+    // 5. Fonction de nettoyage propre
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
+  
+  // ... (Vous pouvez supprimer joinPresence et subscribePresence qui ne serviront plus) ...
 
   getPresence: async (roomId) => {
     try {
@@ -131,27 +146,6 @@ export const RealtimeService = {
     }
   },
 
-  subscribePresence(roomId, callback) {
-    if (!roomId) return () => { };
-
-    const channel = supabase.channel(`presence:room_${roomId}`);
-
-    const handler = () => {
-      const state = channel.presenceState();
-
-      const users = Object.values(state).map(arr => arr[0]);
-
-      callback({
-        count: users.length,
-        users,
-      });
-    };
-
-    channel.on("presence", { event: "sync" }, handler);
-
-    channel.subscribe();
-
-    return () => supabase.removeChannel(channel);
-  },
+  
 
 };

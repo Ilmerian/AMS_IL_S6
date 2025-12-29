@@ -17,14 +17,16 @@ export const RoleRepository = {
   /**
    * NOUVEAU: Récupère la liste complète des membres avec leurs rôles et profils.
    */
-  async listMembers(roomId) {
+  async listMembers(roomId, bypassCache = false) {
     const cacheKey = `room_members_${roomId}`;
     const CACHE_TTL = 30000;
     
     try {
-      const cached = cacheService.getMemory(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.data;
+      if (!bypassCache) {
+          const cached = cacheService.getMemory(cacheKey);
+          if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+            return cached.data;
+          }
       }
 
       const currentUserId = (await supabase.auth.getUser()).data?.user?.id;

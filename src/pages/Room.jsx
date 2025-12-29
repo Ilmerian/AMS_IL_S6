@@ -1,30 +1,29 @@
 // src/pages/Room.jsx
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/auth';
-import { useEffect, useState, useCallback, useRef } from 'react'; // Ajoutez useRef
-import { useParams, useOutletContext } from 'react-router-dom'; // Ajoutez useOutletContext
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useParams, useOutletContext } from 'react-router-dom';
 
 // Repositories et Services
 import { RoleService } from '../services/RoleService';
 import { BanRepository } from '../repositories/BanRepository';
 import { RealtimeService } from '../services/RealtimeService';
-import { UserRepository } from "../repositories/UserRepository";
 import { cacheService } from '../services/CacheService';
 import { getYouTubeId } from '../utils/youtube';
+import { RoomService } from '../services/RoomService';
 
-// Components & Utils
-import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
+// Hooks
 import { useRoom } from '../hooks/useRoom';
 import { usePlaylistForRoom } from '../hooks/usePlaylistForRoom';
-import { PlaybackRepository } from '../repositories/PlaybackRepository'
+import { useVideoSync } from '../hooks/useVideoSync';
+
+// Components
+import GuestUpgradeBanner from '../components/GuestUpgradeBanner';
 import ChatBox from '../components/ChatBox';
 import Section from '../ui/Section';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import PlaylistPanel from '../components/PlaylistPanel';
-import { RoomService } from '../services/RoomService'
-
-// IMPORT DU NOUVEAU HOOK
-import { useVideoSync } from '../hooks/useVideoSync';
+import InviteDialog from '../components/InviteDialog';
 
 // UI Imports
 import Dialog from '@mui/material/Dialog';
@@ -41,6 +40,8 @@ import Tab from '@mui/material/Tab';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -52,7 +53,12 @@ import Alert from '@mui/material/Alert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import InviteDialog from '../components/InviteDialog';
+import Badge from '@mui/material/Badge'; // Pour indiquer "En ligne"
+import ToggleButton from '@mui/material/ToggleButton'; // <--- AJOUTER CET IMPORT
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'; // <--- AJOUTER CET IMPORT
+import PersonOffIcon from '@mui/icons-material/PersonOff'; // <--- AJOUTER CET IMPORT
+import PeopleIcon from '@mui/icons-material/People'; // <--- AJOUTER CET IMPORT
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const ROLES = {
     OWNER: 'owner',
@@ -157,7 +163,6 @@ export default function Room() {
     const { user, loading: authLoading } = useAuth();
 
     const { openLogin } = useOutletContext() || {};
-
     const hasAutoOpenedRef = useRef(false);
 
     useEffect(() => {
@@ -170,13 +175,14 @@ export default function Room() {
             }
         }
     }, [user, authLoading, openLogin]);
+
     const [membersLoading, setMembersLoading] = useState(false);
     const [isModerator, setIsModerator] = useState(false);
     const [pinOpen, setPinOpen] = useState(false);
     const [pinValue, setPinValue] = useState('');
     const [pinError, setPinError] = useState('');
     const [pinOk, setPinOk] = useState(false);
-    const [pinMode, setPinMode] = useState('verify'); // 'verify' | 'set'
+    const [pinMode, setPinMode] = useState('verify');
 
     const pendingActionRef = useRef(null);
     const pinOkRef = useRef(false);
@@ -197,22 +203,22 @@ export default function Room() {
     const [activeTab, setActiveTab] = useState('playlist');
     const [history, setHistory] = useState([])
     const [historyLoading, setHistoryLoading] = useState(false)
-
-    const loadHistory = useCallback(async () => {
-    if (!roomId) return
-    setHistoryLoading(true)
-    try {
-        const rows = await RoomService.getVideoHistoryForRoom(roomId)
-        setHistory(rows || [])
-    } catch (e) {
-        console.warn('[Room] loadHistory failed:', e?.message || e)
-        setHistory([])
-    } finally {
-        setHistoryLoading(false)
-    }
-    }, [roomId])
     const [pw, setPw] = useState('');
     const [inviteOpen, setInviteOpen] = useState(false);
+
+    const loadHistory = useCallback(async () => {
+        if (!roomId) return
+        setHistoryLoading(true)
+        try {
+            const rows = await RoomService.getVideoHistoryForRoom(roomId)
+            setHistory(rows || [])
+        } catch (e) {
+            console.warn('[Room] loadHistory failed:', e?.message || e)
+            setHistory([])
+        } finally {
+            setHistoryLoading(false)
+        }
+    }, [roomId])
 
     // Room Data Hooks
     const {
@@ -224,7 +230,24 @@ export default function Room() {
         refresh,
         verifyPassword,
     } = useRoom(roomId);
+    
     const isPinEnabled = !!room?.parental_pin_enabled;
+
+    // --- STATES POUR MODÉRATION & PRÉSENCE ---
+    const [members, setMembers] = useState([]); // Membres issus de la BDD (Rôles)
+    const [onlineUsers, setOnlineUsers] = useState([]); // Membres connectés (Realtime)
+    const [userRole, setUserRole] = useState(null);
+    const [isBanned, setIsBanned] = useState(false);
+    const [isKicked, setIsKicked] = useState(false);
+    const [modView, setModView] = useState('members'); // 'members' | 'banned'
+    const [bannedUsers, setBannedUsers] = useState([]); // Liste des bannis
+
+    // UI Helpers
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [selectedMember, setSelectedMember] = useState(null);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+    // --- PIN LOGIC ---
     const closePinDialog = useCallback(() => {
         setPinOpen(false);
         setPinValue('');
@@ -238,28 +261,25 @@ export default function Room() {
         return;
     }
 
-    if (!isPinEnabled) return actionFn();
-    if (pinOkRef.current) return actionFn();
+        if (!isPinEnabled) return actionFn();
+        if (pinOkRef.current) return actionFn();
 
-    pendingActionRef.current = actionFn;
-    setPinMode('verify');
-    setPinError('');
-    setPinOpen(true);
+        pendingActionRef.current = actionFn;
+        setPinMode('verify');
+        setPinError('');
+        setPinOpen(true);
     }, [isPinEnabled]);
 
     const submitPin = useCallback(async () => {
         try {
             setPinError('');
             const ok = await RoomService.verifyRoomPin(roomId, pinValue);
-
             if (!ok) {
                 setPinError(t('room.pin_invalid', 'Invalid PIN'));
                 return;
             }
-
             setPinOk(true);
             setPinOpen(false);
-
             const fn = pendingActionRef.current;
             pendingActionRef.current = null;
             if (fn) fn();
@@ -278,22 +298,20 @@ export default function Room() {
         return;
     }
 
-    try {
-        setPinError('');
-        await RoomService.setRoomPin(roomId, pinValue);
-
-        setPinOk(true);
-        setPinOpen(false);
-        setPinValue('');
-
-        await refresh(); // IMPORTANT
-        setSnackbar({ open: true, message: t('room.pin_saved', 'PIN saved'), severity: 'success' });
-    } catch (e) {
+        try {
+            setPinError('');
+            await RoomService.setRoomPin(roomId, pinValue);
+            setPinOk(true);
+            setPinOpen(false);
+            setPinValue('');
+            await refresh();
+            setSnackbar({ open: true, message: t('room.pin_saved', 'PIN saved'), severity: 'success' });
+        } catch (e) {
         console.error('[PIN] save failed:', e);
         const msg = e?.message || 'Save failed (check Network tab / RLS)';
         setPinError(msg);
         setSnackbar({ open: true, message: msg, severity: 'error' });
-    }
+        }
     }, [roomId, user, pinValue, refresh, t]);
 
     const handleDisablePin = useCallback(async () => {
@@ -306,38 +324,23 @@ export default function Room() {
         return;
     }
 
-    try {
-        setPinError('');
-        await RoomService.disableRoomPin(roomId);
-
-        setPinOk(false);
-        setPinOpen(false);
-        setPinValue('');
-
-        await refresh(); // IMPORTANT
-        setSnackbar({ open: true, message: t('room.pin_disabled', 'PIN disabled'), severity: 'success' });
-    } catch (e) {
+        try {
+            setPinError('');
+            await RoomService.disableRoomPin(roomId);
+            setPinOk(false);
+            setPinOpen(false);
+            setPinValue('');
+            await refresh();
+            setSnackbar({ open: true, message: t('room.pin_disabled', 'PIN disabled'), severity: 'success' });
+        } catch (e) {
         console.error('[PIN] disable failed:', e);
         const msg = e?.message || 'Disable failed (check Network tab / RLS)';
         setPinError(msg);
         setSnackbar({ open: true, message: msg, severity: 'error' });
-    }
+        }
     }, [roomId, user, refresh, t]);
 
-    // Moderation States
-    const [members, setMembers] = useState([]);
-    const [userRole, setUserRole] = useState(null);
-    const [isBanned, setIsBanned] = useState(false);
-
-    // UI Helpers
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [selectedMember, setSelectedMember] = useState(null);
-    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
-    // --- PLAYLIST ---
-    // ------------------------------------------
-    // INTEGRATION DU HOOK DE SYNCHRONISATION
-    // ------------------------------------------
+    // --- SYNC & PLAYLIST ---
     const {
         syncVideoId,
         syncIsPlaying,
@@ -356,6 +359,7 @@ export default function Room() {
         initialVideoId: room?.current_video_id,
         initialPlaying: room?.is_playing
     });
+    
     const canControlVideo = controlInfo.canControl || userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
 
     const {
@@ -378,6 +382,7 @@ export default function Room() {
     const handleAddVideo = useCallback((value) => {
         requirePin(() => addVideoByRawUrl(value));
     }, [requirePin, addVideoByRawUrl]);
+    
     const handleVideoEnded = useCallback(() => {
         console.log('Video ended, playing next...')
         playNextVideo()
@@ -389,11 +394,7 @@ export default function Room() {
         if (ok) setPw('');
     };
 
-    // ------------------------------------------
-    // ------------------------------------------
-    // MODERATION & DATA LOADING
-    // ------------------------------------------
-
+    // --- HELPERS ROLE & MODERATION ---
     const getMemberRole = useCallback((member) => {
         if (!member) return null;
         if (member.isOwner) return ROLES.OWNER;
@@ -409,7 +410,8 @@ export default function Room() {
         return false;
     }, [userRole, user]);
 
-    const loadRoomData = useCallback(async () => {
+    // --- CHARGEMENT DES DONNÉES (DB) ---
+    const loadRoomData = useCallback(async (forceRefresh = false) => {
         if (!user || !roomId) {
             setMembersLoading(false);
             return;
@@ -425,17 +427,19 @@ export default function Room() {
         const cacheTTL = isProduction ? 600000 : 30000;
 
         try {
-            const cached = cacheService.getMemory(cacheKey);
-            if (cached && Date.now() - cached.timestamp < cacheTTL) {
+            if (!forceRefresh) {
+                const cached = cacheService.getMemory(cacheKey);
+                if (cached && Date.now() - cached.timestamp < cacheTTL) {
                 console.log(`[Room] Cache HIT (${isProduction ? '10min' : '30s'}) for room ${roomId}`);
-                const { bannedStatus, initialMembers, currentUserRole } = cached.data;
-                setIsBanned(bannedStatus);
-                if (!bannedStatus) {
-                    setMembers(initialMembers);
-                    setUserRole(currentUserRole);
+                    const { bannedStatus, initialMembers, currentUserRole } = cached.data;
+                    setIsBanned(bannedStatus);
+                    if (!bannedStatus) {
+                        setMembers(initialMembers);
+                        setUserRole(currentUserRole);
+                    }
+                    setMembersLoading(false);
+                    return;
                 }
-                setMembersLoading(false);
-                return;
             }
 
             console.log(`[Room] Cache MISS for room ${roomId}, fetching...`);
@@ -443,7 +447,7 @@ export default function Room() {
             // Charger le statut de bannissement et les membres
             const [bannedStatus, initialMembers] = await Promise.all([
                 BanRepository.isUserBanned(roomId, user.id),
-                RoleService.listMembers(roomId)
+                RoleService.listMembers(roomId, forceRefresh) 
             ]);
 
             setIsBanned(bannedStatus);
@@ -462,22 +466,16 @@ export default function Room() {
 
             setMembers(initialMembers);
 
-            // Déterminer le rôle de l'utilisateur
             let role = null;
-
-            // 1. Vérifier si l'utilisateur est propriétaire de la salle
             if (room?.ownerId === user.id) {
                 role = 'owner';
-            }
-            // 2. Chercher l'utilisateur dans la liste des membres
-            else if (initialMembers.length > 0) {
+            } else if (initialMembers.length > 0) {
                 const currentUserMember = initialMembers.find(m => m.userId === user.id);
                 if (currentUserMember) {
                     role = currentUserMember.isOwner ? 'owner' :
-                        currentUserMember.is_manager ? 'manager' : 'member';
+                           currentUserMember.is_manager ? 'manager' : 'member';
                 }
             }
-
             setUserRole(role);
 
             cacheService.setMemory(cacheKey, {
@@ -499,35 +497,54 @@ export default function Room() {
         } finally {
             setMembersLoading(false);
         }
-    }, [roomId, user, room?.ownerId, t, isProduction, userRole]);
+    }, [roomId, user, room?.ownerId, isProduction]);
 
     useEffect(() => {
         if (activeTab !== 'history') return
         loadHistory()
     }, [activeTab, loadHistory])
 
+    const allMembers = useMemo(() => {
+        const map = new Map();
+        
+        members.forEach(m => map.set(m.userId, { ...m, isOnline: false }));
+
+        onlineUsers.forEach(u => {
+            if (map.has(u.user_id)) {
+                const existing = map.get(u.user_id);
+                map.set(u.user_id, { ...existing, isOnline: true });
+            } else {
+                map.set(u.user_id, {
+                    userId: u.user_id,
+                    name: u.username || 'Visiteur',
+                    avatar_url: u.avatar_url,
+                    role: ROLES.MEMBER,
+                    is_manager: false,
+                    isOwner: false,
+                    isOnline: true
+                });
+            }
+        });
+
+        return Array.from(map.values());
+    }, [members, onlineUsers]);
+
     useEffect(() => {
-        if (!user || !room || membersLoading) {
+        if (!user || !room) {
             setIsModerator(false);
             return;
         }
-
-        // 1. Si user est owner de la room
         if (room.ownerId === user.id) {
             setIsModerator(true);
             return;
         }
-
-        // 2. Si userRole est owner ou manager
         if (userRole === 'owner' || userRole === 'manager') {
             setIsModerator(true);
             return;
         }
-
-        // 3. Vérifier dans les membres
         const userMember = members.find(m => m.userId === user.id);
         setIsModerator(userMember?.isOwner || userMember?.is_manager || false);
-    }, [user, room, userRole, members, membersLoading]);
+    }, [user, room, userRole, members]);
 
     console.log('=== ROOM DEBUG INFO ===');
     console.log('isProduction:', isProduction);
@@ -563,13 +580,11 @@ export default function Room() {
     // useEffect с loadRoomData
     useEffect(() => {
         if (!user || !roomId || roomLoading || !room || needPw) return;
-
-        // Réinitialiser les états avant de charger
         setMembers([]);
 
         // Créer un timeout pour le chargement retardé
         const loadTimeout = setTimeout(() => {
-            loadRoomData();
+        loadRoomData();
         }, 500); // Augmenter le délai pour être sûr que tout est prêt
 
         // Nettoyer le timeout si le composant est démonté
@@ -587,7 +602,7 @@ export default function Room() {
                     setSnackbar({ open: true, message: t('role.promoted', { user: targetMember.name }), severity: 'success' });
                     break;
                 case 'demote':
-                    if (targetMember.role === ROLES.OWNER) throw new Error("Cannot demote the room owner.");
+                    if (targetMember.role === ROLES.OWNER) throw new Error("Impossible de rétrograder l'owner.");
                     await RoleService.demote(roomId, targetMember.userId);
                     setSnackbar({ open: true, message: t('role.demoted', { user: targetMember.name }), severity: 'success' });
                     break;
@@ -617,125 +632,151 @@ export default function Room() {
 
     // TRANSFERT AUTOMATIQUE DE L'HOTE 
     useEffect(() => {
-        if (!room || !room.ownerId || !user) return;
+        if (!roomId || !user) return;
 
-        let mounted = true;
-        let unsubscribe = null;
-
-        const checkOwnerPresence = async () => {
-            if (!mounted) return;
-
-            try {
-                // Get presence data
-                const presenceData = await RealtimeService.getPresence(roomId);
-
-                if (!presenceData || !mounted) return;
-
-                // Check if owner is still present
-                const ownerStillHere = presenceData.some(u =>
-                    u.user_id === room.ownerId &&
-                    Date.now() - (u.last_seen || 0) < 30000
-                );
-
-                if (!ownerStillHere && user.id !== room.ownerId) {
-                    console.log("[OWNER LEFT] L'owner a quitté la room");
-
-                    const list = await RoleService.listMembers(roomId);
-                    const managers = list.filter(m => m.is_manager && m.userId !== room.ownerId);
-                    const members = list.filter(m => !m.is_manager && !m.isOwner && m.userId !== room.ownerId);
-
-                    const newOwner = managers[0] || members[0] || null;
-                    if (!newOwner) return;
-
-                    console.log("[NEW OWNER]", newOwner.userId);
-
-                    if (userRole === 'owner' || userRole === 'manager') {
-                        await RoleService.promote(roomId, newOwner.userId);
-                        await loadRoomData();
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking owner presence:', error);
-            }
-        };
-
-        const setupPresenceSubscription = () => {
-            if (!mounted) return;
-
-            unsubscribe = RealtimeService.subscribePresence(roomId, async ({ users }) => {
-                if (!mounted || !users) return;
-
-                clearTimeout(presenceCheckTimeout);
-                presenceCheckTimeout = setTimeout(() => {
-                    checkOwnerPresence();
-                }, 3000);
-            });
-        };
-
-        let presenceCheckTimeout;
-
-        const initialTimeout = setTimeout(() => {
-            setupPresenceSubscription();
-            checkOwnerPresence();
-        }, 5000);
+        const unsubscribe = RealtimeService.subscribeToRoomPresence(roomId, user, (users) => {
+            setOnlineUsers(users);
+        });
 
         return () => {
-            mounted = false;
-            clearTimeout(initialTimeout);
-            clearTimeout(presenceCheckTimeout);
-            if (unsubscribe) {
-                unsubscribe();
+            unsubscribe();
+        };
+    }, [roomId, user]);
+
+    useEffect(() => {
+        if (!room || !room.ownerId || !user || onlineUsers.length === 0) return;
+
+        const checkOwnerAndTransfer = async () => {
+            const ownerStillHere = onlineUsers.some(u => u.user_id === room.ownerId);
+
+            if (!ownerStillHere && user.id !== room.ownerId) {
+                    console.log("[OWNER LEFT] L'owner a quitté la room");
+                
+                const list = await RoleService.listMembers(roomId);
+                const managers = list.filter(m => m.is_manager && m.userId !== room.ownerId);
+                const members = list.filter(m => !m.is_manager && !m.isOwner && m.userId !== room.ownerId);
+
+                const newOwner = managers[0] || members[0] || null;
+                
+                if (newOwner) {
+                    if (userRole === 'manager' || user.id === newOwner.userId) {
+                        console.log("Tentative de promotion du nouveau owner :", newOwner.username);
+                        await RoleService.promote(roomId, newOwner.userId);
+                    }
+                }
             }
         };
-    }, [room, roomId, user, userRole, loadRoomData]);
 
+        const timer = setTimeout(checkOwnerAndTransfer, 5000);
+        return () => clearTimeout(timer);
 
+    }, [onlineUsers, room, user, userRole, roomId]);
 
-    // ------------------------------------------
-    // RENDER
-    // ------------------------------------------
+    // ÉCOUTEUR DE KICK (Suppression de rôle)
+    useEffect(() => {
+        if (!user || !roomId) return;
 
-    if (roomLoading && !room) {
+        const handleRoleChange = (payload) => {
+            const eventRoomId = payload.new?.room_id || payload.old?.room_id;
+            if (String(eventRoomId) !== String(roomId)) return;
+            console.log("Changement de rôle détecté (Realtime) :", payload);
+            loadRoomData(true);
+            const eventUserId = payload.new?.user_id || payload.old?.user_id;
+            
+            if (eventUserId === user.id) {
+                if (payload.eventType === 'DELETE') {
+                    setIsKicked(true);
+                }
+                else if (payload.new?.is_manager === true) {
+                    setSnackbar({ open: true, message: "Félicitations ! Vous êtes maintenant Modérateur.", severity: 'success' });
+                }
+            }
+        };
+
+        const unsub = RoleService.onRoleChange(roomId, handleRoleChange);
+
+        return () => {
+            if (unsub) unsub();
+        };
+    }, [roomId, user, loadRoomData]);
+
+    const loadBannedUsers = useCallback(async () => {
+        if (!roomId) return;
+        try {
+            const list = await BanRepository.listBannedUsers(roomId);
+            setBannedUsers(list);
+        } catch (error) {
+            console.error("Erreur chargement bannis:", error);
+        }
+    }, [roomId]);
+
+    // EFFET : Charger la liste quand on change de vue
+    useEffect(() => {
+        if (activeTab === 'moderation' && modView === 'banned') {
+            loadBannedUsers();
+        }
+    }, [activeTab, modView, loadBannedUsers]);
+
+    // NOUVELLE ACTION : Débannir
+    const handleUnbanUser = async (targetUserId, targetName) => {
+        if (!window.confirm(`Voulez-vous débannir ${targetName} ?`)) return;
+        try {
+            await BanRepository.unbanUser(roomId, targetUserId);
+            setSnackbar({ open: true, message: `${targetName} a été débanni`, severity: 'success' });
+            loadBannedUsers(); // Rafraîchir la liste
+        } catch (err) {
+            setSnackbar({ open: true, message: "Erreur lors du débannissement", severity: 'error' });
+        }
+    };
+
+    useEffect(() => {
+        if (!roomId) return;
+
+        const unsubscribe = BanRepository.onBanChange(roomId, (payload) => {
+            console.log("Changement détecté dans les bans !", payload);
+            loadRoomData();
+            loadBannedUsers(); 
+        });
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [roomId, loadRoomData, loadBannedUsers]);
+
+    // --- RENDER ---
+    if (roomLoading && !room) return <Section><Typography>{t('room.loading')}</Typography></Section>;
+    if (!roomLoading && !room && err) return <Section><Typography color="error">{t('room.error_generic')}</Typography><Button onClick={() => refresh()}>{t('room.reload')}</Button></Section>;
+    if (!room) return <Section><Typography>{t('room.not_found')}</Typography></Section>;
+    if (isBanned) return <Section><Typography color="error">{t('room.banned_message')}</Typography></Section>;
+    if (isKicked) {
         return (
-            <Section>
-                <Typography sx={{ opacity: 0.8 }}>
-                    {t('room.loading')}
+            <Box component={Section} sx={{ p: 4, textAlign: 'center', mt: 4 }}>
+                <Typography variant="h4" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                    <WarningIcon fontSize="large" />
+                    Vous avez été expulsé
                 </Typography>
-            </Section>
-        );
-    }
-
-    if (!roomLoading && !room && err) {
-        return (
-            <Section>
-                <Typography color="error" sx={{ mb: 1 }}>
-                    {t('room.error_generic')}
+                <Typography variant="body1" sx={{ opacity: 0.8, mb: 3 }}>
+                    Un modérateur vous a retiré de la liste des membres actifs.
                 </Typography>
-                <Typography sx={{ opacity: 0.8, mb: 2 }}>{err}</Typography>
-                <Button variant="outlined" onClick={() => refresh()}>
-                    {t('room.reload')}
+                <Button 
+                    variant="outlined" 
+                    color="inherit"
+                    onClick={() => window.location.href = '/'} // Retour accueil
+                >
+                    Retour à l'accueil
                 </Button>
-            </Section>
-        );
-    }
-
-    if (!room) {
-        return (
-            <Section>
-                <Typography sx={{ opacity: 0.8 }}>
-                    {t('room.not_found')}
-                </Typography>
-            </Section>
-        );
-    }
-
-    if (isBanned) {
-        return (
-            <Box component={Section} sx={{ p: 4, textAlign: 'center' }}>
-                <Typography variant="h5" color="error">
-                    {t('room.banned_title')}
-                </Typography>
-                <Typography>{t('room.banned_message')}</Typography>
+                
+                {!room.password && (
+                    <Button 
+                        sx={{ ml: 2, opacity: 0.6 }}
+                        onClick={() => {
+                            setIsKicked(false);
+                            loadRoomData();
+                        }}
+                    >
+                        Rejoindre en tant que visiteur
+                    </Button>
+                )}
             </Box>
         );
     }
@@ -782,7 +823,6 @@ export default function Room() {
                 </Typography>
             </Box>
 
-            {/* STATUT + BOUTON INVITER ALIGNÉS */}
             <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
                 <Typography sx={{ opacity: 0.8 }}>
                     {room.password ? t('room.private') : t('room.public')}
@@ -837,7 +877,6 @@ export default function Room() {
                     </Stack>
                 </Box>
             ) : (
-                // MAIN CONTENT
                 <Stack spacing={2} sx={{ mt: 2 }}>
                     <Box
                         sx={{
@@ -959,8 +998,8 @@ export default function Room() {
                                     )}
                                     
                                     {activeTab === 'history' && (
-                                    <Box sx={{ height: '100%', overflowY: 'auto', px: 1, py: 1 }}>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                                        <Box sx={{ height: '100%', overflowY: 'auto', px: 1, py: 1 }}>
+                                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                                         <Typography variant="h6">
                                             {t('room.history', 'History')}
                                         </Typography>
@@ -972,7 +1011,7 @@ export default function Room() {
                                         >
                                             {t('common.refresh', 'Refresh')}
                                         </Button>
-                                        </Stack>
+                                            </Stack>
 
                                         {historyLoading ? (
                                         <Typography sx={{ opacity: 0.8 }}>
@@ -983,64 +1022,139 @@ export default function Room() {
                                             {t('room.history_empty', 'No videos watched yet in this room.')}
                                         </Typography>
                                         ) : (
-                                        <List dense>
+                                                <List dense>
                                             {history.map((h) => {
                                             const title = h.video_title || h.video_url || `YouTube: ${h.video_youtube_id}`
                                             const when = h.created_at ? new Date(h.created_at).toLocaleString() : ''
 
                                             return (
-                                                <ListItem key={h.id || `${h.video_youtube_id}-${h.created_at}`}>
+                                                        <ListItem key={h.id || `${h.video_youtube_id}-${h.created_at}`}>
                                                 <ListItemText
                                                     primary={title}
                                                     secondary={when}
                                                 />
-                                                </ListItem>
+                                                        </ListItem>
                                             )
                                             })}
-                                        </List>
-                                        )}
-                                    </Box>
+                                                </List>
+                                            )}
+                                        </Box>
                                     )}
 
                                     {activeTab === 'moderation' && isModerator && (
-                                        <Box sx={{ height: '100%', overflowY: 'auto' }}>
+                                        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                
                                             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1, mt: 1 }}>
                                                 <GavelIcon fontSize="small" sx={{ mr: 1 }} />
                                                 {t('room.moderation_panel')}
                                             </Typography>
-                                            <List dense>
-                                                {members.map((member) => {
-                                                    const memberRole = getMemberRole(member);
-                                                    const isCurrentUser = member.userId === user?.id;
-                                                    const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
 
-                                                    return (
-                                                        <ListItem
-                                                            key={member.userId}
-                                                            secondaryAction={
-                                                                canActOn && (
-                                                                    <IconButton
-                                                                        edge="end"
-                                                                        aria-label="actions"
-                                                                        onClick={(e) => {
-                                                                            setAnchorEl(e.currentTarget);
-                                                                            setSelectedMember({ ...member, name: member.name, role: memberRole });
-                                                                        }}
-                                                                    >
-                                                                        <MoreVertIcon />
-                                                                    </IconButton>
-                                                                )
-                                                            }
-                                                        >
-                                                            <ListItemText
-                                                                primary={isCurrentUser ? `${member.name} (You)` : member.name}
-                                                                secondary={getRoleBadge(memberRole)}
-                                                                secondaryTypographyProps={{ component: 'span' }}
-                                                            />
-                                                        </ListItem>
-                                                    );
-                                                })}
-                                            </List>
+                                            {/* SOUS-MENU (Toggle) */}
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                                                <ToggleButtonGroup
+                                                    value={modView}
+                                                    exclusive
+                                                    onChange={(e, newView) => { if (newView) setModView(newView); }}
+                                                    size="small"
+                                                    color="primary"
+                                                    aria-label="Moderation view"
+                                                >
+                                                    <ToggleButton value="members" aria-label="members">
+                                                        <PeopleIcon sx={{ mr: 1, fontSize: 20 }} />
+                                                        Actifs
+                                                    </ToggleButton>
+                                                    <ToggleButton value="banned" aria-label="banned">
+                                                        <PersonOffIcon sx={{ mr: 1, fontSize: 20 }} />
+                                                        Bannis
+                                                    </ToggleButton>
+                                                </ToggleButtonGroup>
+                                            </Box>
+
+                                            {/* VUE 1 : MEMBRES ACTIFS */}
+                                            {modView === 'members' && (
+                                               <List dense sx={{ overflowY: 'auto', flex: 1 }}>
+                                                    {allMembers
+                                                        .filter(member => member.isOnline) 
+                                                        .map((member) => {
+                                                            const memberRole = getMemberRole(member);
+                                                            const isCurrentUser = member.userId === user?.id;
+                                                            const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
+                                                        return (
+                                                            <ListItem
+                                                                key={member.userId}
+                                                                secondaryAction={
+                                                                    canActOn && (
+                                                                        <IconButton
+                                                                            edge="end"
+                                                                            onClick={(e) => {
+                                                                                setAnchorEl(e.currentTarget);
+                                                                                setSelectedMember({ ...member, name: member.name, role: memberRole });
+                                                                            }}
+                                                                        >
+                                                                            <MoreVertIcon />
+                                                                        </IconButton>
+                                                                    )
+                                                                }
+                                                            >
+                                                                <ListItemAvatar>
+                                                                    <Avatar src={member.avatar_url} alt={member.name} />
+                                                                </ListItemAvatar>
+                                                                <ListItemText
+                                                                    primary={
+                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                            {isCurrentUser ? `${member.name} (You)` : member.name}
+                                                                            {member.isOnline && (
+                                                                                <Box sx={{ width: 8, height: 8, bgcolor: 'success.main', borderRadius: '50%' }} title="En ligne" />
+                                                                            )}
+                                                                        </Box>
+                                                                    }
+                                                                    secondary={getRoleBadge(memberRole)}
+                                                                    secondaryTypographyProps={{ component: 'span' }}
+                                                                />
+                                                            </ListItem>
+                                                        );
+                                                    })}
+                                                </List>
+                                            )}
+
+                                            {/* VUE 2 : UTILISATEURS BANNIS */}
+                                            {modView === 'banned' && (
+                                                <Box sx={{ overflowY: 'auto', flex: 1 }}>
+                                                    {bannedUsers.length === 0 ? (
+                                                        <Typography variant="body2" sx={{ opacity: 0.6, textAlign: 'center', mt: 4 }}>
+                                                            Aucun utilisateur banni.
+                                                        </Typography>
+                                                    ) : (
+                                                        <List dense>
+                                                            {bannedUsers.map((banned) => (
+                                                                <ListItem
+                                                                    key={banned.userId}
+                                                                    secondaryAction={
+                                                                        <Button 
+                                                                            variant="outlined" 
+                                                                            size="small" 
+                                                                            color="success"
+                                                                            startIcon={<CheckCircleIcon />}
+                                                                            onClick={() => handleUnbanUser(banned.userId, banned.name)}
+                                                                        >
+                                                                            Débannir
+                                                                        </Button>
+                                                                    }
+                                                                >
+                                                                    <ListItemAvatar>
+                                                                        <Avatar src={banned.avatar_url} />
+                                                                    </ListItemAvatar>
+                                                                    <ListItemText
+                                                                        primary={banned.name}
+                                                                        secondary={`Banni le ${new Date(banned.bannedAt).toLocaleDateString()}`}
+                                                                    />
+                                                                </ListItem>
+                                                            ))}
+                                                        </List>
+                                                    )}
+                                                </Box>
+                                            )}
+
                                         </Box>
                                     )}
                                 </Box>
@@ -1058,7 +1172,6 @@ export default function Room() {
             >
                 {selectedMember && (
                     <Box>
-                        {/* PROMOTE */}
                         {(selectedMember.role === ROLES.MEMBER || selectedMember.role === ROLES.MANAGER) && userRole === ROLES.OWNER && (
                             <MenuItem onClick={() => handleAction('promote', selectedMember)}>
                                 {t('action.promote')}
@@ -1107,7 +1220,7 @@ export default function Room() {
                 : t('room.pin_enter_title', 'Enter PIN')}
             </DialogTitle>
 
-            <DialogContent>
+                <DialogContent>
                 <TextField
                 autoFocus
                 fullWidth
@@ -1139,9 +1252,8 @@ export default function Room() {
                     }
                 }}
                 />
-            </DialogContent>
-
-            <DialogActions>
+                </DialogContent>
+                <DialogActions>
                 <Button onClick={closePinDialog}>
                 {t('common.cancel', 'Cancel')}
                 </Button>
@@ -1162,9 +1274,8 @@ export default function Room() {
                 >
                 {pinMode === 'set' ? t('common.save', 'Save') : t('common.verify', 'Verify')}
             </Button>
-            </DialogActions>
+                </DialogActions>
             </Dialog>
-
-            </Section>
+        </Section>
     );
 }

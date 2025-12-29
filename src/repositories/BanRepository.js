@@ -76,6 +76,31 @@ export const BanRepository = {
         }
     },
 
+    async listBannedUsers(roomId) {
+    const { data, error } = await supabase
+      .from('bans')
+      .select(`
+        user_id,
+        created_at,
+        user:users (
+          username,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('room_id', roomId);
+
+    if (error) throw error;
+
+    // On formate pour avoir un objet facile à utiliser
+    return data.map(ban => ({
+      userId: ban.user_id,
+      name: ban.user?.username || ban.user?.email || 'Inconnu',
+      avatar_url: ban.user?.avatar_url,
+      bannedAt: ban.created_at
+    }));
+  },
+
     /**
      * Abonnement Realtime pour la levée/pose d'interdictions.
      */

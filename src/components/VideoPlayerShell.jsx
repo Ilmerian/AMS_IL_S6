@@ -64,10 +64,10 @@ export default function VideoPlayerShell({
   }, [currentVideoId, onError, onPause]);  
 
   const sendCommand = useCallback((command, value = null) => {
-    if (!canControl && ['playVideo', 'pauseVideo', 'seekTo'].includes(command)) {
+    /*if (!canControl && ['playVideo', 'pauseVideo', 'seekTo'].includes(command)) {
         console.warn(`[ACL] Command blocked: ${command}. User does not have control.`);
         return false;
-    }
+    }*/
 
     if (!iframeRef.current?.contentWindow || !isIframeReady) {
       setPendingCommands(prev => [...prev, { command, value }]);

@@ -7,7 +7,7 @@ export const RoleService = {
   listForRoom: (roomId) => RoleRepository.listForRoom(roomId),
   
   // NOUVEAU: Exposer listMembers
-  listMembers: (roomId) => RoleRepository.listMembers(roomId),
+  listMembers: (roomId, bypassCache) => RoleRepository.listMembers(roomId, bypassCache),
 
   add: ({ roomId, userId, isManager = false }) =>
     RoleRepository.addMember({ roomId, userId, isManager }),

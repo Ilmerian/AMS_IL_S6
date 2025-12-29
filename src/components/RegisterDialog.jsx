@@ -213,7 +213,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                 required
                 fullWidth
                 size={isMobile ? "small" : "medium"}
-                disabled={loading || !acceptCgu}
+                disabled={loading}
                 InputProps={{
                   sx: {
                     fontSize: isMobile ? '0.875rem' : '1rem',
@@ -238,7 +238,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                   required
                   fullWidth
                   size={isMobile ? "small" : "medium"}
-                  disabled={loading || !acceptCgu}
+                  disabled={loading}
                   helperText={t('auth.policy_hint')}
                   InputProps={{
                     sx: {
@@ -278,7 +278,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                 required
                 fullWidth
                 size={isMobile ? "small" : "medium"}
-                disabled={loading || !acceptCgu}
+                disabled={loading}
                 error={Boolean(mismatch)}
                 helperText={mismatch ? t('auth.passwords_no_match') : ' '}
                 InputProps={{
@@ -349,7 +349,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
                   <Checkbox
                     checked={acceptCgu}
                     onChange={(e) => setAcceptCgu(e.target.checked)}
-                    disabled={loading || !acceptCgu}
+                    disabled={loading}
                   />
                 }
                 label={
