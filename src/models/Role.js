@@ -1,4 +1,9 @@
 // src/models/Role.js
+
+/**
+ * Modèle représentant un rôle utilisateur
+ */
+
 export class Role {
   constructor({ userId, roomId, isManager } = {}) {
     this.userId = userId;

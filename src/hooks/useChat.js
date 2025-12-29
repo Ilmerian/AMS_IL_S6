@@ -4,8 +4,13 @@ import { ChatService } from '../services/ChatService'
 import { sanitizeText } from '../utils/validators'
 import { useAuth } from '../context/auth'
 
-const PAGE_SIZE = 50 
-const MAX_MESSAGES = 100 
+const PAGE_SIZE = 50
+const MAX_MESSAGES = 100
+
+/**
+ * Hook de gestion du chat d'une salle
+ * @param {string} roomId
+ */
 
 export function useChat(roomId) {
   const { user, profile } = useAuth()
@@ -30,7 +35,7 @@ export function useChat(roomId) {
 
   const loadMore = useCallback(async () => {
     if (!roomId || !hasMore || !oldestMessageRef.current) return
-    
+
     const newMessages = await ChatService.listByRoom(roomId, {
       limit: PAGE_SIZE,
       before: oldestMessageRef.current,
@@ -42,14 +47,14 @@ export function useChat(roomId) {
     }
 
     oldestMessageRef.current = newMessages[0].id
-    
+
     setMessages(currentMessages => {
       const uniqueNewMessages = newMessages.filter(m => !idsRef.current.has(m.id))
       uniqueNewMessages.forEach(m => idsRef.current.add(m.id))
       const mergedMessages = [...uniqueNewMessages, ...currentMessages]
       return mergedMessages
     })
-    
+
     if (newMessages.length < PAGE_SIZE) {
       setHasMore(false)
     }
@@ -62,7 +67,7 @@ export function useChat(roomId) {
       setLoading(true)
       try {
         const initial = await ChatService.listByRoom(roomId, { limit: MAX_MESSAGES })
-        
+
         if (initial.length === MAX_MESSAGES) {
           setHasMore(true)
           oldestMessageRef.current = initial[initial.length - 1]?.id || null
@@ -99,12 +104,12 @@ export function useChat(roomId) {
         if (!msg?.id || idsRef.current.has(msg.id)) return
 
         console.log('💬 New message received in hook:', msg)
-        
+
         idsRef.current.add(msg.id)
         setMessages(xs => {
-          const updated = [...xs, { 
-            ...msg, 
-            username: msg.username || profile?.username 
+          const updated = [...xs, {
+            ...msg,
+            username: msg.username || profile?.username
           }]
           return truncateMessages(updated)
         })
@@ -130,7 +135,7 @@ export function useChat(roomId) {
 
   const send = async (raw) => {
     if (!user || !profile) return false
-    
+
     const clean = sanitizeText(raw, { max: 800 })
     if (!clean) return false
 
@@ -154,7 +159,7 @@ export function useChat(roomId) {
     try {
       const saved = await ChatService.send(roomId, clean)
 
-      setMessages(xs => xs.map(m => 
+      setMessages(xs => xs.map(m =>
         m.id === tempId ? { ...saved, username: profile.username } : m
       ))
 
@@ -186,13 +191,13 @@ export function useChat(roomId) {
     }
   }
 
-  return { 
-    user, 
-    messages, 
-    send, 
-    remove, 
-    loadMore, 
+  return {
+    user,
+    messages,
+    send,
+    remove,
+    loadMore,
     hasMore,
-    loading 
+    loading
   }
 }

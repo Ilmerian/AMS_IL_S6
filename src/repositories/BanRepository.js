@@ -4,13 +4,17 @@ import { supabase } from '../lib/supabaseClient';
 
 const BAN_TABLE = 'bans';
 
+/**
+ * Gestion des bannissements des utilisateurs
+ */
+
 export const BanRepository = {
     /**
      * Bannit un utilisateur d'une salle.
      */
     async banUser(roomId, userId) {
         const payload = { room_id: roomId, user_id: userId };
-        
+
         const { data, error } = await supabase
             .from(BAN_TABLE)
             .insert(payload)
@@ -18,7 +22,7 @@ export const BanRepository = {
             .single();
 
         if (error) {
-            if (error.code === '23505') { 
+            if (error.code === '23505') {
                 throw new Error("L'utilisateur est déjà banni de cette salle.");
             }
             console.error('Ban failed:', error);
@@ -50,14 +54,14 @@ export const BanRepository = {
      */
     async isUserBanned(roomId, userId) {
         if (!userId) return false;
-        
+
         try {
             const { data, error } = await supabase
                 .from(BAN_TABLE)
                 .select('id')
                 .eq('room_id', roomId)
                 .eq('user_id', userId)
-                .maybeSingle(); 
+                .maybeSingle();
 
             if (error) {
                 // Si l'erreur est un AbortError (code 20), on le loggue comme avertissement

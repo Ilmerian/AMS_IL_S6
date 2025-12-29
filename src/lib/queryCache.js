@@ -2,6 +2,10 @@
 const cache = new Map()
 const CACHE_TTL = 30000
 
+/**
+ * Cache en mémoire pour les requêtes
+ */
+
 export const queryCache = {
   get(key) {
     const cached = cache.get(key)
@@ -10,7 +14,7 @@ export const queryCache = {
     }
     return null
   },
-  
+
   set(key, data) {
     cache.set(key, { timestamp: Date.now(), data })
     // Clearing old records
@@ -21,7 +25,7 @@ export const queryCache = {
       }
     }
   },
-  
+
   invalidate(pattern) {
     const keys = Array.from(cache.keys())
     keys.forEach(key => {

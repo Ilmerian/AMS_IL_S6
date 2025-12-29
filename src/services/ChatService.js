@@ -1,12 +1,16 @@
 // src/services/ChatService.js
 import { ChatRepository } from '../repositories/ChatRepository';
 
+/**
+ * Service de gestion du chat
+ */
+
 export const ChatService = {
   listByRoom: (roomId, opts) => ChatRepository.listByRoom(roomId, opts),
   send: (roomId, content) => ChatRepository.send(roomId, content),
   remove: (messageId) => ChatRepository.remove(messageId),
   subscribe: (roomId, { onInsert, onDelete } = {}) => {
-  const unsubs = [];
+    const unsubs = [];
     if (typeof onInsert === 'function') {
       unsubs.push(ChatRepository.onNewMessage(roomId, onInsert));
     }

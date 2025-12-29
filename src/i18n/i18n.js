@@ -1,3 +1,7 @@
+/**
+ * Configuration de l'internationalisation de l'application
+ */
+
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 

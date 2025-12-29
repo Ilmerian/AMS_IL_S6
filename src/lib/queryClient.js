@@ -1,6 +1,10 @@
 // src/lib/queryClient.js
 import { QueryClient } from '@tanstack/react-query'
 
+/**
+ * Client de cache et de requêtes React Query
+ */
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

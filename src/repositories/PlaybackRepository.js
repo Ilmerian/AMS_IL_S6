@@ -1,6 +1,10 @@
 // src/repositories/PlaybackRepository.js
 import { supabase } from '../lib/supabaseClient';
 
+/**
+ * Gestion de l'état de lecture vidéo d'une salle
+ */
+
 function handleRLSError(error) {
   if (error.code === '42501') {
     console.warn('RLS policy violation:', error.message);
@@ -16,7 +20,7 @@ export const PlaybackRepository = {
       .select('*')
       .eq('room_id', roomId)
       .maybeSingle();
-      
+
     if (error) throw error;
     return data;
   },
@@ -33,7 +37,7 @@ export const PlaybackRepository = {
         })
         .select()
         .single();
-      
+
       if (error) return handleRLSError(error);
       return data;
     } catch (error) {
@@ -46,7 +50,7 @@ export const PlaybackRepository = {
       .from('room_playback')
       .delete()
       .eq('room_id', roomId);
-    
+
     if (error) throw error;
     return true;
   },
@@ -65,7 +69,7 @@ export const PlaybackRepository = {
         (payload) => callback(payload)
       )
       .subscribe();
-    
+
     return () => supabase.removeChannel(channel);
   }
 };

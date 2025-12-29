@@ -1,4 +1,9 @@
 // src/models/User.js
+
+/**
+ * Modèle représentant un utilisateur
+ */
+
 export class User {
   constructor({
     id,

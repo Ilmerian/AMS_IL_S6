@@ -1,17 +1,22 @@
 // src/services/StorageService.js
+
+/**
+ * Service de gestion du stockage des fichiers
+ */
+
 import { supabase } from '../lib/supabaseClient'
 
 const BUCKET = 'avatars'
 
-function fileExt(name=''){ return name.split('.').pop()?.toLowerCase() || 'png' }
-function slug(s=''){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') }
+function fileExt(name = '') { return name.split('.').pop()?.toLowerCase() || 'png' }
+function slug(s = '') { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }
 
 export const StorageService = {
   async uploadAvatar({ userId, file }) {
     if (!userId) throw new Error('No userId')
     if (!file) throw new Error('No file')
 
-    const allowed = ['image/png','image/jpeg','image/webp','image/gif']
+    const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
     if (!allowed.includes(file.type)) throw new Error('Unsupported file type')
     const max = 3 * 1024 * 1024
     if (file.size > max) throw new Error('File is too large')

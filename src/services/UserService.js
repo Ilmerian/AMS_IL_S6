@@ -2,6 +2,10 @@
 import { UserRepository } from '../repositories/UserRepository'
 import { supabase } from '../lib/supabaseClient'
 
+/**
+ * Service de gestion des utilisateurs
+ */
+
 export const UserService = {
   async ensureProfilePublic({ username, email, avatarUrl, firstName, lastName } = {}) {
     const { data, error } = await supabase.rpc('ensure_profile_public', {

@@ -3,6 +3,10 @@ import { supabase } from '../lib/supabaseClient'
 import { UserRepository } from '../repositories/UserRepository'
 import { cacheService } from './CacheService';
 
+/**
+ * Gestion de l'authentification des utilisateurs
+ */
+
 export const AuthService = {
   async signIn(email, opts = {}) {
     return AuthService.signInMagicLink(email, opts)
@@ -42,7 +46,7 @@ export const AuthService = {
       password,
       options: {
         persistSession: remember,
-        ...(remember && { 
+        ...(remember && {
           data: { persistent_session: true }
         })
       }
@@ -80,25 +84,25 @@ export const AuthService = {
   async getUser() {
     const cacheKey = 'auth_current_user';
     const cached = cacheService.getMemory(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < 30000) {
       console.log('[AuthService] User cache HIT');
       return cached.data;
     }
-    
+
     console.log('[AuthService] User cache MISS, fetching...');
     const { data, error } = await supabase.auth.getUser();
     if (error) throw error;
-    
+
     const user = data?.user ?? null;
-    
+
     if (user) {
       cacheService.setMemory(cacheKey, {
         data: user,
         timestamp: Date.now()
       }, 30000);
     }
-    
+
     return user;
   },
 
@@ -209,7 +213,7 @@ export const AuthService = {
   async signOutAll() {
     const { error } = await supabase.auth.signOut({ scope: 'global' })
     if (error) throw error
-    
+
     localStorage.removeItem('supabase.auth.token')
     localStorage.removeItem('watchwithme-auth-token')
   },

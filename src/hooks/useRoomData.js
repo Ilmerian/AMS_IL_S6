@@ -5,8 +5,12 @@ import { RoleService } from '../services/RoleService'
 import { BanRepository } from '../repositories/BanRepository'
 import { cacheService } from '../services/CacheService'
 
-const CACHE_DURATION = 30000 
+const CACHE_DURATION = 30000
 const DEBOUNCE_DELAY = 500
+
+/**
+ * Hook de récupération des données d'une salle
+ */
 
 export function useRoomData(roomId, user) {
   const [room, setRoom] = useState(null)
@@ -15,7 +19,7 @@ export function useRoomData(roomId, user) {
   const [isBanned, setIsBanned] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  
+
   const loadingRef = useRef(false)
   const requestTimeoutRef = useRef(null)
 
@@ -23,7 +27,7 @@ export function useRoomData(roomId, user) {
     if (!roomId || loadingRef.current) return;
 
     const cacheKey = `room_data_${roomId}_${user?.id || 'guest'}`;
-    
+
     try {
       const cached = cacheService.getMemory(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -75,16 +79,16 @@ export function useRoomData(roomId, user) {
           () => RoleService.listMembers(roomId),
           DEBOUNCE_DELAY
         );
-        
+
         if (user) {
           if (roomData.ownerId === user.id) {
             userRoleData = 'owner';
-          } 
+          }
           else {
             const currentUserMember = membersData.find(m => m.userId === user.id);
             if (currentUserMember) {
-              userRoleData = currentUserMember.isOwner ? 'owner' : 
-                            currentUserMember.is_manager ? 'manager' : 'member';
+              userRoleData = currentUserMember.isOwner ? 'owner' :
+                currentUserMember.is_manager ? 'manager' : 'member';
             }
             else {
               userRoleData = null;
@@ -126,7 +130,7 @@ export function useRoomData(roomId, user) {
 
     requestTimeoutRef.current = setTimeout(() => {
       loadAll();
-    }, 100); 
+    }, 100);
 
     return () => {
       if (requestTimeoutRef.current) {
@@ -138,11 +142,11 @@ export function useRoomData(roomId, user) {
   const refresh = useCallback(() => {
     const cacheKey = `room_data_${roomId}_${user?.id || 'guest'}`
     cacheService.invalidate(cacheKey)
-    
+
     if (requestTimeoutRef.current) {
       clearTimeout(requestTimeoutRef.current);
     }
-    
+
     requestTimeoutRef.current = setTimeout(() => {
       loadAll();
     }, 100);
@@ -158,14 +162,14 @@ export function useRoomData(roomId, user) {
       try {
         const banUnsub = BanRepository.onBanChange(roomId, (payload) => {
           if (!mounted) return;
-          
+
           if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
             const newBanned = payload.eventType === 'INSERT'
             setIsBanned(newBanned)
-            
+
             const cacheKey = `room_data_${roomId}_${user.id}`
             cacheService.invalidate(cacheKey)
-            
+
             if (newBanned) {
               setMembers([])
               setUserRole(null)

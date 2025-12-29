@@ -3,6 +3,10 @@ import { RoleService } from './RoleService'
 import { RoomService } from './RoomService'
 import { supabase } from '../lib/supabaseClient'
 
+/**
+ * Vérification des droits d'accès aux salles
+ */
+
 async function getCurrentUserId() {
   const { data, error } = await supabase.auth.getUser()
   if (error) throw error

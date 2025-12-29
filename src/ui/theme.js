@@ -1,17 +1,21 @@
 // src/ui/theme.js
 import { createTheme } from '@mui/material/styles'
 
+/**
+ * Thème graphique de l'application
+ */
+
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
       light: '#9aa4ff',
-      main:  '#646cff',
-      dark:  '#4144a6',
+      main: '#646cff',
+      dark: '#4144a6',
     },
     background: {
       default: '#8b8b97',
-      paper:   'rgba(0,0,0,0.6)',
+      paper: 'rgba(0,0,0,0.6)',
     },
     text: {
       primary: 'rgba(255,255,255,0.92)',

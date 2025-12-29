@@ -2,6 +2,10 @@
 import { supabase } from '../lib/supabaseClient';
 import { Video } from '../models/Video';
 
+/**
+ * Accès et gestion des vidéos
+ */
+
 export const VideoRepository = {
   async getOrCreate({ url, title }) {
     let { data, error } = await supabase
@@ -62,7 +66,7 @@ export const VideoRepository = {
   async searchYoutube(query) {
     const q = query?.trim()
     if (!q) return []
-    
+
     try {
       console.log('[VideoRepository] Using fallback YouTube search for:', q)
       const videos = await VideoRepository.list({ q })

@@ -1,4 +1,9 @@
 // src/models/Video.js
+
+/**
+ * Modèle représentant une vidéo
+ */
+
 export class Video {
   constructor({ id, url, title } = {}) {
     this.id = id;

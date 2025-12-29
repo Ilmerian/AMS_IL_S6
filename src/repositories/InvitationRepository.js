@@ -1,5 +1,9 @@
 import { supabase } from '../lib/supabaseClient';
 
+/**
+ * Gestion des invitations aux salles
+ */
+
 export const InvitationRepository = {
   // Créer une invitation
   async create(roomId, userId) {
@@ -11,7 +15,7 @@ export const InvitationRepository = {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },

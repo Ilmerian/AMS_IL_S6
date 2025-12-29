@@ -1,4 +1,8 @@
 // src/utils/validators.js
+/**
+ * Fonctions utilitaires de validation et de nettoyage des entrées
+ */
+
 export const required = (v) => {
   const ok = v !== null && v !== undefined && String(v).trim().length > 0;
   return ok ? null : 'required';

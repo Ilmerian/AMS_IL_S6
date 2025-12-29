@@ -1,3 +1,7 @@
+/**
+ * Enregistre une métrique utilisateur
+ */
+
 export function logMetric(event, userId = null) {
     console.log("[METRIC]", {
         event,

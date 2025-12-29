@@ -1,6 +1,10 @@
 // src/services/RealtimeService.js
 import { supabase } from "../lib/supabaseClient";
 
+/**
+ * Gestion des événements temps réel et de la présence
+ */
+
 export const RealtimeService = {
   onInsert({ table, cb }) {
     const channel = supabase
