@@ -231,6 +231,8 @@
     "pin_enter_title": "Введите PIN",
     "pin_label": "PIN",
     "pin_disable": "Отключить",
+    "video_section": "Видео",
+    "sidebar_section": "Чат и плейлист",
     "promoted_message": "Поздравляем! Вы теперь модератор.",
     "kicked_title": "Вас выгнали",
     "kicked_message": "Модератор удалил вас из списка активных участников.",

@@ -190,10 +190,16 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
   }
 
   return (
-    <Card sx={{ p: 2 }}>
+    <Card sx={{ p: { xs: 1.25, sm: 2 } }}>
       <Stack spacing={2} component="form" onSubmit={submit}>
         <Stack spacing={1}>
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{
+              '& .MuiTextField-root': { flex: 1 }
+            }}
+          >
             <TextField
               label= {t('playlist.search_on_youTube')}
               placeholder="lofi, trailer, tutorial..."
@@ -207,6 +213,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
               variant="outlined"
               onClick={runSearch}
               disabled={busy || !playlistId || !canEdit}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
             >
               {t('playlist:search')}
             </Button>
@@ -216,7 +223,7 @@ export default function PlaylistPanel({ playlistId, onAdd, onPlay, canEdit, curr
             <List
               dense
               sx={{
-                maxHeight: 260,
+                maxHeight: { xs: 220, sm: 260 },
                 overflowY: 'auto',
                 borderRadius: 1,
                 border: '1px solid rgba(255,255,255,0.08)',

@@ -256,11 +256,12 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
           background: 'rgba(0,0,0,0.35)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(255,255,255,0.15)',
+          height: { xs: 64, sm: 72 },
         }}
       >
         <Toolbar sx={{
-          px: { xs: 1.5, sm: 2, md: 3 },
-          py: 1.25,
+          px: { xs: 1, sm: 2, md: 3 },
+          py: { xs: 0.5, sm: 1.25 },
           gap: 2,
           minHeight: { xs: 56, sm: 64 }
         }}>
@@ -347,7 +348,17 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
           </Stack>
 
           {/* Right Controls */}
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={{ xs: 0.5, sm: 1 }}
+            alignItems="center"
+            sx={{
+              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+              justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+              rowGap: 0.5,
+              maxWidth: { xs: '55%', sm: 'none' }
+            }}
+          >
             {/* Language Selector - Desktop */}
             <ButtonGroup
               variant="outlined"
@@ -396,7 +407,7 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             <IconButton
               onClick={(e) => setAnchorEl(e.currentTarget)}
               size="small"
-              sx={{ ml: 1 }}
+              sx={{ ml: { xs: 0.5, sm: 1 } }}
             >
               <Avatar
                 src={avatarUrl || undefined}

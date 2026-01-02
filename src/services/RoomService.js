@@ -2,6 +2,7 @@
 import { RoomRepository } from '../repositories/RoomRepository';
 import { RoleRepository } from '../repositories/RoleRepository';
 import { VideoRepository } from '../repositories/VideoRepository'
+import { PlaylistRepository } from '../repositories/PlaylistRepository'
 import { supabase } from '../lib/supabaseClient';
 
 /**
@@ -15,7 +16,7 @@ export const RoomService = {
     try {
       const { data, error } = await supabase
         .from('rooms')
-        .select('room_id, name, owner_id, current_video_id, is_playing, password, archived_at')
+        .select('room_id, name, owner_id, current_video_id, is_playing, password, archived_at, parental_pin_enabled')
         .eq('room_id', roomId)
         .single();
 
@@ -31,10 +32,10 @@ export const RoomService = {
         ownerId: data.owner_id,
         current_video_id: data.current_video_id,
         is_playing: data.is_playing,
-        // CORRECTION ICI : on renomme 'has_password' en 'hasPassword'
-        // et on passe aussi 'password' si besoin pour d'autres vérifications
         hasPassword: !!data.password,
-        password: data.password,
+        // Do not expose password/hash to the client
+        password: null,
+        parental_pin_enabled: data.parental_pin_enabled ?? false,
         archivedAt: data.archived_at,
       };
     } catch (error) {
@@ -94,14 +95,8 @@ export const RoomService = {
   },
 
   async getPlaylist(roomId) {
-    const res = await supabase
-      .from("playlists")
-      .select("*")
-      .eq("room_id", roomId)
-      .order("position", { ascending: true })
-
-    if (res.error) throw res.error
-    return res.data || []
+    // Use PlaylistRepository to respect schema (video_ids array, no position column)
+    return PlaylistRepository.getByRoom(roomId);
   },
 
   async updatePlaybackState(roomId, { isPlaying, currentVideoId }) {
@@ -130,5 +125,20 @@ export const RoomService = {
       console.error('RoomService.getVideoHistoryForRoom error:', e)
       return []
     }
+  },
+
+  async transferOwnership(roomId, newOwnerId) {
+    const updated = await RoomRepository.transferOwnership(roomId, newOwnerId);
+    try {
+      // Ensure the new owner has a role entry (manager privileges at minimum)
+      await RoleRepository.addMember({
+        roomId,
+        userId: newOwnerId,
+        isManager: true,
+      });
+    } catch (e) {
+      console.warn('[RoomService.transferOwnership] addMember failed:', e);
+    }
+    return updated;
   },
 };

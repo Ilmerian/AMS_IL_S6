@@ -12,43 +12,28 @@ let reconnectTimeout;
 const MAX_RECONNECT_ATTEMPTS = 5;
 let reconnectAttempts = 0;
 
-if (supabase.realtime) {
+if (supabase.realtime?.on) {
   const realtime = supabase.realtime;
 
-  if (realtime.on) {
-    realtime.on('open', () => {
-      console.log('✅ WebSocket connection established');
-      reconnectAttempts = 0;
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-    });
+  realtime.on('open', () => {
+    reconnectAttempts = 0;
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+    }
+  });
 
-    realtime.on('close', () => {
-      console.log('🔌 WebSocket connection closed');
+  realtime.on('close', () => {
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+      reconnectTimeout = setTimeout(() => {
+        reconnectAttempts++;
+        window.location.reload();
+      }, delay);
+    }
+  });
 
-      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-        console.log(`🔄 Reconnecting in ${delay}ms...`);
-
-        reconnectTimeout = setTimeout(() => {
-          reconnectAttempts++;
-          console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
-          window.location.reload();
-        }, delay);
-      } else {
-        console.error('❌ Max reconnection attempts reached');
-      }
-    });
-
-    realtime.on('error', (error) => {
-      console.error('❌ WebSocket error:', error);
-    });
-  } else {
-    console.warn('⚠️ Supabase realtime.on method not available');
-  }
-} else {
-  console.warn('⚠️ Supabase realtime not available');
+  realtime.on('error', () => {
+  });
 }
 
 createRoot(document.getElementById('root')).render(

@@ -125,7 +125,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
       }}
       scroll="paper"
     >
-      <DialogTitle sx={{ 
+      <DialogTitle disableTypography sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',

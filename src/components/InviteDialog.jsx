@@ -121,7 +121,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
       }}
       scroll="paper"
     >
-      <DialogTitle sx={{ 
+      <DialogTitle disableTypography sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 

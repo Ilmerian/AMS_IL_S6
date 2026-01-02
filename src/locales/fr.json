@@ -250,6 +250,8 @@
     "pin_enter_title": "Entrer le PIN",
     "pin_label": "PIN",
     "pin_disable": "Désactiver",
+    "video_section": "Vidéo",
+    "sidebar_section": "Chat et playlist",
     "promoted_message": "Félicitations ! Vous êtes maintenant Modérateur.",
     "kicked_title": "Vous avez été expulsé",
     "kicked_message": "Un modérateur vous a retiré de la liste des membres actifs.",

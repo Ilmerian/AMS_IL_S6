@@ -382,4 +382,16 @@ export const RoomRepository = {
     if (error) throw error
     return true
   },
+
+  async transferOwnership(roomId, newOwnerId) {
+    const { data, error } = await supabase
+      .from('rooms')
+      .update({ owner_id: newOwnerId })
+      .eq('room_id', roomId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return Room.fromRow(data);
+  },
 };

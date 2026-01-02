@@ -43,12 +43,24 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
         const list = await PlaylistService.listByRoom(stableRoomId)
         let pl = list[0]
         if (!pl) {
-          pl = await PlaylistService.create({ roomId: stableRoomId, name: 'Default' })
+          try {
+            pl = await PlaylistService.create({ roomId: stableRoomId, name: 'Default' })
+          } catch (e) {
+            console.warn('[usePlaylistForRoom] create playlist failed:', e?.message || e)
+            setPlaylistId(null)
+            setPlaylistItems([])
+            return
+          }
         }
         setPlaylistId(pl?.id || null)
 
-        const { videos } = await PlaylistService.loadItems(pl.id)
-        setPlaylistItems(videos)
+        try {
+          const { videos } = await PlaylistService.loadItems(pl.id)
+          setPlaylistItems(videos)
+        } catch (e) {
+          console.warn('[usePlaylistForRoom] loadItems failed:', e?.message || e)
+          setPlaylistItems([])
+        }
 
         const playback = await PlaybackRepository.getCurrentPlayback(stableRoomId)
         if (playback?.video_id) {
@@ -144,9 +156,26 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
       title: title, // On envoie le bon titre trouvé
     })
 
-    // Si rien ne joue, on lance la vidéo
+    // Recharge la playlist pour disposer des IDs internes
+    try {
+      const { videos } = await PlaylistService.loadItems(playlistId)
+      setPlaylistItems(videos)
+    } catch (e) {
+      console.warn('[usePlaylistForRoom] reload playlist failed after add:', e)
+    }
+
+    // Si rien ne joue, on lance la vidéo et met à jour l'état partagé
     if (!embedUrl) {
+      setCurrentVideoId(yid)
       setEmbedUrl(toEmbedUrl(yid))
+      try {
+        await RoomService.updatePlaybackState(roomId, {
+          currentVideoId: yid,
+          isPlaying: true
+        })
+      } catch (e) {
+        console.warn('[usePlaylistForRoom] updatePlaybackState after add failed:', e)
+      }
     }
   }
 
@@ -170,6 +199,16 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
       await PlaybackRepository.setCurrentPlayback(roomId, playlistId, videoId);
       if (canControlVideo) {
         try {
+          await RoomService.updatePlaybackState(roomId, {
+            currentVideoId: yid,
+            isPlaying: true
+          });
+        } catch (e) {
+          console.warn('[usePlaylistForRoom] updatePlaybackState failed:', e);
+        }
+      }
+      if (canControlVideo) {
+        try {
           const { data } = await supabase.auth.getUser()
           await RoomService.addVideoHistory({
             roomId,
@@ -187,9 +226,10 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
     }
   }, [playlistId, playlistItems, roomId, canControlVideo])
 
-  const getNextVideo = useCallback((targetVideoId = currentVideoId) => {
+  const getNextVideo = useCallback((targetVideoId) => {
+    const activeId = targetVideoId || currentVideoId
     if (!playlistItems.length) return null
-    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === targetVideoId)
+    const currentIndex = playlistItems.findIndex(v => getYouTubeId(v.url) === activeId)
     const nextIndex = (currentIndex + 1) % playlistItems.length
     return playlistItems[nextIndex]
   }, [playlistItems, currentVideoId])
@@ -201,8 +241,8 @@ export function usePlaylistForRoom({ room, roomId, accessGranted, canControlVide
     return playlistItems[prevIndex]
   }
 
-  const playNextVideo = useCallback(async () => {
-    const nextVideo = getNextVideo()
+  const playNextVideo = useCallback(async (targetVideoId) => {
+    const nextVideo = getNextVideo(targetVideoId)
     if (nextVideo) {
       await playVideoById(nextVideo.id)
     }

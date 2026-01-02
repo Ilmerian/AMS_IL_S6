@@ -36,6 +36,8 @@ export default function VideoPlayerShell({
   const commandTimeoutRef = useRef(null);
   const [errorState, setErrorState] = useState(null);
   const [touchMode, setTouchMode] = useState(false);
+  const lastPlayerStateRef = useRef(null);
+  const lastPauseAtRef = useRef(0);
 
   const videoId = getYouTubeId(url || '');
   const embedUrl = videoId ? toEmbedUrl(videoId) : null;
@@ -163,14 +165,21 @@ export default function VideoPlayerShell({
             if (playerState === 1 && !playing && onPlay) {
               console.log("👆 YouTube Player Started Playing");
               setErrorState(null);
-              onPlay();
+              const sincePause = Date.now() - lastPauseAtRef.current;
+              if (sincePause > 800) {
+                onPlay();
+              } else {
+                console.log('⏸️ Play ignored (too soon after pause)');
+              }
             } else if (playerState === 2 && playing && onPause) {
               console.log("👆 YouTube Player Paused");
+              lastPauseAtRef.current = Date.now();
               onPause();
             } else if (playerState === 0 && onEnded) {
               console.log("👆 YouTube Player Ended");
               onEnded();
             }
+            lastPlayerStateRef.current = playerState;
           }
         }
       } catch (error) {

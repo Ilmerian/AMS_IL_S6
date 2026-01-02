@@ -153,8 +153,16 @@ export default function ChatBox({ roomId, isBanned }) {
   };
 
   return (
-    <Box sx={{ height: '100%', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1, p: 2, boxSizing: 'border-box' }}>
-      <Stack spacing={1.5} sx={{ height: '100%' }}>
+    <Box
+      sx={{
+        height: '100%',
+        border: '1px solid rgba(255,255,255,0.3)',
+        borderRadius: 1,
+        p: { xs: 1.25, sm: 2 },
+        boxSizing: 'border-box',
+      }}
+    >
+      <Stack spacing={{ xs: 1, sm: 1.5 }} sx={{ height: '100%' }}>
 
         {isProduction && (
           <Box sx={{ textAlign: 'center', py: 1, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 1 }}>
@@ -167,7 +175,15 @@ export default function ChatBox({ roomId, isBanned }) {
         <Box
           ref={listRef}
           onScroll={handleScroll}
-          sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 0.5 }}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            px: 0.5,
+            gap: { xs: 0.75, sm: 1.25 },
+            display: 'flex',
+            flexDirection: 'column',
+          }}
         >
           {hasMore && (
             <Box sx={{ textAlign: 'center', py: 1 }}>
@@ -176,6 +192,7 @@ export default function ChatBox({ roomId, isBanned }) {
                 variant="outlined"
                 startIcon={<ExpandLessIcon />}
                 onClick={handleLoadMore}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
               >
                 {t('chat.load_more')}
               </Button>
@@ -196,7 +213,7 @@ export default function ChatBox({ roomId, isBanned }) {
                 spacing={1}
                 alignItems="flex-start"
                 sx={{
-                  py: 0.75,
+                  py: { xs: 0.5, sm: 0.75 },
                   opacity: m.__error ? 0.6 : 1,
                   position: "relative",
                   "&:hover .reaction-panel": { opacity: 1, pointerEvents: "all" }

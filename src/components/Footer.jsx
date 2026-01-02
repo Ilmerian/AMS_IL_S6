@@ -55,7 +55,7 @@ export default function Footer() {
       elevation={6}
       sx={{
         mt: 0,
-        py: { xs: 2, sm: 1.25 },
+        py: { xs: 1.5, sm: 1.25 },
         background: 'rgba(0,0,0,0.7)',
         backdropFilter: 'saturate(160%) blur(8px)',
         borderTop: '1px solid rgba(255,255,255,0.2)',
@@ -66,14 +66,15 @@ export default function Footer() {
       <PrivacyModal open={openPrivacy} onClose={() => setOpenPrivacy(false)} />
 
       <Toolbar sx={{ 
-        px: { xs: 2, sm: 3, md: 6 }, 
+        px: { xs: 1.5, sm: 3, md: 6 }, 
         width: '100%', 
-        maxWidth: '100%', 
+        maxWidth: 1280, 
+        mx: 'auto',
         display: 'flex', 
         flexDirection: { xs: 'column', sm: 'row' },
         justifyContent: 'space-between',
         alignItems: { xs: 'flex-start', sm: 'center' },
-        gap: { xs: 2, sm: 0 },
+        gap: { xs: 1.5, sm: 0 },
         opacity: 0.9 
       }}>
         {/* Tagline  */}

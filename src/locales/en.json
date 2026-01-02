@@ -231,6 +231,8 @@
     "pin_enter_title": "Enter PIN",
     "pin_label": "PIN",
     "pin_disable": "Disable",
+    "video_section": "Video",
+    "sidebar_section": "Chat & playlist",
     "promoted_message": "Congratulations! You are now a Moderator.",
     "kicked_title": "You have been kicked",
     "kicked_message": "A moderator removed you from the active members list.",
