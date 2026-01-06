@@ -85,6 +85,62 @@ export const RealtimeService = {
   _presenceChannels: {},
 
   /**
+   * Canal dédié aux demandes/réponses de contrôle de lecture.
+   */
+  joinControlChannel(roomId, { onRequest, onResponse, onSubscribe } = {}) {
+    const channelName = `room_control:${roomId}`;
+    const existingChannel = supabase.getChannels().find(c => c.topic === channelName);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+
+    const channel = supabase.channel(channelName, {
+      config: {
+        broadcast: { self: false }
+      }
+    });
+
+    channel
+      .on('broadcast', { event: 'control_request' }, (payload) => {
+        onRequest?.(payload?.payload);
+      })
+      .on('broadcast', { event: 'control_response' }, (payload) => {
+        onResponse?.(payload?.payload);
+      })
+      .subscribe((status) => {
+        console.log(`[CONTROL CHANNEL] ${status} for room ${roomId}`);
+        if (status === 'SUBSCRIBED') {
+          onSubscribe?.();
+        }
+      });
+
+    const send = async (event, data) => {
+      if (channel.state !== 'joined') {
+        console.warn(`[CONTROL CHANNEL] Cannot send ${event}, channel not ready (state: ${channel.state})`);
+        return;
+      }
+      try {
+        await channel.send({
+          type: 'broadcast',
+          event,
+          payload: data
+        });
+      } catch (e) {
+        console.warn(`[CONTROL CHANNEL] Failed to send ${event}:`, e);
+      }
+    };
+
+    return {
+      requestControl: (data) => send('control_request', data),
+      respondToRequest: (data) => send('control_response', data),
+      unsubscribe: () => {
+        console.log(`[CONTROL CHANNEL] Unsubscribing from ${channelName}`);
+        supabase.removeChannel(channel);
+      }
+    };
+  },
+
+  /**
    * Legacy presence helpers (used on Rooms list)
    * joinPresence -> track current user for a room
    * subscribePresence -> listen to presence counts
@@ -222,6 +278,8 @@ export const RealtimeService = {
     };
 
     entry.channel.on('presence', { event: 'sync' }, handler);
+    // Push initial state immediately (useful if others were already present).
+    handler();
 
     entry.channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED' && !entry.tracked) {
@@ -229,6 +287,7 @@ export const RealtimeService = {
           await entry.channel.track(metadata);
           entry.metadata = metadata;
           entry.tracked = true;
+          handler();
         } catch (e) {
           console.warn('[RealtimeService.subscribeToRoomPresence] track failed:', e);
         }

@@ -83,25 +83,72 @@ function ControlStatus({ controlInfo, user }) {
 
     if (!user) return null;
 
-    if (controlInfo.canControl) {
+    const {
+        canControl,
+        isLeader,
+        currentLeader,
+        takeLeadership,
+        releaseLeadership,
+        requirePin,
+        requestControl,
+        requestPending,
+        incomingRequests = [],
+        respondToRequest,
+    } = controlInfo || {};
+
+    if (canControl) {
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'success.dark', borderRadius: 1 }}>
-                <CheckCircleIcon fontSize="small" />
-                <Typography variant="body2">
-                    {controlInfo.isLeader
-                        ? t('room.you_are_leader', 'You are controlling playback')
-                        : t('room.you_can_control', 'You can control playback')
-                    }
-                </Typography>
-                {controlInfo.isLeader && (
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={controlInfo.releaseLeadership}
-                        sx={{ ml: 1 }}
-                    >
-                        {t('room.release_control')}
-                    </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1, bgcolor: 'success.dark', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CheckCircleIcon fontSize="small" />
+                    <Typography variant="body2">
+                        {isLeader
+                            ? t('room.you_are_leader', 'You are controlling playback')
+                            : t('room.you_can_control', 'You can control playback')
+                        }
+                    </Typography>
+                    {isLeader && (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={releaseLeadership}
+                            sx={{ ml: 1 }}
+                        >
+                            {t('room.release_control')}
+                        </Button>
+                    )}
+                    {!isLeader && takeLeadership && (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => (requirePin ? requirePin(takeLeadership) : takeLeadership())}
+                            sx={{ ml: 1 }}
+                        >
+                            {t('room.take_control')}
+                        </Button>
+                    )}
+                </Box>
+                {respondToRequest && incomingRequests.length > 0 && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="subtitle2">
+                            {t('room.control_requests', 'Control requests')}
+                        </Typography>
+                        <Stack spacing={0.5}>
+                            {incomingRequests.map((req) => (
+                                <Box key={req.userId} sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(255,255,255,0.08)', p: 1, borderRadius: 1 }}>
+                                    <Typography variant="body2" sx={{ flex: 1 }}>
+                                        {req.username || t('common.visitor', 'Visitor')}
+                                    </Typography>
+                                    <Button size="small" variant="contained" onClick={() => respondToRequest(req.userId, true)}>
+                                        {t('common.accept', 'Accept')}
+                                    </Button>
+                                    <Button size="small" color="error" onClick={() => respondToRequest(req.userId, false)}>
+                                        {t('common.decline', 'Decline')}
+                                    </Button>
+                                </Box>
+                            ))}
+                        </Stack>
+                    </Box>
                 )}
             </Box>
         );
@@ -111,7 +158,7 @@ function ControlStatus({ controlInfo, user }) {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'warning.dark', borderRadius: 1 }}>
             <WarningIcon fontSize="small" />
             <Typography variant="body2">
-                {controlInfo.currentLeader
+                {currentLeader
                     ? t('room.someone_controlling', 'Someone else is controlling playback')
                     : t('room.request_control', 'Request control to manage playback')
                 }
@@ -119,10 +166,19 @@ function ControlStatus({ controlInfo, user }) {
             <Button
                 size="small"
                 variant="contained"
-                onClick={() => (controlInfo.requirePin ? controlInfo.requirePin(controlInfo.takeLeadership) : controlInfo.takeLeadership())}
+                disabled={requestPending}
+                onClick={() => {
+                    if (requestControl) {
+                        requestControl();
+                        return;
+                    }
+                    (requirePin ? requirePin(takeLeadership) : takeLeadership());
+                }}
                 sx={{ ml: 1 }}
             >
-                {t('room.take_control')}
+                {requestPending
+                    ? t('room.request_pending', 'Waiting for approval...')
+                    : t('room.take_control')}
             </Button>
         </Box>
     );

@@ -17,6 +17,9 @@ export function useVideoSync({ roomId, user, userRole }) {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [leaderId, setLeaderId] = useState(null);
   const [leaderName, setLeaderName] = useState(null);
+  const [delegatedControl, setDelegatedControl] = useState(false);
+  const [requestPending, setRequestPending] = useState(false);
+  const [incomingRequests, setIncomingRequests] = useState([]);
 
   const stateRef = useRef({
     videoId: null,
@@ -31,30 +34,65 @@ export function useVideoSync({ roomId, user, userRole }) {
   const syncIntervalRef = useRef(null);
   const lastHistoryVideoRef = useRef(null);
   const presenceUnsubRef = useRef(null);
+  const controlChannelRef = useRef(null);
+  const delegatedRef = useRef(false);
+
+  useEffect(() => {
+    delegatedRef.current = delegatedControl;
+  }, [delegatedControl]);
 
   const isPrivileged = userRole === 'owner' || userRole === 'manager';
-  const isLeader = leaderId === safeUser.id;
-  const canControl = isPrivileged || isLeader || (!leaderId && !!safeUser.id);
+  const computedLeaderId = leaderId || (isPrivileged ? safeUser.id : null);
+  const isLeader = computedLeaderId === safeUser.id;
+  const canControl = isPrivileged || delegatedControl || computedLeaderId === safeUser.id;
 
   const ensureLeadership = useCallback(async () => {
+    // Privileged users always keep control; delegated users only if approved.
     if (isPrivileged) return true;
+    if (!delegatedRef.current) return false;
     if (leaderId && leaderId !== safeUser.id) return false;
     if (isLeader) return true;
-    await RealtimeService.updatePresence(roomId, { ...(presenceMetaRef.current || {}), is_leader: true });
-    wasLeaderRef.current = true;
-    setLeaderId(safeUser.id);
-    setLeaderName((presenceMetaRef.current || {}).username);
-    return true;
-  }, [isPrivileged, leaderId, isLeader, roomId, safeUser.id]);
-
-  const takeLeadership = useCallback(async () => {
-    if (!roomId || !safeUser.id) return;
     const baseMeta = presenceMetaRef.current || {};
     wasLeaderRef.current = true;
     setLeaderId(safeUser.id);
     setLeaderName(baseMeta.username);
     await RealtimeService.updatePresence(roomId, { ...baseMeta, is_leader: true });
+    return true;
+  }, [isPrivileged, leaderId, isLeader, roomId, safeUser.id]);
+
+  const takeLeadership = useCallback(async () => {
+    if (!roomId || !safeUser.id) return;
+    if (!isPrivileged && !delegatedRef.current) return;
+    const baseMeta = presenceMetaRef.current || {};
+    wasLeaderRef.current = true;
+    setLeaderId(safeUser.id);
+    setLeaderName(baseMeta.username);
+    await RealtimeService.updatePresence(roomId, { ...baseMeta, is_leader: true });
+  }, [roomId, safeUser.id, isPrivileged]);
+
+  const requestControl = useCallback(() => {
+    if (!roomId || !safeUser.id) return;
+    setRequestPending(true);
+    const meta = presenceMetaRef.current || {};
+    controlChannelRef.current?.requestControl?.({
+      userId: safeUser.id,
+      username: meta.username,
+      avatar_url: meta.avatar_url,
+      requestedAt: Date.now()
+    });
   }, [roomId, safeUser.id]);
+
+  const respondToRequest = useCallback((targetUserId, approved) => {
+    if (!isPrivileged || !targetUserId) return;
+    const meta = presenceMetaRef.current || {};
+    setIncomingRequests((prev) => prev.filter((r) => r.userId !== targetUserId));
+    controlChannelRef.current?.respondToRequest?.({
+      targetUserId,
+      approved,
+      approverId: safeUser.id,
+      approverName: meta.username
+    });
+  }, [isPrivileged, safeUser.id]);
 
   const releaseLeadership = useCallback(async () => {
     if (!roomId || !safeUser.id) return;
@@ -132,7 +170,8 @@ export function useVideoSync({ roomId, user, userRole }) {
       username: safeUser.user_metadata?.username || safeUser.email?.split('@')[0] || 'Visiteur',
       avatar_url: safeUser.avatar_url || safeUser.user_metadata?.avatar_url,
       joined_at: Date.now(),
-      is_leader: false,
+      // Owners/managers join as leader by default so they immediately control playback.
+      is_leader: isPrivileged,
     };
     presenceMetaRef.current = metadata;
 
@@ -166,6 +205,54 @@ export function useVideoSync({ roomId, user, userRole }) {
       presenceUnsubRef.current = null;
     };
   }, [roomId, safeUser.id, safeUser.user_metadata, safeUser.email, safeUser.avatar_url, isPrivileged, takeLeadership]);
+
+  // =========================================================================
+  // 1ter. CONTROL REQUEST CHANNEL
+  // =========================================================================
+  useEffect(() => {
+    if (!roomId || !safeUser.id) return;
+
+    const channel = RealtimeService.joinControlChannel(roomId, {
+      onRequest: (payload) => {
+        if (!payload?.userId || !isPrivileged) return;
+        setIncomingRequests((prev) => {
+          const exists = prev.some((r) => r.userId === payload.userId);
+          const next = {
+            userId: payload.userId,
+            username: payload.username || 'Visiteur',
+            avatar_url: payload.avatar_url,
+            requestedAt: payload.requestedAt || Date.now(),
+          };
+          if (exists) {
+            return prev.map((r) => r.userId === payload.userId ? next : r);
+          }
+          return [...prev, next];
+        });
+      },
+      onResponse: (payload) => {
+        if (!payload?.targetUserId || payload.targetUserId !== safeUser.id) return;
+        setRequestPending(false);
+        if (payload.approved) {
+          setDelegatedControl(true);
+          delegatedRef.current = true;
+          takeLeadership();
+        } else {
+          setDelegatedControl(false);
+          delegatedRef.current = false;
+        }
+      }
+    });
+
+    controlChannelRef.current = channel;
+
+    return () => {
+      channel?.unsubscribe?.();
+      controlChannelRef.current = null;
+      setIncomingRequests([]);
+      setRequestPending(false);
+      setDelegatedControl(false);
+    };
+  }, [roomId, safeUser.id, isPrivileged, takeLeadership]);
 
   useEffect(() => {
     return () => {
@@ -313,10 +400,14 @@ export function useVideoSync({ roomId, user, userRole }) {
     controlInfo: {
       canControl,
       isLeader,
-      currentLeader: leaderName,
+      currentLeader: leaderName || (computedLeaderId === safeUser.id ? (presenceMetaRef.current?.username || safeUser.email?.split('@')[0]) : null),
       takeLeadership,
       releaseLeadership,
       requirePin: null,
+      requestControl,
+      requestPending,
+      incomingRequests,
+      respondToRequest,
     }
   };
 }
