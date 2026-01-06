@@ -84,6 +84,51 @@ export const RealtimeService = {
   },
   _presenceChannels: {},
 
+  joinPresence(roomId, userMeta) {
+    if (!roomId || !userMeta?.user_id) return () => {};
+
+    // Reuse existing presence channel if already tracked
+    const existing = this._presenceChannels[roomId];
+    if (existing) return existing;
+
+    const metadata = {
+      user_id: userMeta.user_id,
+      username: userMeta.username || 'Visitor',
+      avatar_url: userMeta.avatar_url || null,
+      joined_at: Date.now(),
+    };
+
+    const channel = supabase.channel(`presence:room_${roomId}`, {
+      config: {
+        presence: { key: metadata.user_id },
+      },
+    });
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        channel.track(metadata);
+      }
+    });
+
+    this._presenceChannels[roomId] = channel;
+    return channel;
+  },
+
+  subscribePresence(roomId, cb) {
+    const channel = this._presenceChannels[roomId];
+    if (!channel) return () => {};
+
+    const handler = () => {
+      const state = channel.presenceState();
+      const users = Object.values(state).flat();
+      cb?.({ users, count: users.length });
+    };
+
+    channel.on('presence', { event: 'sync' }, handler);
+    // Return a cleanup that does nothing special; the channel is removed in leavePresence
+    return () => {};
+  },
+
   subscribeToRoomPresence(roomId, user, onSync) {
     if (!roomId || !user) return () => {};
 
@@ -134,7 +179,11 @@ export const RealtimeService = {
   async leavePresence(roomId) {
     const channel = this._presenceChannels[roomId];
     if (channel) {
-      await supabase.removeChannel(channel);
+      try {
+        await supabase.removeChannel(channel);
+      } catch (e) {
+        console.warn('[RealtimeService] leavePresence error:', e);
+      }
       delete this._presenceChannels[roomId];
     }
   },

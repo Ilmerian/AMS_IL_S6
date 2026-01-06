@@ -121,7 +121,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
       }}
       scroll="paper"
     >
-      <DialogTitle disableTypography sx={{ 
+      <DialogTitle sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
@@ -129,7 +129,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
         px: isMobile ? 2 : 3,
         pt: isMobile ? 3 : 2
       }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
           {t('invite.title')}
         </Typography>
         <IconButton 
