@@ -89,7 +89,9 @@ export const RealtimeService = {
    */
   joinControlChannel(roomId, { onRequest, onResponse, onSubscribe } = {}) {
     const channelName = `room_control:${roomId}`;
-    const existingChannel = supabase.getChannels().find(c => c.topic === channelName);
+    const existingChannel = supabase.getChannels().find(
+      (c) => c.topic === channelName || c.topic === `realtime:${channelName}`
+    );
     if (existingChannel) {
       supabase.removeChannel(existingChannel);
     }
@@ -98,6 +100,12 @@ export const RealtimeService = {
       config: {
         broadcast: { self: false }
       }
+    });
+
+    let readyResolve;
+    const readyPromise = new Promise((resolve) => {
+      readyResolve = resolve;
+      setTimeout(() => resolve(false), 5000);
     });
 
     channel
@@ -110,12 +118,26 @@ export const RealtimeService = {
       .subscribe((status) => {
         console.log(`[CONTROL CHANNEL] ${status} for room ${roomId}`);
         if (status === 'SUBSCRIBED') {
+          readyResolve?.(true);
           onSubscribe?.();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          readyResolve?.(false);
         }
       });
 
+    const waitForReady = async () => {
+      if (channel.state === 'joined') return true;
+      try {
+        const ok = await readyPromise;
+        return ok && channel.state === 'joined';
+      } catch {
+        return false;
+      }
+    };
+
     const send = async (event, data) => {
-      if (channel.state !== 'joined') {
+      const ready = await waitForReady();
+      if (!ready) {
         console.warn(`[CONTROL CHANNEL] Cannot send ${event}, channel not ready (state: ${channel.state})`);
         return;
       }

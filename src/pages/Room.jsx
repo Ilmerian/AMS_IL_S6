@@ -259,6 +259,11 @@ export default function Room() {
         setPinOpen(false);
         pendingActionRef.current = null;
     }, [roomId]);
+    useEffect(() => {
+        setMembers([]);
+        setOnlineUsers([]);
+        setUserRole(null);
+    }, [roomId, user?.id]);
 
     const isProduction = typeof window !== 'undefined' &&
         window.location.hostname !== 'localhost' &&
@@ -482,11 +487,6 @@ export default function Room() {
             return;
         }
 
-        if (userRole === 'owner' && room?.ownerId === user.id) {
-            console.log('[Room] userRole already set to owner, skipping reset');
-            setMembersLoading(false);
-            return;
-        }
         setMembersLoading(true);
         const cacheKey = `room_data_${roomId}_${user.id}`;
         const cacheTTL = isProduction ? 600000 : 30000;
