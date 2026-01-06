@@ -200,7 +200,7 @@ export default function Home() {
                 { icon: <FiUsers />, title: t('homepage.step3_title'), subtitle: t('homepage.step3_desc') },
                 { icon: <FiVideo />, title: t('homepage.step4_title'), subtitle: t('homepage.step4_desc') }
               ].map((item, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                   <InfoCard
                     icon={item.icon}
                     title={item.title}
@@ -233,7 +233,7 @@ export default function Home() {
                 { icon: <FiPlus />, title: t('homepage.access_desc'), subtitle: t('homepage.access_desc') },
                 { icon: <FiUsers />, title: t('homepage.mode'), subtitle: t('homepage.mode_desc') }
               ].map((item, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                   <InfoCard
                     icon={item.icon}
                     title={item.title}
@@ -266,7 +266,7 @@ export default function Home() {
                 { icon: <FiTwitter />, title: "X", subtitle: "@watchwithme" },
                 { icon: <FiTiktok />, title: "TikTok", subtitle: "@watchwithme" }
               ].map((item, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                   <InfoCard
                     icon={item.icon}
                     title={item.title}

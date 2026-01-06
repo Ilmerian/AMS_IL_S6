@@ -235,7 +235,7 @@ export default function NotFound() {
 
             <Grid container spacing={2} justifyContent="center">
               {quickLinks.map((link) => (
-                <Grid item xs={6} sm={4} key={link.path}>
+                <Grid size={{ xs: 6, sm: 4 }} key={link.path}>
                   <Button
                     component={RouterLink}
                     to={link.path}

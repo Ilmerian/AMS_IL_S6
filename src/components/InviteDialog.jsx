@@ -231,7 +231,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
                 </Box>
 
                 <Grid container spacing={1}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       fullWidth
                       variant="contained"
@@ -252,7 +252,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
                   </Grid>
                   
                   {navigator.share && (
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Button
                         fullWidth
                         variant="outlined"
@@ -410,7 +410,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
               {t('invite.quickActions')}
             </Typography>
             <Grid container spacing={1}>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Button
                   fullWidth
                   variant="text"
@@ -426,7 +426,7 @@ export default function InviteDialog({ open, onClose, roomId, roomName }) {
                   {t('invite.link')}
                 </Button>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Button
                   fullWidth
                   variant="text"

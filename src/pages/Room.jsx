@@ -41,6 +41,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
@@ -548,6 +549,9 @@ export default function Room() {
 
         return Array.from(map.values());
     }, [members, onlineUsers, t]);
+    const sortedMembers = useMemo(() => {
+        return [...allMembers].sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
+    }, [allMembers]);
 
     useEffect(() => {
         if (!user || !room) {
@@ -1051,7 +1055,7 @@ export default function Room() {
                             </Box>
                             {modView === 'members' && (
                                 <List dense sx={{ overflowY: 'auto', flex: 1 }}>
-                                    {allMembers.filter(m => m.isOnline).map((member) => {
+                                    {sortedMembers.map((member) => {
                                         const memberRole = getMemberRole(member);
                                         const isCurrentUser = member.userId === user?.id;
                                         const canActOn = !isCurrentUser && canInteract(memberRole, member.userId);
