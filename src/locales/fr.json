@@ -212,6 +212,7 @@
     "reload": "Recharger",
     "playlist":"playlist",
     "previous": "Précédent",
+    "history_empty": "Histore vide",
     "next": "Suivant",
     "chat": "chat",
     "history": "historique",

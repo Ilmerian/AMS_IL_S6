@@ -193,6 +193,7 @@
     "chat": "chat",
     "history": "history",
     "moderation":"moderation",
+    "history_empty": "history empty",
     "reload": "Reload",
     "sync_realtime": "🟢 Real-time synchronization",
     "sync_active": "🟢 Synchronization active",

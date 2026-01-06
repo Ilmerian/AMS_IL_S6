@@ -1,12 +1,16 @@
 // src/lib/supabaseClient.js
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+const sanitizeEnv = (value, name) => {
+  const cleaned = (value || '').trim();
+  if (!cleaned) {
+    throw new Error(`Missing Supabase env var: ${name}`);
+  }
+  return cleaned;
+};
 
-if (!url || !key) {
-  throw new Error('Missing Supabase Env vars')
-}
+const url = sanitizeEnv(import.meta.env.VITE_SUPABASE_URL, 'VITE_SUPABASE_URL');
+const key = sanitizeEnv(import.meta.env.VITE_SUPABASE_ANON_KEY, 'VITE_SUPABASE_ANON_KEY');
 
 /**
  * Client Supabase de l'application

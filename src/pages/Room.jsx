@@ -421,6 +421,7 @@ export default function Room() {
         changeVideo,
         updateLocalProgress,
         connectionStatus,
+        onlineUsers: onlineUsersSync = [],
         controlInfo = {}
     } = useVideoSync({
         roomId,
@@ -428,7 +429,7 @@ export default function Room() {
         userRole
     });
     
-    const canControlVideo = controlInfo.canControl || userRole === ROLES.OWNER || userRole === ROLES.MANAGER;
+    const canControlVideo = controlInfo.canControl;
     const controlInfoWithPin = { ...controlInfo, requirePin };
 
     const {
@@ -710,18 +711,10 @@ export default function Room() {
         }
     };
 
-    // TRANSFERT AUTOMATIQUE DE L'HOTE 
+    // Sync online users coming from useVideoSync presence tracking
     useEffect(() => {
-        if (!roomId || !user) return;
-
-        const unsubscribe = RealtimeService.subscribeToRoomPresence(roomId, user, (users) => {
-            setOnlineUsers(users);
-        });
-
-        return () => {
-            unsubscribe();
-        };
-    }, [roomId, user]);
+        setOnlineUsers(onlineUsersSync || []);
+    }, [onlineUsersSync]);
 
     useEffect(() => {
         if (!room || !room.ownerId || !user || onlineUsers.length === 0) return;
