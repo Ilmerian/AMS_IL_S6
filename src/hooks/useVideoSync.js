@@ -4,10 +4,6 @@ import { RoomService } from '../services/RoomService';
 import { getYouTubeId } from '../utils/youtube';
 import { RealtimeService } from '../services/RealtimeService';
 
-/**
- * Hook de synchronisation de la lecture vidéo dans une salle
- */
-
 export function useVideoSync({ roomId, user, userRole }) {
   const safeUser = user || { id: null };
 
@@ -15,12 +11,10 @@ export function useVideoSync({ roomId, user, userRole }) {
   const [syncIsPlaying, setSyncIsPlaying] = useState(false);
   const [seekTimestamp, setSeekTimestamp] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [leaderId, setLeaderId] = useState(null);
-  const [leaderName, setLeaderName] = useState(null);
-  const [delegatedControl, setDelegatedControl] = useState(false);
-  const [requestPending, setRequestPending] = useState(false);
-  const [incomingRequests, setIncomingRequests] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
+
+  // --- NOUVELLE LOGIQUE DE PERMISSION ---
+  // Seul l'owner ou un manager peut contrôler
+  const canControl = userRole === 'owner' || userRole === 'manager';
 
   const stateRef = useRef({
     videoId: null,
@@ -28,99 +22,16 @@ export function useVideoSync({ roomId, user, userRole }) {
     lastLocalAction: 0,
     ignoreNextPoll: false
   });
-  const presenceMetaRef = useRef(null);
-  const wasLeaderRef = useRef(false);
-
+  
   const localProgressRef = useRef(0);
   const syncIntervalRef = useRef(null);
   const lastHistoryVideoRef = useRef(null);
-  const presenceUnsubRef = useRef(null);
-  const controlChannelRef = useRef(null);
-  const delegatedRef = useRef(false);
-
-  useEffect(() => {
-    delegatedRef.current = delegatedControl;
-  }, [delegatedControl]);
-
-  const isPrivileged = userRole === 'owner' || userRole === 'manager';
-  const computedLeaderId = leaderId ?? (isPrivileged ? safeUser.id : null);
-  const hasLeader = !!computedLeaderId;
-  const isLeader = hasLeader ? computedLeaderId === safeUser.id : isPrivileged;
-  const canControl = delegatedControl || (!hasLeader && isPrivileged) || computedLeaderId === safeUser.id;
-
-  const ensureLeadership = useCallback(async () => {
-    // Privileged users always keep control; delegated users only if approved.
-    if (isPrivileged) return true;
-    if (!delegatedRef.current) return false;
-    if (leaderId && leaderId !== safeUser.id) return false;
-    if (isLeader) return true;
-    const baseMeta = presenceMetaRef.current || {};
-    wasLeaderRef.current = true;
-    setLeaderId(safeUser.id);
-    setLeaderName(baseMeta.username);
-    await RealtimeService.updatePresence(roomId, { ...baseMeta, is_leader: true });
-    return true;
-  }, [isPrivileged, leaderId, isLeader, roomId, safeUser.id]);
-
-  const takeLeadership = useCallback(async () => {
-    if (!roomId || !safeUser.id) return;
-    if (!isPrivileged && !delegatedRef.current) return;
-    const baseMeta = presenceMetaRef.current || {};
-    wasLeaderRef.current = true;
-    setLeaderId(safeUser.id);
-    setLeaderName(baseMeta.username);
-    await RealtimeService.updatePresence(roomId, { ...baseMeta, is_leader: true });
-  }, [roomId, safeUser.id, isPrivileged]);
-
-  const requestControl = useCallback(() => {
-    if (!roomId || !safeUser.id) return;
-    setRequestPending(true);
-    const meta = presenceMetaRef.current || {};
-    controlChannelRef.current?.requestControl?.({
-      userId: safeUser.id,
-      username: meta.username,
-      avatar_url: meta.avatar_url,
-      requestedAt: Date.now()
-    });
-  }, [roomId, safeUser.id]);
-
-  const respondToRequest = useCallback((targetUserId, approved) => {
-    if (!isPrivileged || !targetUserId) return;
-    const meta = presenceMetaRef.current || {};
-
-    setIncomingRequests((prev) => {
-      const req = prev.find((r) => r.userId === targetUserId);
-      if (approved && req) {
-        setLeaderId(targetUserId);
-        setLeaderName(req.username || null);
-        RealtimeService.updatePresence(roomId, { ...meta, is_leader: false });
-      }
-      return prev.filter((r) => r.userId !== targetUserId);
-    });
-
-    controlChannelRef.current?.respondToRequest?.({
-      targetUserId,
-      approved,
-      approverId: safeUser.id,
-      approverName: meta.username
-    });
-  }, [isPrivileged, safeUser.id, roomId]);
-
-  const releaseLeadership = useCallback(async () => {
-    if (!roomId || !safeUser.id) return;
-    const baseMeta = presenceMetaRef.current || {};
-    wasLeaderRef.current = false;
-    setLeaderId(null);
-    setLeaderName(null);
-    await RealtimeService.updatePresence(roomId, { ...baseMeta, is_leader: false });
-  }, [roomId, safeUser.id]);
 
   // =========================================================================
-  // 1. POLLING SYNC
+  // 1. POLLING SYNC (inchangé, sauf connectionStatus)
   // =========================================================================
   useEffect(() => {
     if (!roomId) return undefined;
-
     let isMounted = true;
 
     const syncRoomState = async () => {
@@ -146,8 +57,7 @@ export function useVideoSync({ roomId, user, userRole }) {
             setSyncIsPlaying(room.is_playing);
             stateRef.current.isPlaying = room.is_playing;
           }
-
-          setConnectionStatus('polling');
+          setConnectionStatus('connected');
         }
       } catch (error) {
         console.warn(`[POLLING] Failed:`, error);
@@ -165,158 +75,16 @@ export function useVideoSync({ roomId, user, userRole }) {
 
     return () => {
       isMounted = false;
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current);
-      }
+      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
     };
   }, [roomId]);
 
   // =========================================================================
-  // 1bis. PRESENCE & CONTRÔLE LECTURE
-  // =========================================================================
-  useEffect(() => {
-    if (!roomId || !safeUser.id) return;
-
-    const metadata = {
-      user_id: safeUser.id,
-      username: safeUser.user_metadata?.username || safeUser.email?.split('@')[0] || 'Visiteur',
-      avatar_url: safeUser.avatar_url || safeUser.user_metadata?.avatar_url,
-      joined_at: Date.now(),
-      // Owners/managers join as leader by default so they immediately control playback.
-      is_leader: isPrivileged,
-    };
-    presenceMetaRef.current = metadata;
-
-    const unsubscribePresence = RealtimeService.joinPresence(roomId, metadata);
-
-    const offSync = RealtimeService.subscribePresence(roomId, ({ users }) => {
-      setConnectionStatus('connected');
-      setOnlineUsers(users || []);
-      const leader = users.find(u => u?.is_leader);
-      setLeaderId(leader?.user_id || null);
-      setLeaderName(leader?.username || null);
-
-      if (!leader && isPrivileged && safeUser.id) {
-        takeLeadership();
-        return;
-      }
-
-      if (leader?.user_id !== safeUser.id && wasLeaderRef.current) {
-        wasLeaderRef.current = false;
-        RealtimeService.updatePresence(roomId, { ...metadata, is_leader: false });
-      }
-    });
-
-    presenceUnsubRef.current = () => {
-      offSync?.();
-      unsubscribePresence?.();
-    };
-
-    return () => {
-      offSync?.();
-      unsubscribePresence?.();
-      presenceUnsubRef.current = null;
-      setOnlineUsers([]);
-    };
-  }, [roomId, safeUser.id, safeUser.user_metadata, safeUser.email, safeUser.avatar_url, isPrivileged, takeLeadership]);
-
-  // =========================================================================
-  // 1ter. CONTROL REQUEST CHANNEL
-  // =========================================================================
-  useEffect(() => {
-    if (!roomId || !safeUser.id) return;
-
-    const channel = RealtimeService.joinControlChannel(roomId, {
-      onRequest: (payload) => {
-        if (!payload?.userId || payload.userId === safeUser.id) return;
-        setIncomingRequests((prev) => {
-          const exists = prev.some((r) => r.userId === payload.userId);
-          const next = {
-            userId: payload.userId,
-            username: payload.username || 'Visiteur',
-            avatar_url: payload.avatar_url,
-            requestedAt: payload.requestedAt || Date.now(),
-          };
-          if (exists) {
-            return prev.map((r) => (r.userId === payload.userId ? next : r));
-          }
-          return [...prev, next];
-        });
-      },
-      onResponse: (payload) => {
-        if (!payload?.targetUserId || payload.targetUserId !== safeUser.id) return;
-        setRequestPending(false);
-        if (payload.approved) {
-          setDelegatedControl(true);
-          delegatedRef.current = true;
-          takeLeadership();
-        } else {
-          setDelegatedControl(false);
-          delegatedRef.current = false;
-        }
-      }
-    });
-
-    controlChannelRef.current = channel;
-
-    return () => {
-      channel?.unsubscribe?.();
-      controlChannelRef.current = null;
-      setIncomingRequests([]);
-      setRequestPending(false);
-      setDelegatedControl(false);
-    };
-  }, [roomId, safeUser.id, isPrivileged, takeLeadership]);
-
-  // =========================================================================
-  // 1quater. LIVE ROOM STATE (rooms table) - faster than polling for followers
-  // =========================================================================
-  useEffect(() => {
-    if (!roomId) return;
-
-    const off = RealtimeService.onUpdate({
-      table: 'rooms',
-      cb: (payload) => {
-        const row = payload?.new;
-        if (!row || String(row.room_id) !== String(roomId)) return;
-
-        // Update video and play state for non-initiators
-        if (row.current_video_id !== undefined && row.current_video_id !== stateRef.current.videoId) {
-          setSyncVideoId(row.current_video_id);
-          stateRef.current.videoId = row.current_video_id;
-          localProgressRef.current = 0;
-          setSeekTimestamp(0);
-        }
-
-        if (row.is_playing !== undefined && row.is_playing !== stateRef.current.isPlaying) {
-          setSyncIsPlaying(row.is_playing);
-          stateRef.current.isPlaying = row.is_playing;
-        }
-
-        setConnectionStatus('connected');
-      },
-    });
-
-    return () => off?.();
-  }, [roomId]);
-
-  useEffect(() => {
-    return () => {
-      presenceUnsubRef.current?.();
-    };
-  }, []);
-
-  // =========================================================================
-  // 2. PUBLIC METHODS
+  // 2. PUBLIC METHODS (Sécurisées par canControl)
   // =========================================================================
 
   const triggerPlay = useCallback(async (timestamp = null) => {
-    const allowed = await ensureLeadership();
-    if (!allowed) {
-      console.warn('[useVideoSync] triggerPlay ignored: no control');
-      return;
-    }
-    console.log(`👆 User ${safeUser.id} Triggered: PLAY`);
+    if (!canControl) return; // SÉCURITÉ
 
     setSyncIsPlaying(true);
     stateRef.current.isPlaying = true;
@@ -333,21 +101,14 @@ export function useVideoSync({ roomId, user, userRole }) {
         isPlaying: true,
         ...(syncVideoId && { currentVideoId: syncVideoId })
       });
-      console.log(`[DB UPDATE] Playback state updated to PLAY`);
     } catch (e) {
       console.error(`[DB UPDATE] Failed:`, e);
-      setSyncIsPlaying(false);
-      stateRef.current.isPlaying = false;
+      setSyncIsPlaying(false); // Rollback local en cas d'erreur
     }
-  }, [roomId, syncVideoId, safeUser.id]);
+  }, [roomId, syncVideoId, canControl]);
 
   const triggerPause = useCallback(async () => {
-    const allowed = await ensureLeadership();
-    if (!allowed) {
-      console.warn('[useVideoSync] triggerPause ignored: no control');
-      return;
-    }
-    console.log(`👆 User ${safeUser.id} Triggered: PAUSE`);
+    if (!canControl) return; // SÉCURITÉ
 
     setSyncIsPlaying(false);
     stateRef.current.isPlaying = false;
@@ -356,32 +117,23 @@ export function useVideoSync({ roomId, user, userRole }) {
 
     try {
       await RoomService.updatePlaybackState(roomId, { isPlaying: false });
-      console.log(`[DB UPDATE] Playback state updated to PAUSE`);
     } catch (e) {
       console.error(`[DB UPDATE] Failed:`, e);
       setSyncIsPlaying(true);
-      stateRef.current.isPlaying = true;
     }
-  }, [roomId, safeUser.id, canControl, ensureLeadership]);
+  }, [roomId, canControl]);
 
   const triggerSeek = useCallback((seconds) => {
-    console.log(`👆 User ${safeUser.id} Triggered: SEEK to ${seconds}`);
-
+    // Le seek local est autorisé pour le confort, mais ne synchro pas la DB si pas admin
     setSeekTimestamp(seconds);
     localProgressRef.current = seconds;
-  }, [safeUser.id]);
+  }, []);
 
-  const changeVideo = useCallback(async (urlOrId) => {
+  const changeVideo = useCallback(async (urlOrId,title = null) => {
+    if (!canControl) return; // SÉCURITÉ
+
     const cleanId = getYouTubeId(urlOrId) || urlOrId;
     if (!cleanId) return;
-
-    const allowed = await ensureLeadership();
-    if (!allowed) {
-      console.warn('[useVideoSync] changeVideo ignored: no control');
-      return;
-    }
-
-    console.log(`👆 User ${safeUser.id} Changing video to: ${cleanId}`);
 
     setSyncVideoId(cleanId);
     stateRef.current.videoId = cleanId;
@@ -397,36 +149,25 @@ export function useVideoSync({ roomId, user, userRole }) {
         currentVideoId: cleanId,
         isPlaying: true
       });
-      console.log(`[DB UPDATE] Video changed to: ${cleanId}`);
+      
+      // Ajout historique
       try {
-        if (lastHistoryVideoRef.current === cleanId) {
-          console.log('[video_history] skip duplicate:', cleanId)
-        } else {
-          lastHistoryVideoRef.current = cleanId
-
-          console.log('[video_history] inserting:', { roomId, cleanId, userId: safeUser.id })
-
+        if (lastHistoryVideoRef.current !== cleanId) {
+          lastHistoryVideoRef.current = cleanId;
           await RoomService.addVideoHistory({
             roomId: Number(roomId),
             youtubeId: cleanId,
             videoUrl: `https://www.youtube.com/watch?v=${cleanId}`,
-            videoTitle: null,
+            videoTitle: title,
             userId: safeUser.id || null,
-          })
-
-          console.log('[video_history] insert OK:', cleanId)
+          });
         }
-      } catch (e) {
-        console.warn('[video_history] insert FAILED:', e)
-      }
+      } catch (e) { console.warn('[history] failed', e); }
+
     } catch (e) {
       console.error(`[DB UPDATE] Failed:`, e);
-      setSyncVideoId(null);
-      stateRef.current.videoId = null;
-      setSyncIsPlaying(false);
-      stateRef.current.isPlaying = false;
     }
-  }, [roomId, safeUser.id, canControl, ensureLeadership]);
+  }, [roomId, safeUser.id, canControl]);
 
   const updateLocalProgress = useCallback((seconds) => {
     localProgressRef.current = seconds;
@@ -442,19 +183,11 @@ export function useVideoSync({ roomId, user, userRole }) {
     changeVideo,
     updateLocalProgress,
     connectionStatus,
-    onlineUsers,
     currentUser: safeUser,
     controlInfo: {
-      canControl,
-      isLeader,
-      currentLeader: leaderName || (computedLeaderId === safeUser.id ? (presenceMetaRef.current?.username || safeUser.email?.split('@')[0]) : null),
-      takeLeadership,
-      releaseLeadership,
-      requirePin: null,
-      requestControl,
-      requestPending,
-      incomingRequests,
-      respondToRequest,
+      canControl, // Sera false pour les membres normaux
+      isManager: userRole === 'manager',
+      isOwner: userRole === 'owner'
     }
   };
 }

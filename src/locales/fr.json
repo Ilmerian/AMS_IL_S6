@@ -234,8 +234,8 @@
     "someone_controlling": "Quelqu'un d'autre contrôle la lecture",
     "request_control": "Demande de contrôle pour gérer la lecture",
     "release_control": "Contrôle de libération",
-    "room.you_are_leader": "Vous contrôlez la lecture",
-    "room.you_can_control":"Vous pouvez contrôler la lecture",    
+    "you_are_leader": "Vous contrôlez la lecture",
+    "you_can_control":"Vous pouvez contrôler la lecture",    
     "private": "Salon privé",
     "public": "Salon public",
     "enterPassword": "Entrez le mot de passe du salon pour rejoindre :",
@@ -257,7 +257,12 @@
     "kicked_title": "Vous avez été expulsé",
     "kicked_message": "Un modérateur vous a retiré de la liste des membres actifs.",
     "user_unbanned": "{{user}} a été débanni",
-    "user_you": "{{name}} (Vous)"
+    "user_you": "{{name}} (Vous)",
+    "read_only_mode" : "Mode spectateur. Devenez manager pour contrôler.",
+    "request_sent" : "Demande envoyée...",
+    "request_manager" : "Demander Manager",
+    "request_rejected" : "Demande refusée par le propriétaire.",
+    "request_accepted" : "Demande acceptée ! Vous êtes Manager."
   },
   "roomCreate": {
     "title": "Créer un salon",

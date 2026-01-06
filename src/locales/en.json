@@ -215,8 +215,8 @@
     "someone_controlling": "Someone else is controlling playback",
     "request_control": "Request control to manage playback",
     "release_control": "Release Control",
-    "room.you_are_leader": "You are controlling playback",
-    "room.you_can_control":"You can control playback",
+    "you_are_leader": "You are controlling the room",
+    "you_can_control":"You can control the room",
     "private": "Private room",
     "public": "Public room",
     "enterPassword": "Enter room password to join:",
@@ -238,7 +238,12 @@
     "kicked_title": "You have been kicked",
     "kicked_message": "A moderator removed you from the active members list.",
     "user_unbanned": "{{user}} has been unbanned",
-    "user_you": "{{name}} (You)"
+    "user_you": "{{name}} (You)",
+    "read_only_mode" : "Spectator mode, become manager to control the room",
+    "request_sent" : "Request sent...",
+    "request_manager" : "Request Manager",
+    "request_rejected" : "Request rejected by the owner",
+    "request_accepted" : "Request accepted ! You are now a Manager of the room."
   },
   "roomCreate": {
     "title": "Create a room",
