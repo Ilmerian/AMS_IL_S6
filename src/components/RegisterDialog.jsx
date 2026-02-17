@@ -125,7 +125,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
       }}
       scroll="paper"
     >
-      <DialogTitle disableTypography sx={{ 
+      <DialogTitle sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
@@ -135,6 +135,7 @@ export default function RegisterDialog({ open, onClose, onSwitchToLogin }) {
       }}>
         <Typography 
           variant={isMobile ? "h5" : "h6"} 
+          component="span"
           sx={{ fontWeight: 600 }}
         >
           {t('auth.create_account_title')}

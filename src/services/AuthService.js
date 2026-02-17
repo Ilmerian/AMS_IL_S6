@@ -3,6 +3,20 @@ import { supabase } from '../lib/supabaseClient'
 import { UserRepository } from '../repositories/UserRepository'
 import { cacheService } from './CacheService';
 
+const debugLogs = import.meta.env?.VITE_DEBUG_LOGS === 'true'
+
+const clearLocalAuth = () => {
+  try {
+    cacheService?.clear?.()
+  } catch (e) {
+    if (debugLogs) console.warn('[AuthService] cache clear failed:', e)
+  }
+
+  try { localStorage.removeItem('supabase.auth.token') } catch (_) {}
+  try { localStorage.removeItem('watchwithme-auth-token') } catch (_) {}
+  try { sessionStorage.removeItem('supabase.auth.token') } catch (_) {}
+}
+
 /**
  * Gestion de l'authentification des utilisateurs
  */
@@ -86,11 +100,11 @@ export const AuthService = {
     const cached = cacheService.getMemory(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < 30000) {
-      console.log('[AuthService] User cache HIT');
+      if (debugLogs) console.log('[AuthService] User cache HIT');
       return cached.data;
     }
 
-    console.log('[AuthService] User cache MISS, fetching...');
+    if (debugLogs) console.log('[AuthService] User cache MISS, fetching...');
     const { data, error } = await supabase.auth.getUser();
     if (error) throw error;
 
@@ -204,17 +218,24 @@ export const AuthService = {
   },
 
   async signOut() {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-    localStorage.removeItem('supabase.auth.token')
-    localStorage.removeItem('watchwithme-auth-token')
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    } catch (e) {
+      if (debugLogs) console.warn('[AuthService] signOut error:', e?.message || e)
+    } finally {
+      clearLocalAuth()
+    }
   },
 
   async signOutAll() {
-    const { error } = await supabase.auth.signOut({ scope: 'global' })
-    if (error) throw error
-
-    localStorage.removeItem('supabase.auth.token')
-    localStorage.removeItem('watchwithme-auth-token')
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'global' })
+      if (error) throw error
+    } catch (e) {
+      if (debugLogs) console.warn('[AuthService] signOutAll error:', e?.message || e)
+    } finally {
+      clearLocalAuth()
+    }
   },
 }

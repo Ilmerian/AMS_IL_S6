@@ -121,7 +121,7 @@ export default function LoginDialog({ open, onClose, onSwitchToRegister }) {
       }}
       scroll="paper"
     >
-      <DialogTitle disableTypography sx={{ 
+      <DialogTitle sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
@@ -131,6 +131,7 @@ export default function LoginDialog({ open, onClose, onSwitchToRegister }) {
       }}>
         <Typography 
           variant={isMobile ? "h5" : "h6"} 
+          component="span"
           sx={{ fontWeight: 600 }}
         >
           {t('auth.loginTitle')}
