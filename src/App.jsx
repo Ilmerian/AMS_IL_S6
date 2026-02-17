@@ -21,6 +21,9 @@ import Room from './pages/Room.jsx'
 import RoomCreate from './pages/RoomCreate.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import UpdatePassword from './pages/UpdatePassword.jsx'
+import RegieLanding from './pages/RegieLanding.jsx'
+import RegieViewer from './pages/RegieViewer.jsx'
+import RegieDirector from './pages/RegieDirector.jsx'
 import { cacheService } from './services/CacheService';
 
 function Protected({ children }) {
@@ -85,6 +88,11 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/rooms" element={<Rooms />} />
                 <Route path="/update-password" element={<UpdatePassword />} />
+                {/* --- NOUVELLES ROUTES REGIE --- */}
+                <Route path="/regie" element={<RegieLanding />} />
+                <Route path="/regie/viewer" element={<RegieViewer />} />
+                <Route path="/regie/director" element={<Protected><RegieDirector /></Protected>} />
+                {/* ------------------------------ */}
                 <Route
                   path="/rooms/new"
                   element={

@@ -345,6 +345,7 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             <NavItem to="/">{t('nav.home')}</NavItem>
             <NavItem to="/rooms">{t('nav.rooms')}</NavItem>
             {user && <NavItem to="/rooms/new">{t('nav.new')}</NavItem>}
+            {user && <NavItem to="/regie">Régie</NavItem>}
           </Stack>
 
           {/* Right Controls */}
