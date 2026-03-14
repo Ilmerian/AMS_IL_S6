@@ -14,6 +14,8 @@ export class Room {
     ownerName,
     ownerAvatar,
     isPrivate,
+    //
+    isRegie,
     position,
     createdAt,
     archivedAt,
@@ -27,6 +29,8 @@ export class Room {
     this.ownerName = ownerName || null;
     this.ownerAvatar = ownerAvatar || null;
     this.isPrivate = isPrivate ?? false;
+    //
+    this.isRegie = isRegie ?? false;
     this.position = position ?? 0;
     this.createdAt = createdAt || null;
     this.archivedAt = archivedAt || null;
@@ -44,6 +48,8 @@ export class Room {
       ownerName: r.users?.username || r.owner_name,
       ownerAvatar: r.users?.avatar_url || r.owner_avatar,
       isPrivate: r.is_private,
+      //
+      isRegie: r.is_regie,
       position: r.position,
       createdAt: r.created_at,
       archivedAt: r.archived_at,

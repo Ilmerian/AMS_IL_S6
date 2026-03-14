@@ -55,6 +55,8 @@ export const RoomRepository = {
       .from('rooms')
       .select('room_id, name, owner_id, password, is_private')
       .eq('is_private', false)
+      //
+      .eq('is_regie', false)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
 
@@ -151,6 +153,26 @@ export const RoomRepository = {
     };
   },
 
+  //
+  async listRegies() {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('is_regie', true)  // Filtre les régies
+      .is('archived_at', null)
+
+    if (error) {
+      console.error('RoomRepository.listRegies error:', error)
+      throw error
+    }
+
+    return data.map(r => ({
+      id: r.room_id,
+      name: r.name,
+      ownerId: r.owner_id
+    }))
+  },
+
   async create({ name, password }) {
     const { data, error: authError } = await supabase.auth.getUser();
     if (authError) throw authError;
@@ -183,6 +205,7 @@ export const RoomRepository = {
       name: cleanName,
       password: password || null,
       owner_id: user?.id || null,
+      is_regie: true,
     };
 
     const { data: row, error } = await supabase

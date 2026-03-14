@@ -10,8 +10,10 @@ import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid';
 import SendIcon from '@mui/icons-material/Send';
 import Section from '../ui/Section';
+import { useParams } from "react-router-dom";
 
 export default function RegieDirector() {
+    const { roomId } = useParams();
     const [phase, setPhase] = useState('setup');
     const [playlist, setPlaylist] = useState([]);
     const [inputUrl, setInputUrl] = useState('');
@@ -27,7 +29,7 @@ export default function RegieDirector() {
                 const { data, error } = await supabase
                     .from('regie_state')
                     .select('*')
-                    .eq('id', 1)
+                    .eq('room_id', roomId)
                     .single();
 
                 if (error && error.code !== 'PGRST116') throw error;
@@ -57,7 +59,8 @@ export default function RegieDirector() {
         if (!videoId) return;
 
         const payload = {
-            id: 1,
+            //
+            room_id: roomId,
             video_id: videoId,
             video_cursor: overrides.video_cursor ?? progressRefs.current[videoId] ?? 0,
             is_playing: overrides.is_playing ?? playingRefs.current[videoId] ?? false,
@@ -67,7 +70,8 @@ export default function RegieDirector() {
         try {
             const { error } = await supabase
                 .from('regie_state')
-                .upsert(payload);
+                //
+                .upsert(payload, { onConflict: 'room_id' })
 
             if (error) throw error;
         } catch (e) {

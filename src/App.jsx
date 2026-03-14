@@ -25,6 +25,8 @@ import RegieLanding from './pages/RegieLanding.jsx'
 import RegieViewer from './pages/RegieViewer.jsx'
 import RegieDirector from './pages/RegieDirector.jsx'
 import { cacheService } from './services/CacheService';
+import Regies from './pages/Regies.jsx'
+import RegieCreate from './pages/RegieCreate.jsx'
 
 function Protected({ children }) {
   const { user, loading } = useAuth()
@@ -89,9 +91,27 @@ export default function App() {
                 <Route path="/rooms" element={<Rooms />} />
                 <Route path="/update-password" element={<UpdatePassword />} />
                 {/* --- NOUVELLES ROUTES REGIE --- */}
-                <Route path="/regie" element={<RegieLanding />} />
-                <Route path="/regie/viewer" element={<RegieViewer />} />
-                <Route path="/regie/director" element={<Protected><RegieDirector /></Protected>} />
+                <Route path="/regie" element={<Regies />} />
+                <Route path="/regies" element={<Regies />} />
+                <Route
+                  path="/regie/create"
+                  element={
+                    <Protected>
+                      <RegieCreate />
+                    </Protected>
+                  }
+                />
+
+                <Route
+                  path="/regie/:roomId/director"
+                  element={
+                    <Protected>
+                      <RegieDirector />
+                    </Protected>
+                  }
+                />
+
+                <Route path="/regie/:roomId/viewer" element={<RegieViewer />} />
                 {/* ------------------------------ */}
                 <Route
                   path="/rooms/new"

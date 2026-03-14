@@ -57,9 +57,31 @@ export const RoomService = {
   setPrivate: (roomId, isPrivate) => RoomRepository.setPrivate(roomId, isPrivate),
   pushVideo: (roomId, videoId) => RoomRepository.pushVideo(roomId, videoId),
 
+  //
+  async listRegies() {
+
+    const { data, error } = await supabase
+      .from("rooms")
+      .select("*")
+      .eq("is_regie", true)
+      .is("archived_at", null)
+
+    if (error) {
+      console.error("RoomService.listRegies error:", error)
+      throw error
+    }
+
+    return data.map(r => ({
+      id: r.room_id,
+      name: r.name,
+      ownerId: r.owner_id
+    }))
+  },
+
   // ... (Assurez-vous de garder le reste de vos fonctions comme create, join, etc.)
-  async create({ name, password }) {
-    const room = await RoomRepository.create({ name, password });
+  //
+  async create({ name, password, is_regie}) {
+    const room = await RoomRepository.create({ name, password, is_regie});
     try {
       const { data, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
@@ -76,6 +98,24 @@ export const RoomService = {
       console.warn('[RoomService.create] add owner as member failed:', e?.message || e);
     }
     return room;
+  },
+
+  //
+  async isManager(roomId) {
+
+    const { data: userData } = await supabase.auth.getUser()
+    const user = userData?.user
+
+    if (!user) return false
+
+    const { data } = await supabase
+      .from("roles")
+      .select("is_manager")
+      .eq("room_id", roomId)
+      .eq("user_id", user.id)
+      .single()
+
+    return data?.is_manager === true
   },
 
   remove: (id) => RoomRepository.remove(id),

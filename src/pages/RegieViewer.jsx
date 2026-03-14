@@ -3,8 +3,14 @@ import { supabase } from '../lib/supabaseClient';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+//
+import { useParams } from "react-router-dom";
 
 export default function RegieViewer() {
+
+    //
+    const { roomId } = useParams();
+
     const [state, setState] = useState({
         videoId: null,
         seekTo: 0,
@@ -44,7 +50,8 @@ export default function RegieViewer() {
                 const { data, error } = await supabase
                     .from('regie_state')
                     .select('*')
-                    .eq('id', 1)
+                    // .eq('id', 1)
+                    .eq('room_id', roomId)
                     .single();
 
                 if (error) throw error;
@@ -64,7 +71,8 @@ export default function RegieViewer() {
                     event: 'UPDATE',
                     schema: 'public',
                     table: 'regie_state',
-                    filter: 'id=eq.1'
+                    // filter: 'id=eq.1'
+                    filter: `room_id=eq.${roomId}`
                 },
                 (payload) => {
                     applyRegieState(payload.new);
