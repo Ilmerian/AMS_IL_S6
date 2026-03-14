@@ -31,7 +31,7 @@ export default function RoomCreate() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const navigate = useNavigate()
-  
+
   const [name, setName] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [password, setPassword] = useState('')
@@ -48,8 +48,7 @@ export default function RoomCreate() {
   const onSubmit = async (e) => {
     e.preventDefault()
     showMessage('')
-    
-    // Validation
+
     if (!name.trim()) {
       showMessage(t('roomCreate.error_name_required') || 'Room name is required', 'error')
       return
@@ -82,19 +81,16 @@ export default function RoomCreate() {
         name: cleanName,
         password: isPrivate ? password.trim() : null,
       })
-      
-      // Success message before navigation
+
       showMessage(t('roomCreate.success') || 'Room created successfully!', 'success')
-      
-      // Slight delay for user to see success message
+
       setTimeout(() => {
         navigate(`/rooms/${room.id}`, { replace: true })
       }, 1000)
-      
     } catch (err) {
       console.error('Room creation error:', err)
 
-      const code = err?.code || err?.message;
+      const code = err?.code || err?.message
 
       if (code === 'ROOM_NAME_EXISTS') {
         showMessage(t('roomCreate.error_name_exists') || 'This room name already exists', 'error')
@@ -118,9 +114,9 @@ export default function RoomCreate() {
   }
 
   return (
-    <Container 
-      maxWidth="sm" 
-      sx={{ 
+    <Container
+      maxWidth="sm"
+      sx={{
         py: { xs: 3, sm: 6 },
         minHeight: '80vh',
         display: 'flex',
@@ -128,15 +124,17 @@ export default function RoomCreate() {
       }}
     >
       <Box sx={{ width: '100%' }}>
-        <Card sx={{ 
-          p: { xs: 3, sm: 4 },
-          backdropFilter: 'saturate(140%) blur(8px)',
-          border: '1px solid rgba(255,255,255,0.2)'
-        }}>
-          <Typography 
-            variant={isMobile ? "h5" : "h4"} 
+        <Card
+          sx={{
+            p: { xs: 3, sm: 4 },
+            backdropFilter: 'saturate(140%) blur(8px)',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}
+        >
+          <Typography
+            variant={isMobile ? 'h5' : 'h4'}
             gutterBottom
-            sx={{ 
+            sx={{
               fontWeight: 700,
               textAlign: 'center',
               mb: 2,
@@ -145,10 +143,10 @@ export default function RoomCreate() {
           >
             {t('roomCreate.title') || 'Create New Room'}
           </Typography>
-          
-          <Typography 
-            sx={{ 
-              opacity: 0.8, 
+
+          <Typography
+            sx={{
+              opacity: 0.8,
               mb: 4,
               textAlign: 'center',
               fontSize: { xs: '0.9rem', sm: '1rem' }
@@ -159,7 +157,6 @@ export default function RoomCreate() {
 
           <Box component="form" onSubmit={onSubmit} onKeyPress={handleKeyPress}>
             <Stack spacing={3}>
-              {/* Room Name Field */}
               <TextField
                 label={t('roomCreate.name_label') || 'Room Name'}
                 placeholder={t('roomCreate.name_placeholder') || 'Enter room name'}
@@ -167,7 +164,7 @@ export default function RoomCreate() {
                 onChange={(e) => setName(e.target.value)}
                 required
                 fullWidth
-                size={isMobile ? "small" : "medium"}
+                size={isMobile ? 'small' : 'medium'}
                 disabled={loading}
                 InputProps={{
                   sx: {
@@ -182,14 +179,15 @@ export default function RoomCreate() {
                 helperText={t('roomCreate.name_helper') || 'Choose a descriptive name for your room'}
               />
 
-              {/* Privacy Toggle */}
-              <Box sx={{ 
-                p: 2, 
-                borderRadius: 2, 
-                bgcolor: 'rgba(255,255,255,0.05)',
-                border: `1px solid ${isPrivate ? 'rgba(155, 92, 255, 0.3)' : 'rgba(255,255,255,0.1)'}`,
-                transition: 'all 0.3s ease'
-              }}>
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${isPrivate ? 'rgba(155, 92, 255, 0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  transition: 'all 0.3s ease'
+                }}
+              >
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -198,7 +196,7 @@ export default function RoomCreate() {
                       disabled={loading}
                       icon={<LockOpenIcon />}
                       checkedIcon={<LockIcon />}
-                      sx={{ 
+                      sx={{
                         color: isPrivate ? '#9b5cff' : 'rgba(255,255,255,0.7)',
                         '&.Mui-checked': {
                           color: '#9b5cff'
@@ -207,8 +205,8 @@ export default function RoomCreate() {
                     />
                   }
                   label={
-                    <Typography 
-                      sx={{ 
+                    <Typography
+                      sx={{
                         fontWeight: isPrivate ? 600 : 400,
                         color: isPrivate ? '#9b5cff' : 'inherit',
                         fontSize: { xs: '0.9rem', sm: '1rem' }
@@ -218,12 +216,12 @@ export default function RoomCreate() {
                     </Typography>
                   }
                 />
-                
+
                 {isPrivate && (
                   <Box sx={{ mt: 2 }}>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
+                    <Typography
+                      variant="body2"
+                      sx={{
                         opacity: 0.7,
                         mb: 1.5,
                         fontSize: { xs: '0.8rem', sm: '0.9rem' }
@@ -231,7 +229,7 @@ export default function RoomCreate() {
                     >
                       {t('roomCreate.privacy_description') || 'Set a password to control who can join your room.'}
                     </Typography>
-                    
+
                     <TextField
                       label={t('roomCreate.password_label') || 'Room Password'}
                       placeholder={t('roomCreate.password_placeholder') || 'Enter password (min. 3 characters)'}
@@ -239,7 +237,7 @@ export default function RoomCreate() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       fullWidth
-                      size={isMobile ? "small" : "medium"}
+                      size={isMobile ? 'small' : 'medium'}
                       disabled={loading}
                       InputProps={{
                         sx: {
@@ -256,7 +254,7 @@ export default function RoomCreate() {
                               onClick={() => setShowPassword(!showPassword)}
                               edge="end"
                               sx={{ color: 'rgba(255,255,255,0.7)' }}
-                              size={isMobile ? "small" : "medium"}
+                              size={isMobile ? 'small' : 'medium'}
                               disabled={loading}
                             >
                               {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -271,17 +269,15 @@ export default function RoomCreate() {
                       }}
                       helperText={t('roomCreate.password_helper') || 'Share this password with invited friends'}
                     />
-                    
-                    {/* Password strength for longer passwords */}
+
                     {password.length >= 6 && (
                       <PasswordStrength value={password} />
                     )}
-                    
-                    {/* Password tips for mobile */}
+
                     {isMobile && password.length > 0 && (
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
+                      <Typography
+                        variant="caption"
+                        sx={{
                           opacity: 0.6,
                           fontSize: '0.7rem',
                           mt: 1,
@@ -293,11 +289,11 @@ export default function RoomCreate() {
                     )}
                   </Box>
                 )}
-                
+
                 {!isPrivate && (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       opacity: 0.7,
                       mt: 1,
                       fontSize: { xs: '0.8rem', sm: '0.9rem' }
@@ -308,12 +304,11 @@ export default function RoomCreate() {
                 )}
               </Box>
 
-              {/* Message Display */}
               {msg && (
-                <Alert 
-                  severity={msgType} 
+                <Alert
+                  severity={msgType}
                   onClose={() => setMsg('')}
-                  sx={{ 
+                  sx={{
                     '& .MuiAlert-message': {
                       fontSize: { xs: '0.85rem', sm: '0.9rem' }
                     }
@@ -323,9 +318,8 @@ export default function RoomCreate() {
                 </Alert>
               )}
 
-              {/* Action Buttons */}
-              <Stack 
-                direction={{ xs: 'column', sm: 'row' }} 
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
                 spacing={2}
                 sx={{ mt: 2 }}
               >
@@ -335,46 +329,46 @@ export default function RoomCreate() {
                   color="primary"
                   disabled={loading}
                   fullWidth={isMobile}
-                  size={isMobile ? "medium" : "large"}
+                  size={isMobile ? 'medium' : 'large'}
                   sx={{
                     bgcolor: '#9b5cff',
                     ':hover': { bgcolor: '#7c3aed' },
                     fontWeight: 600,
                     py: { xs: 1.5, sm: 1.75 }
                   }}
-                  startIcon={loading && <CircularProgress size={20} color="inherit" />}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : undefined}
                 >
-                  {loading 
-                    ? (t('roomCreate.creating') || 'Creating...') 
-                    : (t('roomCreate.create') || 'Create Room')
-                  }
+                  {loading
+                    ? (t('roomCreate.creating') || 'Creating...')
+                    : (t('roomCreate.create') || 'Create Room')}
                 </Button>
-                
-                <Button 
-                  component={RouterLink} 
-                  to="/rooms" 
+
+                <Button
+                  component={RouterLink}
+                  to="/rooms"
                   variant="outlined"
                   fullWidth={isMobile}
-                  size={isMobile ? "medium" : "large"}
+                  size={isMobile ? 'medium' : 'large'}
                   disabled={loading}
                 >
                   {t('roomCreate.cancel') || 'Cancel'}
                 </Button>
               </Stack>
 
-              {/* Mobile Tips */}
               {isMobile && (
-                <Box sx={{ 
-                  mt: 2, 
-                  p: 2, 
-                  borderRadius: 2, 
-                  bgcolor: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}>
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
                   <Stack spacing={1}>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+                    <Typography
+                      variant="caption"
+                      sx={{
                         opacity: 0.7,
                         fontSize: '0.75rem',
                         display: 'flex',
@@ -385,10 +379,10 @@ export default function RoomCreate() {
                       <span style={{ fontSize: '1rem' }}>👥</span>
                       {t('roomCreate.tip_public') || 'Public rooms appear in the rooms list for everyone'}
                     </Typography>
-                    
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+
+                    <Typography
+                      variant="caption"
+                      sx={{
                         opacity: 0.7,
                         fontSize: '0.75rem',
                         display: 'flex',
@@ -399,10 +393,10 @@ export default function RoomCreate() {
                       <span style={{ fontSize: '1rem' }}>🔒</span>
                       {t('roomCreate.tip_private') || 'Private rooms require a password to join'}
                     </Typography>
-                    
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+
+                    <Typography
+                      variant="caption"
+                      sx={{
                         opacity: 0.7,
                         fontSize: '0.75rem',
                         display: 'flex',
@@ -417,19 +411,20 @@ export default function RoomCreate() {
                 </Box>
               )}
 
-              {/* Success Redirect Notice */}
               {msgType === 'success' && (
-                <Box sx={{ 
-                  mt: 2, 
-                  p: 2, 
-                  borderRadius: 1, 
-                  bgcolor: 'rgba(76, 175, 80, 0.1)',
-                  border: '1px solid rgba(76, 175, 80, 0.3)',
-                  textAlign: 'center'
-                }}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    borderRadius: 1,
+                    bgcolor: 'rgba(76, 175, 80, 0.1)',
+                    border: '1px solid rgba(76, 175, 80, 0.3)',
+                    textAlign: 'center'
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
                       opacity: 0.9,
                       fontSize: '0.8rem'
                     }}
@@ -442,12 +437,11 @@ export default function RoomCreate() {
           </Box>
         </Card>
 
-        {/* Mobile Footer Navigation */}
         {isMobile && (
           <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
+            <Typography
+              variant="caption"
+              sx={{
                 opacity: 0.6,
                 fontSize: '0.75rem'
               }}

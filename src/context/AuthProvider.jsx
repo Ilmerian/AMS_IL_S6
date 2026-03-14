@@ -9,11 +9,14 @@ import { logMetric } from "../utils/metrics";
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const userIdRef = useRef(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const userIdRef = useRef(null)
   const lastMetricUserRef = useRef(null)
+  const refreshInFlightRef = useRef(false)
+  const fetchedProfileForRef = useRef(null)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
     const uid = user?.id
@@ -23,123 +26,156 @@ export default function AuthProvider({ children }) {
     logMetric("user_connected", uid)
   }, [user?.id])
 
-  // Charge le profil utilisateur depuis la DB
-  const fetchProfile = useCallback(async (uid) => {
+  const fetchProfile = useCallback(async (uid, { force = false } = {}) => {
     if (!uid) {
-      setProfile(null);
-      return;
+      if (mountedRef.current) setProfile(null)
+      fetchedProfileForRef.current = null
+      return null
     }
 
-    const cacheKey = `user_profile_${uid}`;
-    const cached = cacheService.getMemory(cacheKey);
+    if (!force && fetchedProfileForRef.current === uid) {
+      return profile
+    }
 
-    if (cached && Date.now() - cached.timestamp < 60000) {
-      console.log(`[AuthProvider] Profile cache HIT for ${uid}`);
-      setProfile(cached.data);
-      return;
+    const cacheKey = `user_profile_${uid}`
+    const cached = cacheService.getMemory(cacheKey)
+
+    if (!force && cached && Date.now() - cached.timestamp < 60000) {
+      console.log(`[AuthProvider] Profile cache HIT for ${uid}`)
+      if (mountedRef.current) setProfile(cached.data)
+      fetchedProfileForRef.current = uid
+      return cached.data
     }
 
     try {
-      console.log(`[AuthProvider] Profile cache MISS for ${uid}, fetching...`);
-      const p = await UserRepository.getById(uid);
-      setProfile(p);
+      console.log(`[AuthProvider] Profile cache MISS for ${uid}, fetching...`)
+      const p = await UserRepository.getById(uid)
+      if (mountedRef.current) setProfile(p)
+      fetchedProfileForRef.current = uid
+      return p
     } catch (e) {
-      console.warn('[AuthProvider] fetchProfile failed:', e);
+      if (e?.name !== 'AbortError') {
+        console.warn('[AuthProvider] fetchProfile failed:', e)
+      }
+      return null
     }
-  }, []);
+  }, [profile])
 
-  // Fonction pour rafraîchir la session quand l'utilisateur revient sur l'onglet
-  const refreshSession = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.auth.getSession()
-      const sessionUser = (!error && data?.session?.user) ? data.session.user : null
-
-      if (!sessionUser) {
+  const applySessionUser = useCallback(async (sessionUser, { ensureProfile = false } = {}) => {
+    if (!sessionUser) {
+      userIdRef.current = null
+      fetchedProfileForRef.current = null
+      if (mountedRef.current) {
         setUser(null)
         setProfile(null)
-        userIdRef.current = null
-        return
       }
-
-      if (sessionUser.id !== userIdRef.current) {
-        userIdRef.current = sessionUser.id
-        setUser(sessionUser)
-        fetchProfile(sessionUser.id)
-      }
-    } catch (error) {
-      console.warn('[AuthProvider] refreshSession error:', error)
+      return
     }
+
+    userIdRef.current = sessionUser.id
+    if (mountedRef.current) setUser(sessionUser)
+
+    if (ensureProfile) {
+      try {
+        await AuthService.ensureProfile()
+      } catch (e) {
+        if (e?.name !== 'AbortError') {
+          console.warn('[AuthProvider] ensureProfile failed:', e)
+        }
+      }
+    }
+
+    await fetchProfile(sessionUser.id)
   }, [fetchProfile])
 
-  useEffect(() => {
-    userIdRef.current = user?.id || null
-  }, [user?.id])
+  const refreshSession = useCallback(async () => {
+    if (refreshInFlightRef.current) return
+    refreshInFlightRef.current = true
+
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) throw error
+
+      const sessionUser = data?.session?.user || null
+      await applySessionUser(sessionUser)
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        console.warn('[AuthProvider] refreshSession error:', error)
+      }
+    } finally {
+      refreshInFlightRef.current = false
+    }
+  }, [applySessionUser])
 
   useEffect(() => {
-    let mounted = true
+    mountedRef.current = true
 
-    // 1. Initialisation
     const init = async () => {
+      if (refreshInFlightRef.current) return
+      refreshInFlightRef.current = true
+
       try {
         const { data: { session } } = await supabase.auth.getSession()
-
-        if (session?.user) {
-          if (mounted) setUser(session.user)
-          try {
-            await AuthService.ensureProfile()
-          } catch (e) {
-            console.warn('[AuthProvider] ensureProfile failed:', e)
-          }
-          if (mounted) await fetchProfile(session.user.id)
-        }
+        await applySessionUser(session?.user || null, { ensureProfile: true })
       } catch (e) {
-        if (e.name !== 'AbortError') {
+        if (e?.name !== 'AbortError') {
           console.error('Auth init error:', e)
         }
       } finally {
-        if (mounted) setLoading(false)
+        refreshInFlightRef.current = false
+        if (mountedRef.current) setLoading(false)
       }
     }
 
     init()
 
-    // 2. Écoute des changements d'auth (Login, Logout, Auto-refresh token)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
+      if (!mountedRef.current) return
 
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-        if (cacheService) {
-          cacheService.invalidate(`room_data_`);
-          cacheService.invalidate(`rooms_list_public_`);
+      try {
+        if (event === 'SIGNED_OUT') {
+          userIdRef.current = null
+          fetchedProfileForRef.current = null
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+
+          cacheService.invalidate('room_data_')
+          cacheService.invalidate('rooms_list_public_')
+          return
         }
-      } else if (session?.user) {
-        setUser(session.user)
-        // On ne recharge le profil que s'il n'est pas déjà chargé ou si c'est un nouvel user
-        if (!profile || profile.id !== session.user.id) {
-          await fetchProfile(session.user.id)
+
+        if (session?.user) {
+          await applySessionUser(session.user, { ensureProfile: false })
+          if (mountedRef.current) setLoading(false)
         }
-        setLoading(false)
+      } catch (e) {
+        if (e?.name !== 'AbortError') {
+          console.warn('[AuthProvider] onAuthStateChange failed:', e)
+        }
       }
     })
 
-    // 3. REVALIDATION AUTO AU RETOUR SUR L'ONGLET
     const handleFocus = () => {
       refreshSession()
     }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSession()
+      }
+    }
+
     window.addEventListener('focus', handleFocus)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') refreshSession()
-    })
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      mounted = false
+      mountedRef.current = false
       subscription.unsubscribe()
       window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
+  }, [applySessionUser, refreshSession])
 
   const value = useMemo(() => ({ user, profile, loading }), [user, profile, loading])
 
