@@ -59,7 +59,7 @@ import PersonOffIcon from '@mui/icons-material/PersonOff';
 import PeopleIcon from '@mui/icons-material/People';
 import HistoryIcon from '@mui/icons-material/History';
 import CircularProgress from '@mui/material/CircularProgress';
-import MovieIcon from '@mui/icons-material/Movie'; // Icône par défaut pour l'historique
+import MovieIcon from '@mui/icons-material/Movie';
 
 const ROLES = {
     OWNER: 'owner',
@@ -94,7 +94,7 @@ function ControlStatus({ controlInfo, onRequestManager, requestStatus }) {
             <Typography variant="body2" sx={{ flex: 1, opacity: 0.8 }}>
                 {t('room.read_only_mode', 'Mode spectateur. Devenez manager pour contrôler.')}
             </Typography>
-            
+
             <Button
                 size="small"
                 variant="outlined"
@@ -103,8 +103,8 @@ function ControlStatus({ controlInfo, onRequestManager, requestStatus }) {
                 onClick={onRequestManager}
                 startIcon={requestStatus === 'pending' ? <CircularProgress size={16} /> : <GavelIcon />}
             >
-                {requestStatus === 'pending' 
-                    ? t('room.request_sent', 'Demande envoyée...') 
+                {requestStatus === 'pending'
+                    ? t('room.request_sent', 'Demande envoyée...')
                     : t('room.request_manager', 'Demander Manager')}
             </Button>
         </Box>
@@ -137,8 +137,7 @@ export default function Room() {
     const { roomId } = useParams();
     const { user, loading: authLoading } = useAuth();
     const { openLogin } = useOutletContext() || {};
-    
-    // --- Refs et States ---
+
     const hasAutoOpenedRef = useRef(false);
     const [membersLoading, setMembersLoading] = useState(false);
     const [isModerator, setIsModerator] = useState(false);
@@ -150,24 +149,20 @@ export default function Room() {
     const pendingActionRef = useRef(null);
     const pinOkRef = useRef(false);
 
-    // States Manager Request
     const [managerRequestStatus, setManagerRequestStatus] = useState('idle');
     const [broadcastChannel, setBroadcastChannel] = useState(null);
     const [pendingRequestUser, setPendingRequestUser] = useState(null);
 
     useEffect(() => { pinOkRef.current = pinOk; }, [pinOk]);
-    
-    // UI States
+
     const [activeTab, setActiveTab] = useState('playlist');
     const [history, setHistory] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [pw, setPw] = useState('');
     const [inviteOpen, setInviteOpen] = useState(false);
 
-    // Hooks Room Data
     const { room, needPw, checked, error: err, loading: roomLoading, refresh, verifyPassword } = useRoom(roomId);
-    
-    // Hooks Moderation
+
     const [members, setMembers] = useState([]);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [userRole, setUserRole] = useState(null);
@@ -179,23 +174,45 @@ export default function Room() {
     const [selectedMember, setSelectedMember] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    // Video Sync Hook
     const {
-        syncVideoId, syncIsPlaying, seekTimestamp, triggerPlay, triggerPause, triggerSeek, 
-        changeVideo, updateLocalProgress, connectionStatus, controlInfo
+        syncVideoId,
+        syncIsPlaying,
+        seekTimestamp,
+        triggerPlay,
+        triggerPause,
+        triggerSeek,
+        changeVideo,
+        updateLocalProgress,
+        connectionStatus,
+        isHydrated,
+        controlInfo
     } = useVideoSync({ roomId, user, userRole });
-    
+
     const canControlVideo = controlInfo.canControl;
 
-    // Playlist Hook
     const {
-        playlistId, embedUrl, currentVideoId, playlistItems, addVideoByRawUrl, 
-        playNextVideo, getNextVideo, getPrevVideo, handleVideoError
+        playlistId,
+        embedUrl,
+        currentVideoId,
+        playlistItems,
+        playbackPositionSec,
+        addVideoByRawUrl,
+        playNextVideo,
+        getNextVideo,
+        getPrevVideo,
+        handleVideoError
     } = usePlaylistForRoom({
-        room, roomId, accessGranted: !needPw || checked, canControlVideo
+        room,
+        roomId,
+        accessGranted: !needPw || checked,
+        canControlVideo
     });
 
-    // --- BROADCAST ---
+    const effectiveSeekTimestamp =
+        seekTimestamp !== null && seekTimestamp !== undefined
+            ? seekTimestamp
+            : (playbackPositionSec > 0 ? playbackPositionSec : null);
+
     useEffect(() => {
         if (!roomId || !user) return;
         const channel = RealtimeService.joinBroadcast(roomId, (event) => {
@@ -217,7 +234,7 @@ export default function Room() {
         if (!broadcastChannel) return;
         setManagerRequestStatus('pending');
         await broadcastChannel.send('REQUEST_MANAGER', { userId: user.id, username: user.user_metadata?.username || user.email });
-        setTimeout(() => setManagerRequestStatus('idle'), 30000); 
+        setTimeout(() => setManagerRequestStatus('idle'), 30000);
     };
 
     const handleApproveRequest = async () => {
@@ -227,7 +244,9 @@ export default function Room() {
             setPendingRequestUser(null);
             broadcastChannel.send('RESPONSE_MANAGER', { targetId: pendingRequestUser.id, approved: true });
             setSnackbar({ open: true, message: `Vous avez promu ${pendingRequestUser.name}`, severity: 'success' });
-        } catch (e) { setSnackbar({ open: true, message: "Erreur", severity: 'error' }); }
+        } catch (e) {
+            setSnackbar({ open: true, message: 'Erreur', severity: 'error' });
+        }
     };
 
     const handleRejectRequest = () => {
@@ -236,7 +255,6 @@ export default function Room() {
         setPendingRequestUser(null);
     };
 
-    // --- Logique Existant ---
     useEffect(() => {
         if (!authLoading && !user && !hasAutoOpenedRef.current && openLogin) {
             setTimeout(() => openLogin(), 500);
@@ -266,7 +284,7 @@ export default function Room() {
         try {
             const [bannedStatus, initialMembers] = await Promise.all([
                 BanRepository.isUserBanned(roomId, user.id),
-                RoleService.listMembers(roomId, forceRefresh) 
+                RoleService.listMembers(roomId, forceRefresh)
             ]);
             setIsBanned(bannedStatus);
             if (bannedStatus) { setMembersLoading(false); return; }
@@ -279,7 +297,7 @@ export default function Room() {
             }
             setUserRole(role);
         } catch (error) { console.error(error); } finally { setMembersLoading(false); }
-    }, [roomId, user, room?.ownerId]);
+    }, [roomId, user, room?.ownerId, userRole]);
 
     const allMembers = useMemo(() => {
         const map = new Map();
@@ -302,7 +320,7 @@ export default function Room() {
     }, [user, room, userRole, members]);
 
     const closePinDialog = useCallback(() => { setPinOpen(false); setPinValue(''); setPinError(''); pendingActionRef.current = null; }, []);
-    
+
     const requirePin = useCallback((actionFn) => {
         if (typeof actionFn !== 'function') return;
         if (!room?.parental_pin_enabled) return actionFn();
@@ -338,10 +356,8 @@ export default function Room() {
         } catch (e) { setPinError(e.message); }
     };
 
-    // AJOUT : argument 'title'
     const handleVideoSelect = async (url, title = null) => {
         const videoId = getYouTubeId(url);
-        // On passe le titre à changeVideo
         if (videoId) requirePin(() => canControlVideo && changeVideo(`https://www.youtube.com/watch?v=${videoId}`, title));
     };
 
@@ -410,6 +426,18 @@ export default function Room() {
     if (!room && err) return <Section><Typography color="error">{t('room.error_generic')}</Typography><Button onClick={refresh}>{t('room.reload')}</Button></Section>;
     if (!room) return <Section><Typography>{t('room.not_found')}</Typography></Section>;
     if (isBanned) return <Section><Typography color="error">{t('room.banned_message')}</Typography></Section>;
+
+    if (room && (!needPw || checked) && connectionStatus === 'connecting' && !isHydrated) {
+        return (
+            <Section>
+                <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <CircularProgress />
+                    <Typography>{t('room.loading')}</Typography>
+                </Box>
+            </Section>
+        );
+    }
+
     if (isKicked) return (
         <Box component={Section} sx={{ p: 4, textAlign: 'center', mt: 4 }}>
             <Typography variant="h4" color="warning.main" gutterBottom sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}><WarningIcon fontSize="large" /> {t('room.kicked_title')}</Typography>
@@ -422,17 +450,18 @@ export default function Room() {
     return (
         <Section>
             {!user && <Box sx={{ mb: 2 }}><GuestUpgradeBanner /></Box>}
-            
+
             {user && (
                 <Box sx={{ mb: 2 }}>
-                    <ControlStatus 
-                        controlInfo={{ ...controlInfo, requirePin }} 
-                        user={user} 
+                    <ControlStatus
+                        controlInfo={{ ...controlInfo, requirePin }}
+                        user={user}
                         onRequestManager={handleRequestManager}
                         requestStatus={managerRequestStatus}
                     />
                 </Box>
             )}
+
             {user && <Box sx={{ mb: 1 }}><ConnectionStatus connectionStatus={connectionStatus} /></Box>}
 
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
@@ -468,7 +497,7 @@ export default function Room() {
                                 onPause={() => requirePin(() => triggerPause())}
                                 onSeek={triggerSeek}
                                 onProgress={updateLocalProgress}
-                                seekToTimestamp={seekTimestamp}
+                                seekToTimestamp={effectiveSeekTimestamp}
                                 onEnded={handleVideoEnded}
                                 onError={handleVideoError}
                             />
@@ -492,8 +521,7 @@ export default function Room() {
                             <Box sx={{ flex: 1, overflowY: activeTab === 'chat' ? 'hidden' : 'auto', p: 1 }}>
                                 {activeTab === 'playlist' && <PlaylistPanel playlistId={playlistId} canEdit={canControlVideo} onAdd={handleAddVideo} onPlay={handleVideoSelect} currentVideoId={syncVideoId || currentVideoId} />}
                                 {activeTab === 'chat' && <Box sx={{ height: '100%', minHeight: 300 }}><ChatBox roomId={roomId} isBanned={isBanned} isModerator={isModerator} /></Box>}
-                                
-                                {/* --- ONGLET HISTORIQUE MODIFIÉ --- */}
+
                                 {activeTab === 'history' && (
                                     <List dense>
                                         {history.length === 0 ? (
@@ -511,8 +539,8 @@ export default function Room() {
                                                                 </Avatar>
                                                             </ListItemAvatar>
                                                         )}
-                                                        <ListItemText 
-                                                            primary={h.video_title || h.video_url} 
+                                                        <ListItemText
+                                                            primary={h.video_title || h.video_url}
                                                             secondary={new Date(h.created_at).toLocaleString()}
                                                             primaryTypographyProps={{ style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
                                                         />
@@ -522,7 +550,6 @@ export default function Room() {
                                         )}
                                     </List>
                                 )}
-                                {/* ------------------------------- */}
 
                                 {activeTab === 'moderation' && isModerator && (
                                     <Box>
@@ -562,7 +589,6 @@ export default function Room() {
                 </Box>
             )}
 
-            {/* NOTIFICATIONS ET DIALOGUES */}
             <Snackbar open={!!pendingRequestUser} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} sx={{ top: { xs: 90, sm: 100 } }}>
                 <Alert severity="info" icon={<GavelIcon fontSize="inherit" />} action={<Box><Button color="inherit" size="small" onClick={handleRejectRequest}>REFUSER</Button><Button color="inherit" size="small" onClick={handleApproveRequest} sx={{ fontWeight: 'bold' }}>ACCEPTER</Button></Box>}>{pendingRequestUser?.name} demande à devenir Manager</Alert>
             </Snackbar>
@@ -571,7 +597,7 @@ export default function Room() {
                 {selectedMember && (
                     <Box>
                         {userRole === 'owner' && (
-                            selectedMember.role === ROLES.MANAGER 
+                            selectedMember.role === ROLES.MANAGER
                                 ? <MenuItem onClick={() => handleAction('demote', selectedMember)}>{t('action.demote')}</MenuItem>
                                 : <MenuItem onClick={() => handleAction('promote', selectedMember)}>{t('action.promote')}</MenuItem>
                         )}

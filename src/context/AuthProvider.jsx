@@ -12,11 +12,11 @@ export default function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const userIdRef = useRef(null)
-  const lastMetricUserRef = useRef(null)
-  const refreshInFlightRef = useRef(false)
-  const fetchedProfileForRef = useRef(null)
   const mountedRef = useRef(true)
+  const refreshInFlightRef = useRef(false)
+  const lastMetricUserRef = useRef(null)
+  const fetchedProfileForRef = useRef(null)
+  const lastSessionUserIdRef = useRef(null)
 
   useEffect(() => {
     const uid = user?.id
@@ -26,6 +26,16 @@ export default function AuthProvider({ children }) {
     logMetric("user_connected", uid)
   }, [user?.id])
 
+  const resetAuthState = useCallback(() => {
+    fetchedProfileForRef.current = null
+    lastSessionUserIdRef.current = null
+
+    if (!mountedRef.current) return
+
+    setUser(null)
+    setProfile(null)
+  }, [])
+
   const fetchProfile = useCallback(async (uid, { force = false } = {}) => {
     if (!uid) {
       if (mountedRef.current) setProfile(null)
@@ -34,7 +44,7 @@ export default function AuthProvider({ children }) {
     }
 
     if (!force && fetchedProfileForRef.current === uid) {
-      return profile
+      return null
     }
 
     const cacheKey = `user_profile_${uid}`
@@ -50,7 +60,11 @@ export default function AuthProvider({ children }) {
     try {
       console.log(`[AuthProvider] Profile cache MISS for ${uid}, fetching...`)
       const p = await UserRepository.getById(uid)
-      if (mountedRef.current) setProfile(p)
+
+      if (mountedRef.current) {
+        setProfile(p)
+      }
+
       fetchedProfileForRef.current = uid
       return p
     } catch (e) {
@@ -59,21 +73,19 @@ export default function AuthProvider({ children }) {
       }
       return null
     }
-  }, [profile])
+  }, [])
 
   const applySessionUser = useCallback(async (sessionUser, { ensureProfile = false } = {}) => {
     if (!sessionUser) {
-      userIdRef.current = null
-      fetchedProfileForRef.current = null
-      if (mountedRef.current) {
-        setUser(null)
-        setProfile(null)
-      }
+      resetAuthState()
       return
     }
 
-    userIdRef.current = sessionUser.id
-    if (mountedRef.current) setUser(sessionUser)
+    if (mountedRef.current) {
+      setUser(sessionUser)
+    }
+
+    lastSessionUserIdRef.current = sessionUser.id
 
     if (ensureProfile) {
       try {
@@ -86,7 +98,7 @@ export default function AuthProvider({ children }) {
     }
 
     await fetchProfile(sessionUser.id)
-  }, [fetchProfile])
+  }, [fetchProfile, resetAuthState])
 
   const refreshSession = useCallback(async () => {
     if (refreshInFlightRef.current) return
@@ -97,13 +109,14 @@ export default function AuthProvider({ children }) {
       if (error) throw error
 
       const sessionUser = data?.session?.user || null
-      await applySessionUser(sessionUser)
+      await applySessionUser(sessionUser, { ensureProfile: false })
     } catch (error) {
       if (error?.name !== 'AbortError') {
         console.warn('[AuthProvider] refreshSession error:', error)
       }
     } finally {
       refreshInFlightRef.current = false
+      if (mountedRef.current) setLoading(false)
     }
   }, [applySessionUser])
 
@@ -115,11 +128,14 @@ export default function AuthProvider({ children }) {
       refreshInFlightRef.current = true
 
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        await applySessionUser(session?.user || null, { ensureProfile: true })
+        const { data, error } = await supabase.auth.getSession()
+        if (error) throw error
+
+        const sessionUser = data?.session?.user || null
+        await applySessionUser(sessionUser, { ensureProfile: !!sessionUser })
       } catch (e) {
         if (e?.name !== 'AbortError') {
-          console.error('Auth init error:', e)
+          console.error('[AuthProvider] Auth init error:', e)
         }
       } finally {
         refreshInFlightRef.current = false
@@ -134,25 +150,35 @@ export default function AuthProvider({ children }) {
 
       try {
         if (event === 'SIGNED_OUT') {
-          userIdRef.current = null
-          fetchedProfileForRef.current = null
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
+          resetAuthState()
+          if (mountedRef.current) setLoading(false)
 
           cacheService.invalidate('room_data_')
           cacheService.invalidate('rooms_list_public_')
           return
         }
 
-        if (session?.user) {
-          await applySessionUser(session.user, { ensureProfile: false })
+        if (!session?.user) {
+          resetAuthState()
           if (mountedRef.current) setLoading(false)
+          return
         }
+
+        const currentUserId = session.user.id
+        const isNewUser = lastSessionUserIdRef.current !== currentUserId
+
+        await applySessionUser(session.user, { ensureProfile: false })
+
+        if (isNewUser) {
+          lastSessionUserIdRef.current = currentUserId
+        }
+
+        if (mountedRef.current) setLoading(false)
       } catch (e) {
         if (e?.name !== 'AbortError') {
           console.warn('[AuthProvider] onAuthStateChange failed:', e)
         }
+        if (mountedRef.current) setLoading(false)
       }
     })
 
@@ -175,9 +201,13 @@ export default function AuthProvider({ children }) {
       window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [applySessionUser, refreshSession])
+  }, [applySessionUser, refreshSession, resetAuthState])
 
-  const value = useMemo(() => ({ user, profile, loading }), [user, profile, loading])
+  const value = useMemo(() => ({
+    user,
+    profile,
+    loading
+  }), [user, profile, loading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
