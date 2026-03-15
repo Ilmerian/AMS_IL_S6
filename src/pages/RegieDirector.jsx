@@ -11,11 +11,14 @@ import Grid from '@mui/material/Grid';
 import SendIcon from '@mui/icons-material/Send';
 import Section from '../ui/Section';
 import { useParams } from "react-router-dom";
-
+import { useNavigate } from "react-router-dom"
+import { RoomService } from "../services/RoomService"
 const PLAYLIST_STORAGE_KEY = 'regie_director_playlist';
 
 export default function RegieDirector() {
     const { roomId } = useParams();
+    //
+    const navigate = useNavigate()
     const [phase, setPhase] = useState('setup');
     const [playlist, setPlaylist] = useState([]);
     const [inputUrl, setInputUrl] = useState('');
@@ -130,7 +133,24 @@ export default function RegieDirector() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, 
+
+    //
+    useEffect(() => {
+        const checkPermission = async () => {
+
+            const isManager = await RoomService.isManager(roomId)
+
+            if (!isManager) {
+                navigate(`/regie/${roomId}/viewer`)
+            }
+
+        }
+
+        checkPermission()
+
+    }, [roomId]), 
+    []);
 
     const handleAddVideo = () => {
         const videoId = getYouTubeId(inputUrl);
