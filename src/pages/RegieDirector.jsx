@@ -12,16 +12,50 @@ import SendIcon from '@mui/icons-material/Send';
 import Section from '../ui/Section';
 import { useParams } from "react-router-dom";
 
+const PLAYLIST_STORAGE_KEY = 'regie_director_playlist';
+
 export default function RegieDirector() {
     const { roomId } = useParams();
     const [phase, setPhase] = useState('setup');
     const [playlist, setPlaylist] = useState([]);
     const [inputUrl, setInputUrl] = useState('');
     const [liveVideoId, setLiveVideoId] = useState(null);
+    const [liveSeekTo, setLiveSeekTo] = useState(0);
+    const [liveIsPlaying, setLiveIsPlaying] = useState(false);
 
     const progressRefs = useRef({});
     const playingRefs = useRef({});
     const lastPushRefs = useRef({});
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(PLAYLIST_STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    setPlaylist(parsed);
+                    parsed.forEach((videoId) => {
+                        if (progressRefs.current[videoId] === undefined) {
+                            progressRefs.current[videoId] = 0;
+                        }
+                        if (playingRefs.current[videoId] === undefined) {
+                            playingRefs.current[videoId] = false;
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[RegieDirector] impossible de relire la playlist locale', e);
+        }
+    }, []);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(playlist));
+        } catch (e) {
+            console.warn('[RegieDirector] impossible de sauvegarder la playlist locale', e);
+        }
+    }, [playlist]);
 
     useEffect(() => {
         const loadInitialRegieState = async () => {
@@ -35,7 +69,22 @@ export default function RegieDirector() {
                 if (error && error.code !== 'PGRST116') throw error;
 
                 if (data?.video_id) {
-                    setLiveVideoId(data.video_id);
+                    const videoId = data.video_id;
+                    const cursor = Number(data.video_cursor || 0);
+                    const isPlaying = !!data.is_playing;
+
+                    setLiveVideoId(videoId);
+                    setLiveSeekTo(cursor);
+                    setLiveIsPlaying(isPlaying);
+                    setPhase('live');
+
+                    progressRefs.current[videoId] = cursor;
+                    playingRefs.current[videoId] = isPlaying;
+
+                    setPlaylist((prev) => {
+                        if (prev.includes(videoId)) return prev;
+                        return [videoId, ...prev];
+                    });
                 }
             } catch (e) {
                 console.warn('[RegieDirector] impossible de charger l’état initial', e);
@@ -43,12 +92,50 @@ export default function RegieDirector() {
         };
 
         loadInitialRegieState();
+
+        const channel = supabase
+            .channel('regie_director_sync')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'regie_state',
+                    filter: 'id=eq.1'
+                },
+                (payload) => {
+                    const data = payload.new;
+                    if (!data?.video_id) return;
+
+                    const videoId = data.video_id;
+                    const cursor = Number(data.video_cursor || 0);
+                    const isPlaying = !!data.is_playing;
+
+                    setLiveVideoId(videoId);
+                    setLiveSeekTo(cursor);
+                    setLiveIsPlaying(isPlaying);
+                    setPhase('live');
+
+                    progressRefs.current[videoId] = cursor;
+                    playingRefs.current[videoId] = isPlaying;
+
+                    setPlaylist((prev) => {
+                        if (prev.includes(videoId)) return prev;
+                        return [videoId, ...prev];
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const handleAddVideo = () => {
         const videoId = getYouTubeId(inputUrl);
         if (videoId && playlist.length < 10 && !playlist.includes(videoId)) {
-            setPlaylist([...playlist, videoId]);
+            setPlaylist((prev) => [...prev, videoId]);
             progressRefs.current[videoId] = 0;
             playingRefs.current[videoId] = false;
             setInputUrl('');
@@ -80,15 +167,25 @@ export default function RegieDirector() {
     }, []);
 
     const handleBroadcast = async (videoId) => {
+        const cursor = progressRefs.current[videoId] ?? 0;
+        const isPlaying = playingRefs.current[videoId] ?? false;
+
         setLiveVideoId(videoId);
-        await pushRegieState(videoId);
-        console.log(`Vidéo ${videoId} envoyée à l'écran`);
+        setLiveSeekTo(cursor);
+        setLiveIsPlaying(isPlaying);
+        setPhase('live');
+
+        await pushRegieState(videoId, {
+            video_cursor: cursor,
+            is_playing: isPlaying
+        });
     };
 
     const handlePlay = async (videoId) => {
         playingRefs.current[videoId] = true;
 
         if (liveVideoId === videoId) {
+            setLiveIsPlaying(true);
             await pushRegieState(videoId, { is_playing: true });
         }
     };
@@ -97,6 +194,7 @@ export default function RegieDirector() {
         playingRefs.current[videoId] = false;
 
         if (liveVideoId === videoId) {
+            setLiveIsPlaying(false);
             await pushRegieState(videoId, { is_playing: false });
         }
     };
@@ -105,12 +203,17 @@ export default function RegieDirector() {
         progressRefs.current[videoId] = seconds;
 
         if (liveVideoId === videoId) {
+            setLiveSeekTo(seconds);
             await pushRegieState(videoId, { video_cursor: seconds });
         }
     };
 
     const handleProgress = async (videoId, seconds) => {
         progressRefs.current[videoId] = seconds;
+
+        if (liveVideoId === videoId) {
+            setLiveSeekTo(seconds);
+        }
 
         if (liveVideoId !== videoId) return;
         if (!playingRefs.current[videoId]) return;
@@ -121,7 +224,10 @@ export default function RegieDirector() {
         if (now - lastPush < 2000) return;
         lastPushRefs.current[videoId] = now;
 
-        await pushRegieState(videoId, { video_cursor: seconds, is_playing: true });
+        await pushRegieState(videoId, {
+            video_cursor: seconds,
+            is_playing: true
+        });
     };
 
     if (phase === 'setup') {
@@ -224,7 +330,8 @@ export default function RegieDirector() {
                         >
                             <VideoPlayerShell
                                 url={`https://www.youtube.com/watch?v=${videoId}`}
-                                playing={false}
+                                playing={liveVideoId === videoId ? liveIsPlaying : false}
+                                seekToTimestamp={liveVideoId === videoId ? liveSeekTo : 0}
                                 canControl={true}
                                 onPlay={() => handlePlay(videoId)}
                                 onPause={() => handlePause(videoId)}

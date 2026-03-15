@@ -54,7 +54,7 @@ export default function RegieViewer() {
                     .eq('room_id', roomId)
                     .single();
 
-                if (error) throw error;
+                if (error && error.code !== 'PGRST116') throw error;
                 applyRegieState(data);
             } catch (e) {
                 console.error('[RegieViewer] erreur chargement état initial', e);
@@ -68,7 +68,7 @@ export default function RegieViewer() {
             .on(
                 'postgres_changes',
                 {
-                    event: 'UPDATE',
+                    event: '*',
                     schema: 'public',
                     table: 'regie_state',
                     // filter: 'id=eq.1'
