@@ -176,6 +176,13 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             </ListItemButton>
           </ListItem>
         )}
+        {user && (
+          <ListItem disablePadding>
+            <ListItemButton component={RouterLink} to="/regie" sx={{ borderRadius: 1 }}>
+              <ListItemText primary="Régie" />
+            </ListItemButton>
+          </ListItem>
+        )}
       </List>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mx: 2 }} />
