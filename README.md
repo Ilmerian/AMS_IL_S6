@@ -191,6 +191,52 @@ src/
 > The frontend mirrors these rules via `AccessService`.
 
 ---
+## **Tests Unitaires**
+Le projet inclut une suite de tests unitaires pour garantir la fiabilité des composants principaux, en particulier ceux liés à la fonctionnalité Régie.
+
+Structure des tests
+src/
+├─ components/__tests__/     # Tests des composants React
+├─ hooks/__tests__/          # Tests des hooks personnalisés
+├─ services/__tests__/       # Tests des services métier
+├─ utils/__tests__/          # Tests des fonctions utilitaires
+└─ test/mocks/               # Mocks partagés pour les tests
+
+Couverture actuelle
+Module	      Tests	                      Statut
+Utilitaires   YouTube (youtube.test.js)	  10	✅
+Composant     VideoPlayerShell	           9	✅
+Hook          usePlaylistForRoom	         6	✅
+Total	                                    25	✅ 100%
+
+Exécution des tests
+# Lancer tous les tests
+npm run test
+
+# Lancer un fichier spécifique
+npm run test -- src/utils/__tests__/youtube.test.js
+
+# Mode watch (relance automatique)
+npm run test -- --watch
+
+# Avec rapport de couverture (nécessite l'installation de @vitest/coverage-v8)
+npm run test:coverage
+
+### Tests clés
+    youtube.test.js : Extraction d'ID YouTube, génération d'URLs embed et watch
+
+    VideoPlayerShell.test.jsx : Gestion des props url, playing, canControl, appels des callbacks
+
+    usePlaylistForRoom.test.js : Logique de playlist, ajout de vidéos, recherche YouTube, navigation
+
+### Technologies utilisées
+        Vitest : Runner de tests ultra-rapide compatible Vite
+
+        React Testing Library : Tests orientés comportement utilisateur
+
+        JSDOM : Simulation d'environnement navigateur
+
+
 
 ## **Getting Started**
 
@@ -240,6 +286,7 @@ Deploy the `dist/` folder to any static hosting provider
 | `npm run build`   | Build for production     |
 | `npm run preview` | Preview production build |
 | `npm run lint`    | Run ESLint               |
+| `npm run test`    | Run unit tests           |
 
 ---
 
