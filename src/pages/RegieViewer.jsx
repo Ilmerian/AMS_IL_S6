@@ -1,30 +1,36 @@
 import { useState, useEffect } from 'react';
-import { useParams } from "react-router-dom";
+import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import VideoPlayerShell from '../components/VideoPlayerShell';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
 
 export default function RegieViewer() {
     const { roomId } = useParams();
 
     const [state, setState] = useState({
         videoId: null,
-        seekTo: 0
+        seekTo: 0,
     });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!roomId) {
+            setLoading(false);
+            return;
+        }
+
         const applyRegieState = (data) => {
             if (!data || !data.video_id) {
                 setState({ videoId: null, seekTo: 0 });
+                setLoading(false);
                 return;
             }
 
-            // On prend le timer de la base de données
             const baseCursor = Number(data.video_cursor || 0);
             let computedSeek = baseCursor;
 
-            // On ajoute systématiquement le temps écoulé depuis l'envoi
             if (data.updated_at) {
                 const elapsedSeconds = (Date.now() - new Date(data.updated_at).getTime()) / 1000;
                 computedSeek = baseCursor + Math.max(0, elapsedSeconds);
@@ -32,8 +38,9 @@ export default function RegieViewer() {
 
             setState({
                 videoId: data.video_id,
-                seekTo: computedSeek
+                seekTo: computedSeek,
             });
+            setLoading(false);
         };
 
         const loadInitialState = async () => {
@@ -48,20 +55,21 @@ export default function RegieViewer() {
                 applyRegieState(data);
             } catch (e) {
                 console.error('[RegieViewer] erreur chargement état initial', e);
+                setLoading(false);
             }
         };
 
         loadInitialState();
 
         const channel = supabase
-            .channel('regie_sync')
+            .channel(`regie_viewer_sync_${roomId}`)
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
                     table: 'regie_state',
-                    filter: `room_id=eq.${roomId}`
+                    filter: `room_id=eq.${roomId}`,
                 },
                 (payload) => applyRegieState(payload.new)
             )
@@ -70,27 +78,48 @@ export default function RegieViewer() {
         return () => supabase.removeChannel(channel);
     }, [roomId]);
 
+    if (loading) {
+        return (
+            <Box
+                sx={{
+                    width: '100%',
+                    height: 'calc(100vh - 64px)',
+                    bgcolor: 'black',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                }}
+            >
+                <CircularProgress />
+                <Typography variant="body1" color="text.secondary">
+                    Chargement du direct...
+                </Typography>
+            </Box>
+        );
+    }
+
     return (
         <Box
             sx={{
                 width: '100%',
-                height: 'calc(100vh - 64px)', // Prend toute la hauteur sous le menu
+                height: 'calc(100vh - 64px)',
                 bgcolor: 'black',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                p: { xs: 0, md: 4 } // Ajoute un petit bord élégant sur PC
+                p: { xs: 0, md: 4 },
             }}
         >
             {state.videoId ? (
-                // Ce conteneur définit la taille max de la vidéo
-                <Box sx={{ width: '100%', height: '100%', maxWidth: '1600px' }}> 
+                <Box sx={{ width: '100%', height: '100%', maxWidth: '1600px' }}>
                     <VideoPlayerShell
                         url={`https://www.youtube.com/watch?v=${state.videoId}`}
                         playing={true}
                         seekToTimestamp={state.seekTo}
                         canControl={false}
-                        fullSize={true} /* <--- ON ACTIVE LE MODE GÉANT ICI */
+                        fullSize={true}
                     />
                 </Box>
             ) : (
