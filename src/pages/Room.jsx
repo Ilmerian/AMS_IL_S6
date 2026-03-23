@@ -8,7 +8,6 @@ import { useParams, useOutletContext } from 'react-router-dom';
 import { RoleService } from '../services/RoleService';
 import { BanRepository } from '../repositories/BanRepository';
 import { RealtimeService } from '../services/RealtimeService';
-import { cacheService } from '../services/CacheService';
 import { getYouTubeId } from '../utils/youtube';
 import { RoomService } from '../services/RoomService';
 
@@ -57,9 +56,10 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import PeopleIcon from '@mui/icons-material/People';
-import HistoryIcon from '@mui/icons-material/History';
 import CircularProgress from '@mui/material/CircularProgress';
 import MovieIcon from '@mui/icons-material/Movie';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
+import SyncIcon from '@mui/icons-material/Sync';
 
 const ROLES = {
     OWNER: 'owner',
@@ -124,39 +124,59 @@ function ControlStatus({ controlInfo, onRequestManager, requestStatus }) {
     );
 }
 
-function ConnectionStatus({ connectionStatus }) {
+function ConnectionStatus({ connectionStatus, onResync }) {
     const { t } = useTranslation();
 
     const getStatusInfo = (status) => {
         switch (status) {
             case 'connected':
-                return { text: t('room.sync_realtime'), color: 'success.main' };
+                return { text: t('room.sync_realtime', 'Synchronisation en temps réel'), color: 'success.main' };
             case 'polling':
-                return { text: t('room.sync_active'), color: 'warning.main' };
+                return { text: t('room.sync_active', 'Synchronisation active'), color: 'warning.main' };
+            case 'offline':
+                return { text: t('room.sync_offline', 'Hors ligne - reconnexion en attente'), color: 'error.dark' };
             case 'error':
-                return { text: t('room.sync_error'), color: 'error.main' };
+                return { text: t('room.sync_error', 'Erreur de synchronisation'), color: 'error.main' };
             default:
-                return { text: t('room.sync_connecting'), color: 'grey.500' };
+                return { text: t('room.sync_connecting', 'Connexion en cours...'), color: 'grey.500' };
         }
     };
 
     const statusInfo = getStatusInfo(connectionStatus);
+    const showRetry = connectionStatus === 'error' || connectionStatus === 'offline';
 
     return (
         <Box
             sx={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: 1,
                 p: 1,
                 borderRadius: 1,
                 backgroundColor: statusInfo.color,
-                opacity: 0.9,
+                opacity: 0.95,
             }}
         >
-            <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
-                {statusInfo.text}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {connectionStatus === 'offline' ? <WifiOffIcon fontSize="small" /> : null}
+                <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+                    {statusInfo.text}
+                </Typography>
+            </Box>
+
+            {showRetry && (
+                <Button
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    onClick={onResync}
+                    startIcon={<SyncIcon />}
+                    sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)' }}
+                >
+                    {t('room.resync', 'Resynchroniser')}
+                </Button>
+            )}
         </Box>
     );
 }
@@ -224,6 +244,7 @@ export default function Room() {
         updateLocalProgress,
         connectionStatus,
         isHydrated,
+        forceResync,
         controlInfo,
     } = useVideoSync({ roomId, user, userRole });
 
@@ -311,6 +332,7 @@ export default function Room() {
                 message: `Vous avez promu ${pendingRequestUser.name}`,
                 severity: 'success',
             });
+            loadRoomData(true);
         } catch (e) {
             setSnackbar({ open: true, message: 'Erreur', severity: 'error' });
         }
@@ -363,11 +385,6 @@ export default function Room() {
                 return;
             }
 
-            if (userRole === 'owner' && room?.ownerId === user.id) {
-                setMembersLoading(false);
-                return;
-            }
-
             setMembersLoading(true);
 
             try {
@@ -404,7 +421,7 @@ export default function Room() {
                 setMembersLoading(false);
             }
         },
-        [roomId, user, room?.ownerId, userRole]
+        [roomId, user, room?.ownerId]
     );
 
     const allMembers = useMemo(() => {
@@ -532,6 +549,20 @@ export default function Room() {
         if (await verifyPassword(pw)) setPw('');
     };
 
+    const handleResync = useCallback(async () => {
+        refresh();
+        loadRoomData(true);
+        forceResync();
+        if (activeTab === 'history') {
+            loadHistory();
+        }
+        setSnackbar({
+            open: true,
+            message: t('room.resync_done', 'Resynchronisation lancée'),
+            severity: 'info',
+        });
+    }, [refresh, loadRoomData, forceResync, activeTab, loadHistory, t]);
+
     useEffect(() => {
         if (!user || !roomId || roomLoading || !room || needPw) return;
 
@@ -574,7 +605,7 @@ export default function Room() {
     useEffect(() => {
         if (!roomId) return;
         const unsub = BanRepository.onBanChange(roomId, () => {
-            loadRoomData();
+            loadRoomData(true);
             loadBannedUsers();
         });
         return () => unsub && unsub();
@@ -612,7 +643,7 @@ export default function Room() {
                 await RoleService.remove(roomId, target.userId);
             }
 
-            loadRoomData();
+            loadRoomData(true);
         } catch (e) {
             setSnackbar({ open: true, message: e.message, severity: 'error' });
         }
@@ -636,7 +667,7 @@ export default function Room() {
     if (!room && err) {
         return (
             <Section>
-                <Typography color="error">{t('room.error_generic')}</Typography>
+                <Typography color="error">{err || t('room.error_generic')}</Typography>
                 <Button onClick={refresh}>{t('room.reload')}</Button>
             </Section>
         );
@@ -658,7 +689,7 @@ export default function Room() {
         );
     }
 
-    if (room && (!needPw || checked) && connectionStatus === 'connecting' && !isHydrated) {
+    if (room && (!needPw || checked) && (connectionStatus === 'connecting') && !isHydrated) {
         return (
             <Section>
                 <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -691,7 +722,7 @@ export default function Room() {
                         sx={{ ml: 2 }}
                         onClick={() => {
                             setIsKicked(false);
-                            loadRoomData();
+                            loadRoomData(true);
                         }}
                     >
                         {t('common.refresh')}
@@ -720,7 +751,31 @@ export default function Room() {
                 </Box>
             )}
 
-            {user && <Box sx={{ mb: 1 }}><ConnectionStatus connectionStatus={connectionStatus} /></Box>}
+            {user && (
+                <Box sx={{ mb: 1 }}>
+                    <ConnectionStatus connectionStatus={connectionStatus} onResync={handleResync} />
+                </Box>
+            )}
+
+            {(connectionStatus === 'offline' || connectionStatus === 'error') && (
+                <Alert severity={connectionStatus === 'offline' ? 'warning' : 'error'} sx={{ mb: 2 }}>
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                    >
+                        <Typography variant="body2">
+                            {connectionStatus === 'offline'
+                                ? t('room.offline_message', 'La connexion a été perdue. La synchronisation reprendra dès le retour du réseau.')
+                                : t('room.sync_error_message', 'Une erreur de synchronisation est survenue. Vous pouvez relancer la synchronisation.')}
+                        </Typography>
+                        <Button size="small" variant="outlined" onClick={handleResync}>
+                            {t('room.resync', 'Resynchroniser')}
+                        </Button>
+                    </Stack>
+                </Alert>
+            )}
 
             <Box sx={{ pb: 2, mb: 2, borderBottom: '1px solid rgba(255,255,255,0.4)' }}>
                 <Typography
@@ -735,7 +790,7 @@ export default function Room() {
                 </Typography>
             </Box>
 
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
                 <Typography sx={{ opacity: 0.8 }}>
                     {room.password ? t('room.private') : t('room.public')}
                 </Typography>
@@ -768,6 +823,15 @@ export default function Room() {
                         {t('room.pin_button')}
                     </Button>
                 )}
+
+                <Button
+                    variant="text"
+                    size="small"
+                    startIcon={<SyncIcon />}
+                    onClick={handleResync}
+                >
+                    {t('room.resync', 'Resynchroniser')}
+                </Button>
             </Stack>
 
             {needPw && !checked ? (
@@ -813,7 +877,7 @@ export default function Room() {
                             />
 
                             {canControlVideo && playlistItems.length > 1 && (
-                                <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                                     <Button
                                         variant="outlined"
                                         onClick={() =>
@@ -896,7 +960,11 @@ export default function Room() {
 
                                 {activeTab === 'history' && (
                                     <List dense>
-                                        {history.length === 0 ? (
+                                        {historyLoading ? (
+                                            <Box sx={{ py: 2, display: 'flex', justifyContent: 'center' }}>
+                                                <CircularProgress size={24} />
+                                            </Box>
+                                        ) : history.length === 0 ? (
                                             <Typography sx={{ opacity: 0.7 }}>{t('room.history_empty')}</Typography>
                                         ) : (
                                             history.map((h) => {
