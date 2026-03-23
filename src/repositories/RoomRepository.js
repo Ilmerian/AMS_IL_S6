@@ -362,7 +362,7 @@ export const RoomRepository = {
   async listArchived() {
     const { data, error } = await supabase
       .from('rooms')
-      .select('room_id, name, owner_id, password, is_private, archived_at, users!fk_rooms_owner(username, avatar_url)')
+      .select('room_id, name, owner_id, password, is_private, is_regie, archived_at, users!fk_rooms_owner(username, avatar_url)')
       .not('archived_at', 'is', null)
       .order('archived_at', { ascending: false })
 
@@ -376,6 +376,7 @@ export const RoomRepository = {
       ownerAvatar: r.users?.avatar_url,
       hasPassword: !!r.password,
       isPrivate: !!r.is_private,
+      is_regie: !!r.is_regie,
       archivedAt: r.archived_at,
     }))
   },
