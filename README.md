@@ -207,7 +207,9 @@ Module	      Tests	                      Statut
 Utilitaires   YouTube (youtube.test.js)	  10	✅
 Composant     VideoPlayerShell	           9	✅
 Hook          usePlaylistForRoom	         6	✅
-Total	                                    25	✅ 100%
+Services      AccessService                6  ✅
+Hook          useVideoSync                12  ✅
+Total	                                    43	✅ 100%
 
 Exécution des tests
 # Lancer tous les tests
@@ -228,6 +230,10 @@ npm run test:coverage
     VideoPlayerShell.test.jsx : Gestion des props url, playing, canControl, appels des callbacks
 
     usePlaylistForRoom.test.js : Logique de playlist, ajout de vidéos, recherche YouTube, navigation
+
+    AccessService.test.js : Vérification des permissions utilisateurs,  Couvre les cas : manager / non-manager / propriétaire / non-propriétaire / non-connecté
+
+    useVideoSync.test.js : gère la synchronisation de la lecture vidéo entre les utilisateurs (actions interdites des spectateurs, multi-utilisateurs, déconnexion régisseur,controle régisseur).
 
 ### Technologies utilisées
         Vitest : Runner de tests ultra-rapide compatible Vite
