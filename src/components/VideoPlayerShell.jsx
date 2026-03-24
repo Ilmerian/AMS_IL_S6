@@ -26,7 +26,6 @@ export default function VideoPlayerShell({
   
   const iframeRef = useRef(null);
   
-  // LA CORRECTION : Un ID unique généré aléatoirement pour chaque vidéo !
   const playerIdRef = useRef(`player-${Math.random().toString(36).substr(2, 9)}`);
   
   const [isIframeReady, setIsIframeReady] = useState(false);
@@ -103,13 +102,11 @@ export default function VideoPlayerShell({
     const handleMessage = (event) => {
       if (event.origin !== 'https://www.youtube.com') return;
       
-      // SÉCURITÉ ABSOLUE : On vérifie que le message vient bien physiquement de CETTE Iframe précise
       if (iframeRef.current && event.source !== iframeRef.current.contentWindow) return;
       
       try {
         const data = JSON.parse(event.data);
         
-        // DOUBLE SÉCURITÉ : On vérifie l'ID interne de YouTube
         if (data.id && data.id !== playerIdRef.current) return;
         
         if (data.event === 'error' && data.info) {
@@ -132,7 +129,7 @@ export default function VideoPlayerShell({
               
             } else if (playerState === 2) {
               if (!canControl) {
-                sendCommand('playVideo'); // Anti-pause spectateur
+                sendCommand('playVideo'); 
               } else if (playing && onPause) {
                 lastPauseAtRef.current = Date.now();
                 onPause();
@@ -144,7 +141,6 @@ export default function VideoPlayerShell({
           }
         }
       } catch (error) {
-        // Ignorer les erreurs de parsing
       }
     }
 

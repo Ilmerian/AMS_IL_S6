@@ -24,7 +24,6 @@ export default function Regies() {
     const [regies, setRegies] = useState([])
     const [searchQuery, setSearchQuery] = useState("")
 
-    // NOUVEAUX ÉTATS POUR ARCHIVAGE ET SUPPRESSION
     const [showArchived, setShowArchived] = useState(false)
     const [toDelete, setToDelete] = useState(null)
     const [toArchive, setToArchive] = useState(null)
@@ -35,7 +34,6 @@ export default function Regies() {
     const load = async () => {
         try {
             if (showArchived) {
-                // On récupère les rooms archivées et on ne garde que les régies
                 const archivedRooms = await RoomService.listArchived()
                 const archivedRegies = archivedRooms.filter(r => r.is_regie === true)
                 setRegies(archivedRegies)
@@ -59,7 +57,6 @@ export default function Regies() {
             : true
     )
 
-    // --- ACTIONS: SUPPRIMER ---
     const confirmDelete = (r) => { setToDelete(r); setErr('') }
     const cancelDelete = () => { setToDelete(null); setErr('') }
     const doDelete = async () => {
@@ -75,7 +72,6 @@ export default function Regies() {
         }
     }
 
-    // --- ACTIONS: ARCHIVER ---
     const confirmArchive = (r) => { setToArchive(r); setErr('') }
     const cancelArchive = () => { setToArchive(null); setErr('') }
     const doArchive = async () => {
@@ -91,7 +87,6 @@ export default function Regies() {
         }
     }
 
-    // --- ACTIONS: RESTAURER ---
     const confirmRestore = (r) => { setToRestore(r); setErr('') }
     const cancelRestore = () => { setToRestore(null); setErr('') }
     const doRestore = async () => {
@@ -119,7 +114,6 @@ export default function Regies() {
                 gap: 5
             }}
         >
-            {/* HEADER */}
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
                 <Typography
@@ -155,7 +149,6 @@ export default function Regies() {
 
             </Box>
 
-            {/* SEARCH */}
             <Box sx={{ maxWidth: 400 }}>
                 <TextField
                     fullWidth
@@ -198,7 +191,7 @@ export default function Regies() {
                             p: 3,
                             cursor: "pointer",
                             transition: ".2s",
-                            position: "relative", // Pour bien positionner les boutons
+                            position: "relative", 
                             "&:hover": {
                                 transform: "translateY(-5px)",
                                 boxShadow: "0 12px 26px rgba(140,80,255,0.4)"
@@ -215,7 +208,6 @@ export default function Regies() {
                                 </Typography>
                             </Box>
 
-                            {/* BOUTONS D'ACTION (Seulement pour le propriétaire) */}
                             {user && user.id === r.ownerId && (
                                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                                     {showArchived ? (
@@ -256,9 +248,7 @@ export default function Regies() {
                 ))}
             </Box>
 
-            {/* FENÊTRES DE CONFIRMATION (DIALOGS) */}
 
-            {/* DELETE Dialog */}
             <Dialog open={!!toDelete} onClose={cancelDelete}>
                 <DialogTitle>Supprimer la régie</DialogTitle>
                 <DialogContent>
@@ -275,7 +265,6 @@ export default function Regies() {
                 </DialogActions>
             </Dialog>
 
-            {/* ARCHIVE Dialog */}
             <Dialog open={!!toArchive} onClose={cancelArchive}>
                 <DialogTitle>Archiver la régie</DialogTitle>
                 <DialogContent>
@@ -292,7 +281,6 @@ export default function Regies() {
                 </DialogActions>
             </Dialog>
 
-            {/* RESTORE Dialog */}
             <Dialog open={!!toRestore} onClose={cancelRestore}>
                 <DialogTitle>Restaurer la régie</DialogTitle>
                 <DialogContent>

@@ -272,7 +272,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
           gap: 2,
           minHeight: { xs: 56, sm: 64 }
         }}>
-          {/* Mobile Menu Button */}
           <IconButton
             size="large"
             edge="start"
@@ -287,7 +286,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             <MenuIcon />
           </IconButton>
 
-          {/* Brand (Logo + Title) */}
           <Stack
             direction="row"
             alignItems="center"
@@ -313,7 +311,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
               }}
             />
 
-            {/* TITLE */}
             <Typography
               variant="h6"
               sx={{
@@ -339,7 +336,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             </Typography>
           </Stack>
 
-          {/* Desktop Navigation */}
           <Stack
             direction="row"
             spacing={1}
@@ -355,7 +351,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
             {user && <NavItem to="/regie">Régie</NavItem>}
           </Stack>
 
-          {/* Right Controls */}
           <Stack
             direction="row"
             spacing={{ xs: 0.5, sm: 1 }}
@@ -367,7 +362,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
               maxWidth: { xs: '55%', sm: 'none' }
             }}
           >
-            {/* Language Selector - Desktop */}
             <ButtonGroup
               variant="outlined"
               size="small"
@@ -393,7 +387,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
               ))}
             </ButtonGroup>
 
-            {/* Mobile Language Indicator */}
             <Typography
               variant="body2"
               sx={{
@@ -408,10 +401,8 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
               {current}
             </Typography>
 
-            {/* Dark/Light Mode Toggle */}
             <ThemeToggleButton />
 
-            {/* Profile/Guest Menu */}
             <IconButton
               onClick={(e) => setAnchorEl(e.currentTarget)}
               size="small"
@@ -484,7 +475,6 @@ export default function Header({ onOpenLogin, onOpenRegister }) {
         </Toolbar>
       </AppBar>
 
-      {/* Mobile Navigation Drawer */}
       <Drawer
         anchor="left"
         open={mobileDrawerOpen}

@@ -95,7 +95,6 @@ export default function Rooms() {
   }
 
   useEffect(() => { load() }, [user, showArchived])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!rooms || rooms.length === 0 || !user) return;
@@ -137,10 +136,8 @@ export default function Rooms() {
       RealtimeService.onDelete({ table: 'rooms', cb: load }),
     ]
     return () => unsubs.forEach(off => off?.())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // LOAD PLAYLISTS + VIDEOS
   useEffect(() => {
     async function loadAll() {
       if (rooms.length === 0) return;
@@ -173,11 +170,9 @@ export default function Rooms() {
           }
         });
 
-        // Wait for all requests at the same time
         await Promise.all(playlistPromises);
         setPlaylistMap(newPlaylistMap);
 
-        // Get unique Video IDs
         const uniqueVideoIds = [...new Set(allVideoIds)];
         const videoPromises = uniqueVideoIds.map(async (vid) => {
           try {
@@ -189,12 +184,10 @@ export default function Rooms() {
           }
         });
 
-        // Upload all videos in parallel
         const videoResults = await Promise.all(videoPromises);
         const vmap = Object.assign({}, ...videoResults);
         setVideosMap(vmap);
 
-        // Save to cache
         cacheService.setMemory(cacheKey, {
           timestamp: Date.now(),
           playlistMap: newPlaylistMap,
@@ -206,7 +199,6 @@ export default function Rooms() {
       }
     }
 
-    // Use debounce to prevent frequent calls
     let timeoutId;
     const debouncedLoad = () => {
       clearTimeout(timeoutId);
@@ -220,15 +212,12 @@ export default function Rooms() {
     };
   }, [rooms]);
 
-  // this useEffect is for clearing the cache when unmounting:
   useEffect(() => {
     return () => {
-      // Clear the cache when unmounting a component
       cacheService.invalidate('rooms_playlists_');
     };
   }, []);
 
-  // CAROUSEL
   const filteredRooms = rooms.filter(room => 
     searchQuery ? room.name.toLowerCase().includes(searchQuery.toLowerCase()) : true
   )
@@ -238,7 +227,6 @@ export default function Rooms() {
   
   const featured = filteredRooms[carouselIndex] || null
 
-  // DELETE
   const confirmDelete = room => { setToDelete(room); setErr('') }
   const cancelDelete = () => { setToDelete(null); setErr('') }
 

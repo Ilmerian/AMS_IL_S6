@@ -158,7 +158,7 @@ export const RoomRepository = {
     const { data, error } = await supabase
       .from('rooms')
       .select('*')
-      .eq('is_regie', true)  // Filtre les régies
+      .eq('is_regie', true)  
       .is('archived_at', null)
 
     if (error) {

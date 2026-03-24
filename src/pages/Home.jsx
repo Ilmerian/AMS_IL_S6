@@ -19,7 +19,6 @@ export default function Home() {
   return (
     <Box sx={{ overflowX: "hidden" }}>
 
-      {/* HERO SECTION */}
       <Box
         sx={{
           width: "100vw",
@@ -40,7 +39,6 @@ export default function Home() {
           zIndex: 0,
         }}
       >
-        {/* Top Gradient */}
         <Box
           sx={{
             position: "absolute",
@@ -54,7 +52,6 @@ export default function Home() {
           }}
         />
 
-        {/* Bottom Gradient */}
         <Box
           sx={{
             position: "absolute",
@@ -76,7 +73,6 @@ export default function Home() {
           }}
         />
 
-        {/* Hero Content */}
         <Container maxWidth="lg" sx={{ height: "100%", position: "relative", zIndex: 2 }}>
           <Box
             sx={{
@@ -175,11 +171,9 @@ export default function Home() {
         </Container>
       </Box>
 
-      {/* MAIN CONTENT */}
       <Container maxWidth="lg">
         <Box sx={{ px: { xs: 2, sm: 3 }, py: { xs: 6, sm: 8, md: 10 }, color: "white" }}>
 
-          {/* HOW IT WORKS SECTION */}
           <Box sx={{ mb: { xs: 8, md: 12 } }}>
             <Typography
               variant="h4"
@@ -213,7 +207,6 @@ export default function Home() {
             </Grid>
           </Box>
 
-          {/* JOIN WITH CODE SECTION */}
           <Box sx={{ mb: { xs: 8, md: 12 } }}>
             <Typography
               variant="h4"
@@ -246,7 +239,6 @@ export default function Home() {
             </Grid>
           </Box>
 
-          {/* CONTACT SECTION */}
           <Box>
             <Typography
               variant="h4"
@@ -280,7 +272,6 @@ export default function Home() {
             </Grid>
           </Box>
 
-          {/* MOBILE APP PROMO */}
           {isMobile && (
             <Box sx={{
               mt: 8,
@@ -306,7 +297,6 @@ export default function Home() {
             </Box>
           )}
 
-          {/* CTA SECTION */}
           <Box sx={{
             mt: { xs: 8, md: 12 },
             textAlign: "center"
@@ -345,7 +335,6 @@ export default function Home() {
   );
 }
 
-/* --- COMPONENTS --- */
 
 function InfoCard({ icon, title, subtitle, isMobile, contact = false }) {
   return (

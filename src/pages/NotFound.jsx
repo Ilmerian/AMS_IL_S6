@@ -46,7 +46,7 @@ export default function NotFound() {
         overflow: 'hidden',
       }}
     >
-      {/* Animated Background Elements */}
+
       <Box
         sx={{
           position: 'absolute',
@@ -74,7 +74,6 @@ export default function NotFound() {
 
       <Container maxWidth="md">
         <Stack spacing={{ xs: 4, sm: 5 }} alignItems="center">
-          {/* Error Code with Animation */}
           <Box sx={{ position: 'relative' }}>
             <Typography
               variant="h1"
@@ -278,7 +277,6 @@ export default function NotFound() {
             </Grid>
           </Box>
 
-          {/* Search Suggestion for Mobile */}
           {isMobile && (
             <Box
               sx={{
@@ -326,7 +324,6 @@ export default function NotFound() {
             </Box>
           )}
 
-          {/* Contact Support */}
           <Box sx={{ mt: 2 }}>
             <Typography
               variant="caption"
@@ -357,7 +354,6 @@ export default function NotFound() {
         </Stack>
       </Container>
 
-      {/* CSS Animations */}
       <style>{`
         @keyframes float {
           0%, 100% {
