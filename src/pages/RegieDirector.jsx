@@ -210,9 +210,18 @@ export default function RegieDirector() {
         setInputValue('');
     };
 
+    // Envoie les infos à Supabase
     const pushRegieState = useCallback(
         async (videoId, overrides = {}) => {
             if (!videoId || !roomId || !canAccessDirector) return;
+
+            const isManager = await RoomService.isManager(roomId);
+            
+            // Sécurité : si un user n'est pas le manager on arrête. 
+            if (!isManager) {
+                console.error("Unauthorized action")
+                return
+            }
 
             const payload = {
                 room_id: Number(roomId),
