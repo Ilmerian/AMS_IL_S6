@@ -105,12 +105,15 @@ export const RoleRepository = {
 
       if (currentUserId && !membersMap.has(currentUserId)) {
         try {
-          const { data: currentUserProfile } = await supabase
+          const { data: currentUserProfile, error } = await supabase
             .from('users')
             .select('username, email, avatar_url')
             .eq('user_id', currentUserId)
-            .single()
-            .catch(() => null);
+            .single();
+
+            if (error) {
+              console.warn('Failed to fetch current user profile:', error);
+            }
 
           if (currentUserProfile) {
             const isOwner = currentUserId === ownerId;

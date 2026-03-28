@@ -32,13 +32,8 @@ export default function RegieViewer() {
     //
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [members, setMembers] = useState([]);
-    const spectateurs = onlineUsers.filter((u) => {
-        const member = members.find(m => m.userId === u.user_id);
-
-        if (!member) return true; // visiteur = spectateur
-
-        return !member.is_manager && !member.isOwner;
-    });
+    const spectateurs = onlineUsers;
+    console.log("ONLINE USERS:", onlineUsers);
 
     const computeViewerState = useCallback((data) => {
         if (!data || !data.video_id) {
@@ -160,13 +155,19 @@ export default function RegieViewer() {
     useEffect(() => {
         if (!roomId) return;
 
-        const unsubscribe = RealtimeService.subscribeToRoomPresence(
-            roomId,
-            null,
-            setOnlineUsers
-        );
+        const setup = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
 
-        return () => unsubscribe();
+            const unsubscribe = RealtimeService.subscribeToRoomPresence(
+                roomId,
+                user, 
+                setOnlineUsers
+            );
+
+            return unsubscribe;
+        };
+
+        setup();
     }, [roomId]);
 
     useEffect(() => {
@@ -179,7 +180,7 @@ export default function RegieViewer() {
 
         loadMembers();
     }, [roomId]);
-
+    
     if (loading) {
         return (
             <Box
