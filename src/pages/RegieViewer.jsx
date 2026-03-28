@@ -11,6 +11,8 @@ import Button from '@mui/material/Button';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
 import SensorsOffIcon from '@mui/icons-material/SensorsOff';
 import SyncIcon from '@mui/icons-material/Sync';
+import { RealtimeService } from '../services/RealtimeService';
+import { RoleService } from '../services/RoleService';
 
 const REGIE_STALE_DELAY_MS = 15000;
 
@@ -26,6 +28,17 @@ export default function RegieViewer() {
     const [loading, setLoading] = useState(true);
     const [isRegieAbsent, setIsRegieAbsent] = useState(false);
     const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+    
+    //
+    const [onlineUsers, setOnlineUsers] = useState([]);
+    const [members, setMembers] = useState([]);
+    const spectateurs = onlineUsers.filter((u) => {
+        const member = members.find(m => m.userId === u.user_id);
+
+        if (!member) return true; // visiteur = spectateur
+
+        return !member.is_manager && !member.isOwner;
+    });
 
     const computeViewerState = useCallback((data) => {
         if (!data || !data.video_id) {
@@ -143,6 +156,30 @@ export default function RegieViewer() {
         };
     }, [loadInitialState]);
 
+    //
+    useEffect(() => {
+        if (!roomId) return;
+
+        const unsubscribe = RealtimeService.subscribeToRoomPresence(
+            roomId,
+            null,
+            setOnlineUsers
+        );
+
+        return () => unsubscribe();
+    }, [roomId]);
+
+    useEffect(() => {
+        if (!roomId) return;
+
+        const loadMembers = async () => {
+            const data = await RoleService.listMembers(roomId);
+            setMembers(data || []);
+        };
+
+        loadMembers();
+    }, [roomId]);
+
     if (loading) {
         return (
             <Box
@@ -247,6 +284,24 @@ export default function RegieViewer() {
                     </Button>
                 </Stack>
             )}
+
+            {/* Liste spect */}
+            <Box sx={{
+                position: 'absolute',
+                right: 20,
+                top: 20,
+                background: 'rgba(0,0,0,0.7)',
+                padding: 2,
+                borderRadius: 2,
+            }}>
+                <Typography variant="h6">👥 Spectateurs</Typography>
+
+                {spectateurs.map((u) => (
+                    <Typography key={u.user_id}>
+                        {u.username || "Visiteur"}
+                    </Typography>
+                ))}
+            </Box>
         </Box>
     );
 }
