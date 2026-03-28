@@ -213,8 +213,43 @@ export default function RegieViewer() {
                 justifyContent: 'center',
                 p: { xs: 0, md: 4 },
                 position: 'relative',
+                top: 20,
             }}
         >
+            {/* Liste spect */}
+            <Box sx={{
+                position: 'absolute',
+                top: -40,
+                left: 20,
+                background: 'rgba(30,20,60,0.8)',
+                border: '1px solid rgba(150,70,255,0.3)',
+                borderRadius: 2,
+                px: 1.5,
+                py: 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+            }}>
+                <Typography sx={{ color: '#e7d5ff', fontWeight: 600 }}>
+                    Spectateurs
+                </Typography>
+
+                <Box sx={{
+                    background: "rgba(255,70,70,0.18)",
+                    px: 1,
+                    py: 0.2,
+                    borderRadius: "6px",
+                    border: "1px solid rgba(255,70,70,0.35)",
+                }}>
+                    <span style={{
+                        color: "#ff6b6b",
+                        fontWeight: 700,
+                        fontSize: 12,
+                    }}>
+                        {spectateurs.length}
+                    </span>
+                </Box>
+            </Box>
             {(isOffline || isRegieAbsent) && (
                 <Box
                     sx={{
@@ -284,24 +319,6 @@ export default function RegieViewer() {
                     </Button>
                 </Stack>
             )}
-
-            {/* Liste spect */}
-            <Box sx={{
-                position: 'absolute',
-                right: 20,
-                top: 20,
-                background: 'rgba(0,0,0,0.7)',
-                padding: 2,
-                borderRadius: 2,
-            }}>
-                <Typography variant="h6">👥 Spectateurs</Typography>
-
-                {spectateurs.map((u) => (
-                    <Typography key={u.user_id}>
-                        {u.username || "Visiteur"}
-                    </Typography>
-                ))}
-            </Box>
         </Box>
     );
 }
