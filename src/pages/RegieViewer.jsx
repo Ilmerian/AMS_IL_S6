@@ -32,8 +32,13 @@ export default function RegieViewer() {
     //
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [members, setMembers] = useState([]);
-    const spectateurs = onlineUsers;
-    console.log("ONLINE USERS:", onlineUsers);
+    const spectateurs = onlineUsers.filter((u) => {
+    const member = members.find(m => m.userId === u.user_id);
+
+    if (!member) return true;
+
+    return !member.is_manager && !member.isOwner;
+    });
 
     const computeViewerState = useCallback((data) => {
         if (!data || !data.video_id) {

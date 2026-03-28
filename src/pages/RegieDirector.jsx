@@ -20,6 +20,8 @@ import ListItem from '@mui/material/ListItem';
 import Section from '../ui/Section';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoomService } from '../services/RoomService';
+import { RealtimeService } from '../services/RealtimeService';
+import { RoleService } from '../services/RoleService';
 
 export default function RegieDirector() {
     const { roomId } = useParams();
@@ -40,6 +42,28 @@ export default function RegieDirector() {
 
     const progressRefs = useRef({});
     const playingRefs = useRef({});
+
+    //
+    const [onlineUsers, setOnlineUsers] = useState([]);
+    const [members, setMembers] = useState([]);
+    const spectateurs = onlineUsers.filter((u) => {
+    const member = members.find(m => m.userId === u.user_id);
+
+    if (!member) return true;
+
+    return !member.is_manager && !member.isOwner;
+    });
+
+    useEffect(() => {
+        if (!roomId) return;
+
+        const loadMembers = async () => {
+            const data = await RoleService.listMembers(roomId);
+            setMembers(data || []);
+        };
+
+        loadMembers();
+    }, [roomId]);
 
     useEffect(() => {
         const checkPermission = async () => {
@@ -150,6 +174,25 @@ export default function RegieDirector() {
 
         return () => supabase.removeChannel(channel);
     }, [roomId, canAccessDirector]);
+
+    //
+        useEffect(() => {
+            if (!roomId) return;
+    
+            const setup = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+    
+                const unsubscribe = RealtimeService.subscribeToRoomPresence(
+                    roomId,
+                    user, 
+                    setOnlineUsers
+                );
+    
+                return unsubscribe;
+            };
+    
+            setup();
+        }, [roomId]);
 
     const addVideoToState = (videoId) => {
         setPlaylist((prev) => [...prev, videoId]);
@@ -455,6 +498,37 @@ export default function RegieDirector() {
                     gap: 2,
                 }}
             >
+            {/* Liste spect */}
+            <Box sx={{
+                background: 'rgba(30,20,60,0.8)',
+                border: '1px solid rgba(150,70,255,0.3)',
+                borderRadius: 2,
+                px: 1.5,
+                py: 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1            
+            }}>
+                <Typography sx={{ color: '#e7d5ff', fontWeight: 600 }}>
+                    Spectateurs
+                </Typography>
+
+                <Box sx={{
+                    background: "rgba(255,70,70,0.18)",
+                    px: 1,
+                    py: 0.2,
+                    borderRadius: "6px",
+                    border: "1px solid rgba(255,70,70,0.35)",
+                }}>
+                    <span style={{
+                        color: "#ff6b6b",
+                        fontWeight: 700,
+                        fontSize: 12,
+                    }}>
+                        {spectateurs.length}
+                    </span>
+                </Box>
+            </Box>
                 <Typography variant="h4" sx={{ color: 'white', display: 'flex', alignItems: 'center', gap: 2 }}>
                     Live - Régisseur
                     {liveVideoId && (
