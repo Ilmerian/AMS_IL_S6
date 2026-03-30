@@ -1,4 +1,4 @@
- import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { getYouTubeId } from '../utils/youtube';
 import { VideoService } from '../services/VideoService';
@@ -115,6 +115,13 @@ export default function RegieDirector() {
             localStorage.setItem(storageKey, JSON.stringify(playlist));
         } catch (e) {}
     }, [playlist, roomId, canAccessDirector]);
+
+    // Retour automatique en phase setup si la playlist devient vide en phase live
+    useEffect(() => {
+        if (phase === 'live' && playlist.length === 0) {
+            setPhase('setup');
+        }
+    }, [playlist, phase]);
 
     useEffect(() => {
         if (!roomId || !canAccessDirector) return;
