@@ -407,15 +407,18 @@ export const RoomRepository = {
     return true
   },
 
-  async transferOwnership(roomId, newOwnerId) {
-    const { data, error } = await supabase
-      .from('rooms')
-      .update({ owner_id: newOwnerId })
-      .eq('room_id', roomId)
-      .select()
-      .single();
 
-    if (error) throw error;
-    return Room.fromRow(data);
+  async transferOwnership(roomId, newOwnerId) {
+    const { error } = await supabase.rpc('transfer_room_ownership', {
+      p_room_id: Number(roomId),
+      p_new_owner_id: newOwnerId
+    });
+
+    if (error) {
+      console.error("[RoomRepository] Erreur RPC transfer_room_ownership:", error);
+      throw error;
+    }
+    
+    return true;
   },
 };
