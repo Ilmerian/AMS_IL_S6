@@ -200,6 +200,7 @@ src/
 ├─ hooks/__tests__/          # Tests des hooks personnalisés
 ├─ services/__tests__/       # Tests des services métier
 ├─ utils/__tests__/          # Tests des fonctions utilitaires
+├─ pages/tests/              # Tests des pages(ex: RegieDirector)
 └─ test/mocks/               # Mocks partagés pour les tests
 
 Couverture actuelle
@@ -209,7 +210,8 @@ Composant     VideoPlayerShell	           9	✅
 Hook          usePlaylistForRoom	         6	✅
 Services      AccessService                6  ✅
 Hook          useVideoSync                12  ✅
-Total	                                    43	✅ 100%
+Pages         RegieDirector                8  ✅
+Total	                                    51	✅ 100%
 
 Exécution des tests
 # Lancer tous les tests
@@ -225,6 +227,7 @@ npm run test -- --watch
 npm run test:coverage
 
 ### Tests clés
+
     youtube.test.js : Extraction d'ID YouTube, génération d'URLs embed et watch
 
     VideoPlayerShell.test.jsx : Gestion des props url, playing, canControl, appels des callbacks
@@ -234,6 +237,8 @@ npm run test:coverage
     AccessService.test.js : Vérification des permissions utilisateurs,  Couvre les cas : manager / non-manager / propriétaire / non-propriétaire / non-connecté
 
     useVideoSync.test.js : gère la synchronisation de la lecture vidéo entre les utilisateurs (actions interdites des spectateurs, multi-utilisateurs, déconnexion régisseur,controle régisseur).
+
+    RegieDirector.test.jsx : Validation du comportement de la régie (playlist persistante via localStorage et synchronisation Supabase). Couvre l’ajout/suppression de vidéos (URL et recherche YouTube), le passage entre phases setup/live, la diffusion (broadcast), la limite de 10 vidéos et la vérification des droits d’accès (manager vs spectateur).
 
 ### Technologies utilisées
         Vitest : Runner de tests ultra-rapide compatible Vite

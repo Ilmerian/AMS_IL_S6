@@ -133,6 +133,13 @@ export default function RegieDirector() {
         } catch (e) {}
     }, [playlist, videoDetails, roomId, canAccessDirector]);
 
+    // Retour automatique en phase setup si la playlist devient vide en phase live
+    useEffect(() => {
+        if (phase === 'live' && playlist.length === 0) {
+            setPhase('setup');
+        }
+    }, [playlist, phase]);
+
     useEffect(() => {
         if (!roomId || !canAccessDirector) return;
 
